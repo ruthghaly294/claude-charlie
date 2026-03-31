@@ -24,29 +24,82 @@ echo "║  Ultimate Claude Code Setup                      ║"
 echo "║  Full-Stack TypeScript Template                  ║"
 echo "╚══════════════════════════════════════════════════╝"
 
-# ─── Step 1: Prerequisites ────────────────────────────────────────────
+# ─── Step 1: Prerequisites (auto-install) ─────────────────────────────
 
-log_step "Step 1: Checking prerequisites..."
+log_step "Step 1: Checking and installing prerequisites..."
 
-check_cmd() {
-  if command -v "$1" >/dev/null 2>&1; then
-    log_ok "$1 found: $(command -v "$1")"
-    return 0
+ensure_node() {
+  if command -v node >/dev/null 2>&1; then
+    log_ok "node found: $(node --version)"
   else
-    log_fail "$1 not found. $2"
-    ERRORS=$((ERRORS + 1))
-    return 1
+    log_warn "node not found. Installing via nvm..."
+    if command -v nvm >/dev/null 2>&1; then
+      nvm install --lts
+    else
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+      nvm install --lts
+    fi
+    if command -v node >/dev/null 2>&1; then
+      log_ok "node installed: $(node --version)"
+    else
+      log_fail "Failed to install node. Install manually from https://nodejs.org"
+      ERRORS=$((ERRORS + 1))
+    fi
   fi
 }
 
-check_cmd "node" "Install from https://nodejs.org (>= 18 required)"
-check_cmd "npm" "Comes with Node.js"
-check_cmd "claude" "Install: npm i -g @anthropic-ai/claude-code"
-check_cmd "gh" "Install from https://cli.github.com"
+ensure_claude() {
+  if command -v claude >/dev/null 2>&1; then
+    log_ok "claude found: $(command -v claude)"
+  else
+    log_warn "claude not found. Installing..."
+    npm i -g @anthropic-ai/claude-code
+    if command -v claude >/dev/null 2>&1; then
+      log_ok "claude installed: $(command -v claude)"
+    else
+      log_fail "Failed to install claude. Run: npm i -g @anthropic-ai/claude-code"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_gh() {
+  if command -v gh >/dev/null 2>&1; then
+    log_ok "gh found: $(command -v gh)"
+  else
+    log_warn "gh not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      (type -p wget >/dev/null || sudo apt-get update && sudo apt-get install wget -y) \
+        && sudo mkdir -p -m 755 /etc/apt/keyrings \
+        && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+        && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && sudo apt-get update && sudo apt-get install gh -y
+    elif command -v brew >/dev/null 2>&1; then
+      brew install gh
+    else
+      log_fail "Cannot auto-install gh. Install from https://cli.github.com"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v gh >/dev/null 2>&1; then
+      log_ok "gh installed: $(command -v gh)"
+    else
+      log_fail "Failed to install gh. Install from https://cli.github.com"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_node
+ensure_claude
+ensure_gh
 
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
-  log_fail "Missing $ERRORS prerequisite(s). Install them and re-run."
+  log_fail "$ERRORS prerequisite(s) could not be installed. Fix manually and re-run."
   exit 1
 fi
 
