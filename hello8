@@ -1,0 +1,831 @@
+About This File
+This file provides concise, high-level context for AI agents working on the codebase.
+
+Maintaining this file:
+
+Keep sections brief and scannable - follow the existing level of verbosity
+Focus on rules, patterns, and critical "gotchas" - not exhaustive explanations
+For detailed documentation (>50 lines), create separate files in docs/ and link to them
+Use one clear example per section (good ✅ vs bad ❌) - avoid redundancy
+Local conventions: Check @local.md (if it exists) for developer-specific notes about local environment quirks, preferences, and setup details that don't apply globally to the project.
+
+Project Tech Stack
+Framework: Next.js 16.0.0
+Authentication: NextAuth v5.0.0-beta.30 (Auth.js) with Credentials provider
+Database: PostgreSQL with Drizzle ORM
+Session Strategy: JWT sessions with database validation
+Important: Next.js 16 and NextAuth v5 have significant API changes from previous versions. If you encounter configuration issues:
+
+Next.js 16 uses proxy.ts instead of middleware.ts
+NextAuth v5 (Auth.js) has different configuration syntax than v4
+Always consult official documentation: Next.js docs, Auth.js docs
+Configuration Management
+System: Config registry with multi-source resolution (database → environment → JSON → defaults). Config files in src/config/ provide the API.
+
+Rules:
+
+ALWAYS import from @/config - Never use process.env or env directly
+Secrets stay in env vars - Database URLs, API keys never in registry/database
+Runtime settings use registry - Model names, timeouts, feature flags can be changed live
+Config files hide complexity - They resolve from registry internally
+Value Resolution (priority order):
+
+1. Database    ← Admin overrides via /admin/config or ./bin/admin config
+2. Environment ← .env file or process.env
+3. JSON files  ← config/*.json (version-controlled defaults)
+4. Default     ← Hardcoded in registry definition
+Usage:
+
+// Good ✅ - Import from @/config (works for all config)
+import { embeddingConfig } from "@/config";
+const model = embeddingConfig.model; // Resolves from registry
+
+// Bad ❌ - Direct env or registry access
+const model = env.EMBEDDING_MODEL;
+const model = await configRegistry.get("EMBEDDING_MODEL");
+TYPESCRIPT
+Admin Management:
+
+./bin/admin config list --group=llm    # CLI: List config items
+./bin/admin config set EMBEDDING_MODEL text-embedding-3-large  # Set value
+BASH
+Admin UI: /admin/config - Edit live (non-secret) config items
+
+Config Properties:
+
+secret: true - Env-only (API keys, database URLs)
+live: true - Runtime-configurable (model names, timeouts)
+required: true - App refuses to start without value
+Adding New Config:
+
+Define in src/config/registry/items/<group>.ts with defineConfigItem()
+Add default to config/<group>.json (optional)
+Config file getters automatically resolve from registry
+Local Development Folder (local/)
+NOT under version control. Use for: debugging scripts, test data, reproduction cases, local experiments, analysis output.
+
+Scratch Folder (scratch/)
+IS under version control, NOT production-ready. Use for: proof of concepts, research experiments, algorithm prototypes.
+
+Rules:
+
+Each experiment folder must have a README.md
+Experiments CAN import from production
+Production CANNOT import from scratch
+Code Generation - Handlebars Template System
+CRITICAL: *.generated.ts files are auto-generated. NEVER edit them directly.
+
+Rules:
+
+NEVER modify *.generated.ts files - Changes will be overwritten
+ALWAYS edit *.template.hbs files instead - Then regenerate
+Run npm run gen after template changes - Regenerates all code
+Templates use Handlebars syntax - Supports variables, conditionals, and loops
+Template Syntax:
+
+Variables: {{variableName}}
+Conditionals: {{#if condition}}...{{/if}}
+Loops: {{#each items}}...{{/each}}
+Unescaped output: {{{code}}} (use for code blocks)
+Workflow:
+
+// Good ✅ // 1. Edit src/generators/example/greeting.template.hbs
+{{
+#if
+ hasFeature}}
+  export function get{{entityName}}(): string { return "{{message}}"; }
+{{
+/if
+}}
+
+// 2. Run: npm run gen // 3. Commit both template and generated files
+HANDLEBARS
+// Bad ❌
+// Edit src/generators/example/generated/user-greeting.generated.ts directly
+TYPESCRIPT
+See src/codegen/README.md for creating new generators
+
+Next.js 16 - Proxy (NOT Middleware!)
+Important: Next.js 16 uses proxy.ts instead of middleware.ts.
+
+Our Implementation
+Location: src/proxy.ts
+Pattern: Uses NextAuth's auth() wrapper for route protection
+Config: Matcher protects all routes except /auth/* and static files
+Runtime: Node.js (not Edge), so full database access is available
+Database Migrations
+CRITICAL: Always use migrations for schema changes. NEVER use drizzle's push - it bypasses migration tracking.
+
+Workflow:
+
+Make schema changes in src/db/schema/*.schema.ts
+Generate migration: npm run db:generate (NEVER write migration files manually)
+Apply migration: npm run db:migrate
+Note: If npm run db:generate shows an interactive prompt, ask the user to run it.
+
+Database Architecture - Repository Pattern
+Rules:
+
+NEVER access the database directly - Always use repository functions
+NEVER import from @/db/schema - Import from @/repositories
+Repositories are the ONLY layer that can call db.select(), db.insert(), db.update(), db.delete()
+Structure: src/db/schema/ (table definitions) → src/repositories/ (queries) → application code
+
+Usage:
+
+// Good ✅
+import { findUserById, createScript } from "@/repositories";
+const user = await findUserById(userId);
+
+// Bad ❌
+import { db } from "@/db";
+import { users } from "@/db/schema";
+TYPESCRIPT
+Adding queries: Create function in appropriate repository → export from src/repositories/index.ts → import from @/repositories
+
+API Routes - Next.js App Router
+Location: src/app/api/
+
+Rules:
+
+ALWAYS use successResponse() and errorResponse() helpers - Never manually construct response objects
+ALWAYS use consistent response format - { success: true, data: T } or { error: true, message: string }
+ALWAYS validate request bodies - Return 400 with clear error messages for missing/invalid fields
+ALWAYS use withAuth wrapper - Never manually check authentication in route handlers
+ALWAYS handle repository errors - Use handleRepositoryError() for consistent error mapping
+Response Format:
+
+Success:
+
+import { successResponse } from "@/lib/api/response";
+
+return successResponse(
+  resource,
+  {
+    /* optional metadata */
+  },
+  201,
+);
+// Returns: { success: true, data: resource, ...metadata }
+TYPESCRIPT
+Error:
+
+import { errorResponse } from "@/lib/api/response";
+
+return errorResponse("User-friendly message", 404);
+// Returns: { error: true, message: "..." }
+TYPESCRIPT
+Status Codes:
+
+200 - Success (GET, PATCH, DELETE)
+201 - Resource created (POST)
+400 - Bad request (validation error)
+401 - Unauthorized (no session)
+403 - Forbidden (no access to resource)
+404 - Resource not found
+409 - Conflict (unique constraint violation, resource in use)
+500 - Server error
+Example:
+
+// Good ✅
+import { successResponse, errorResponse } from "@/lib/api/response";
+import { handleRepositoryError } from "@/lib/api/handle-error";
+
+export const POST = withAuth(async (session, request) => {
+  const body = await request.json();
+
+  // Validation
+  if (!body.name) {
+    return errorResponse("Missing required field: name", 400);
+  }
+
+  // Business logic
+  try {
+    const resource = await createResource(body, { userId: session.user.id });
+    return successResponse(resource, {}, 201);
+  } catch (error) {
+    return handleRepositoryError(error, "create resource");
+  }
+});
+
+// Bad ❌ - Manual response construction
+return NextResponse.json({ success: true, module: data }, { status: 201 });
+return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+TYPESCRIPT
+Adding Request Validation:
+
+Use Zod schemas (already in project for env vars) for request validation:
+
+import { z } from "zod";
+import { errorResponse } from "@/lib/api/response";
+
+const createModuleSchema = z.object({
+  name: z.string().min(1),
+  version: z.string().min(1),
+  description: z.string().optional(),
+});
+
+export const POST = withAuth(async (session, request) => {
+  const body = await request.json();
+  const parsed = createModuleSchema.safeParse(body);
+
+  if (!parsed.success) {
+    const details = parsed.error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      issue: issue.message,
+    }));
+    return errorResponse("Validation error", 400, details);
+  }
+
+  // Use parsed.data (typed and validated)
+  const resource = await createResource(parsed.data, {
+    userId: session.user.id,
+  });
+  return successResponse(resource, {}, 201);
+});
+TYPESCRIPT
+Service Layer Pattern
+Purpose: Services orchestrate business logic, coordinate repositories, and manage external APIs.
+
+Rules:
+
+Services orchestrate business logic - Coordinate repositories, external APIs, and cross-cutting concerns
+Utilities are pure functions - No database access, no business rules, reusable across features
+Infrastructure clients in lib/clients/ - R2, Redis, Typesense clients are utilities
+Business workflows in services/ - File upload, analysis execution, embedding generation
+Architecture:
+
+Presentation (UI/API Routes)
+         ↓
+   Service Layer (src/services/)
+    ↙          ↓          ↘
+Repositories  External APIs  Utilities
+(src/repos/)  (LLM, R2...)  (src/lib/)
+    ↘          ↓          ↙
+      Database / Storage
+When to Use services/:
+
+Orchestrates multiple repositories
+Contains business rules or authorization
+Manages external API interactions (LLM, R2, etc.)
+Handles workflow with multiple steps
+When to Use lib/:
+
+Pure functions (formatting, parsing, validation)
+Infrastructure clients (R2, Redis, Typesense)
+Shared utilities with no business logic
+Reusable across multiple services
+Example:
+
+// Good ✅ - Service orchestrating business logic
+// src/services/file.service.ts
+import { uploadToR2 } from "@/lib/clients/r2";
+import { findOrCreateFile, addItemToProject } from "@/repositories";
+import { generateContentHash } from "@/lib/crypto";
+
+export async function uploadFileToProject(params: UploadParams) {
+  const r2Key = generateR2Key(params.buffer, params.filename);
+  await uploadToR2({ key: r2Key, buffer: params.buffer, mimeType: params.mimeType });
+  const contentHash = generateContentHash(params.buffer);
+  const fileResult = await findOrCreateFile({ contentHash, r2Key, ... });
+  await addItemToProject({ projectId: params.projectId, itemId: fileResult.file.id });
+  return fileResult;
+}
+
+// Good ✅ - Utility with no business logic
+// src/lib/clients/r2.ts
+export async function uploadToR2(params: { key: string; buffer: Buffer; mimeType: string }) {
+  const command = new PutObjectCommand({ Bucket: r2Config.bucket, Key: params.key, ... });
+  return r2Client.send(command);
+}
+
+// Bad ❌ - Business logic in lib/
+// src/lib/file-upload.ts
+export async function uploadFile(params) {
+  // Database access, business rules - should be in service!
+  const fileResult = await findOrCreateFile(...);
+  await addItemToProject(...);
+}
+TYPESCRIPT
+Organization:
+
+src/services/
+  ├── file.service.ts          # File upload and management
+  ├── embedding.service.ts     # Embedding generation
+  ├── metadata.service.ts      # Metadata extraction
+  ├── document.service.ts      # Document processing orchestration
+  ├── project.service.ts       # Project management (exists)
+  └── analysis-execution.service.ts  # Analysis execution (exists)
+
+src/lib/
+  ├── formatting.ts            # Formatting utilities
+  ├── validation.ts            # Validation utilities
+  ├── parsing.ts               # Parsing utilities
+  ├── crypto.ts                # Cryptographic utilities
+  ├── clients/                 # Infrastructure clients
+  │   ├── r2.ts
+  │   ├── redis.ts
+  │   └── typesense.ts
+  ├── auth/                    # Auth utilities
+  ├── prompts/                 # Prompt utilities
+  ├── embeddings/              # Embedding client
+  └── document-processing/     # Document processing pipeline
+Background Processing - BullMQ Queue System
+Architecture: Queues (job submission) + Workers (separate process) + Processors (business logic)
+
+CRITICAL: Workers run in a SEPARATE PROCESS (scripts/worker.ts). Never call initializeWorkers() from Next.js app - workers are managed by PM2 via local.sh.
+
+Rules:
+
+ALWAYS use type-safe job dispatch functions - addAnalysisExecutionJob(), addFileIntakeJob()
+NEVER initialize workers in Next.js app - Workers run in separate process
+Read src/lib/queue/processors/README.md before adding or changing jobs - Contains processor patterns, error handling strategies, and logging conventions
+Worker Management:
+
+Start: ./local.sh (uses PM2 to manage worker process)
+Logs: npm run worker:logs
+Config: src/config/queue.config.ts (retry attempts, backoff, retention)
+Example:
+
+// Good ✅ - Type-safe job submission
+import { addAnalysisExecutionJob } from "@/lib/queue";
+
+await addAnalysisExecutionJob({ analysisId: analysis.id });
+
+// Bad ❌ - Generic queue.add() bypasses type safety
+import { defaultQueue } from "@/lib/queue/queues";
+
+await defaultQueue().add("analysis-execution", { analysisId: analysis.id });
+TYPESCRIPT
+TypeScript Type Organization
+Rules:
+
+NEVER use inline object/union types - Define in centralized locations
+ALWAYS use type imports - import type { ... }
+Types in src/types/ (shared) or co-located with domain code (repositories)
+Example:
+
+// Good ✅
+export interface ComponentProps { ... }
+import type { ComponentProps } from "@/types/component-props";
+
+// Bad ❌
+function Component({ ... }: { inline: string }) { ... }
+TYPESCRIPT
+Code Comments
+Rules:
+
+NEVER use line-level comments - Code should be self-documenting
+ALWAYS document interfaces, classes, functions, files - JSDoc-style comments are encouraged
+If code needs explanation, refactor for clarity instead
+Example:
+
+// Good ✅
+/**
+ * Validates script metadata and returns normalized form.
+ * @throws {ValidationError} if required fields are missing
+ */
+export async function validateScriptMetadata(
+  data: unknown,
+): Promise<ScriptMetadata> {
+  const titleMaxLength = 200;
+  if (!data.title || data.title.length > titleMaxLength) {
+    throw new ValidationError("Invalid title");
+  }
+  return normalizeMetadata(data);
+}
+
+// Bad ❌
+export async function validateScriptMetadata(
+  data: unknown,
+): Promise<ScriptMetadata> {
+  // Check if title exists and is not too long
+  const titleMaxLength = 200; // Maximum allowed length
+  if (!data.title || data.title.length > titleMaxLength) {
+    throw new ValidationError("Invalid title"); // Throw error for invalid title
+  }
+  // Normalize and return
+  return normalizeMetadata(data);
+}
+TYPESCRIPT
+Documentation Practices
+Rules:
+
+NEVER leave completed tasks in documentation - Remove them entirely once confirmed complete
+NEVER document historical context - No "old system" vs "new system" comparisons
+ALWAYS keep documentation current - Document only the present state, not past versions
+ALWAYS remove obsolete information - When systems change, replace old docs completely
+Rationale: Documentation should reflect the current state of the system, not its history. Historical context clutters docs and confuses readers about what's actually implemented.
+
+Example:
+
+Good ✅
+
+## Authentication System
+
+We use NextAuth v5 with JWT sessions. Sessions are validated against the database on each request.
+
+Bad ❌
+
+## Authentication System
+
+~~Old System: We used to use session cookies stored in Redis.~~
+
+New System: We now use NextAuth v5 with JWT sessions...
+
+Tasks:
+
+- [x] Migrate to NextAuth v5
+- [x] Remove Redis dependency
+- [ ] Add OAuth providers
+MARKDOWN
+UI Components - shadcn/ui & Tailwind CSS
+Versions: shadcn/ui 3.5.0, Tailwind v4 (NOT v3), React 19.2.0, lucide-react 0.548.0
+Config: new-york style, RSC enabled, slate base color
+
+Rules:
+
+ALWAYS use shadcn/ui primitives (Card, Button, Badge) - never build from scratch
+NEVER manually edit ui/ components - use npx shadcn@latest add <component>
+ALWAYS use Tailwind utilities - no custom CSS
+ALWAYS use lucide-react icons - consistent icon library
+ALWAYS include dark mode - dark: variants for custom colors
+Tailwind patterns:
+
+Spacing: gap-2, space-y-4, p-4, px-6
+Icons: size-4, size-5 (not w-4 h-4)
+Semantic colors: text-muted-foreground, bg-primary, border-destructive
+Use cn() for className merging
+Example:
+
+// Good ✅
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText } from "lucide-react";
+
+<Card className="transition-all hover:shadow-md">
+  <CardHeader>
+    <FileText className="size-5 text-muted-foreground" />
+    <CardTitle>{title}</CardTitle>
+  </CardHeader>
+</Card>
+
+// Bad ❌
+<div className="border rounded p-4 shadow">
+  <div className="font-bold">{title}</div>
+</div>
+TYPESCRIPT
+Tailwind v4 differences: Uses @tailwindcss/postcss plugin, @import "tailwindcss" in CSS (not @tailwind directives)
+
+LLM Interactions - Vercel AI SDK
+CRITICAL: All LLM interactions MUST use the Vercel AI SDK. NEVER use provider SDKs directly.
+
+Rules:
+
+Import from ai and @ai-sdk/* (NOT openai, @anthropic-ai/sdk, etc.)
+Use provider packages: @ai-sdk/openai, @ai-sdk/anthropic, @ai-sdk/google
+Approved models: gpt-4o, gpt-4o-mini, gpt-4.1/mini/nano, gpt-5/mini/nano/chat/pro/codex, gemini-2.5-pro/flash/flash-lite/flash-image, claude-sonnet-4-5, claude-haiku-4-5
+
+Example:
+
+// Good ✅
+import { embed, generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+const model = openai.embedding("text-embedding-3-small");
+const { embedding } = await embed({ model, value: text });
+
+// Bad ❌
+import OpenAI from "openai";
+const openai = new OpenAI();
+TYPESCRIPT
+Internationalization (i18n) - Avoiding HTML Entity Escaping
+Purpose: We use next-intl primarily to avoid HTML entity escaping (&quot;, &apos;, etc.) in JSX, not for multilingual support (yet).
+
+Why: The ESLint rule react/no-unescaped-entities flags quotes and apostrophes in JSX. Rather than littering the codebase with HTML entities, we externalize these strings to translation files.
+
+Setup:
+
+Config: src/i18n/request.ts (single locale: "en")
+Messages: messages/en.json (organized by component/page)
+Plugin: next-intl integrated in next.config.ts
+Provider: NextIntlClientProvider wraps app in src/app/layout.tsx
+When to use:
+
+DO move strings to translation files when they contain quotes (") or apostrophes (')
+DON'T move every string - only those that trigger lint errors
+DO organize messages by component/page namespace (e.g., DocsPage, FeedbackDialog)
+Usage:
+
+// Server Components ✅
+import { getTranslations } from "next-intl/server";
+const t = await getTranslations("DocsPage");
+return <p>{t("uploadScript")}</p>;
+
+// Client Components ✅
+import { useTranslations } from "next-intl";
+const t = useTranslations("FeedbackDialog");
+return <p>{t("alreadySubmittedDesc")}</p>;
+
+// Bad ❌ - HTML entities everywhere
+return <p>You've already submitted feedback. We'll check in next week!</p>;
+// Becomes: You&apos;ve already submitted feedback. We&apos;ll check in next week!
+TYPESCRIPT
+Translation file structure:
+
+{
+  "DocsPage": {
+    "uploadScript": "Upload Script",
+    "youllProvideMetadata": "When uploading, you'll provide metadata..."
+  },
+  "FeedbackDialog": {
+    "alreadySubmittedDesc": "You've already submitted feedback for this week..."
+  }
+}
+JSON
+Testing
+Test runner: Vitest (unit/integration/component/API/worker tests), Playwright (E2E tests)
+Tools: @testing-library/react, jsdom, @testing-library/jest-dom
+
+Test suites:
+
+Unit (tests/unit/**/*.test.ts) - Pure utilities, Node environment
+Integration (tests/integration/**/*.test.ts) - Repositories/services, Node environment
+Component (tests/components/**/*.test.tsx) - React components, jsdom environment
+API (tests/api/**/*.test.ts) - API routes, Node environment
+Worker (tests/workers/**/*.test.ts) - BullMQ workers, Node environment
+E2E (tests/e2e/**/*.test.ts) - Full user flows, Playwright (Chromium/Firefox/Mobile Chrome)
+Commands:
+
+npm test - Run all Vitest tests (unit + integration)
+npm run test:unit - Unit tests only
+npm run test:integration - Integration tests only
+npm run test:components - Component tests only
+npm run test:e2e - E2E tests with Playwright
+npm run test:watch - Watch mode for active development
+npm run test:coverage - Generate coverage report
+Rules:
+
+ALWAYS use Vitest syntax - describe, it, expect from "vitest"
+ALWAYS use setup files - Each test directory has setup.ts for environment config
+ALWAYS use file extension .test.ts or .test.tsx - NOT .spec.ts
+Component tests use jsdom - Mocks Next.js navigation and next-intl by default
+Example:
+
+// Good ✅ - tests/unit/lib/my-util.test.ts
+import { describe, it, expect } from "vitest";
+import { myFunction } from "@/lib/my-util";
+
+describe("myFunction", () => {
+  it("should return expected value", () => {
+    expect(myFunction("input")).toBe("expected");
+  });
+});
+
+// Good ✅ - tests/components/my-component.test.tsx
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MyComponent } from "@/components/my-component";
+
+describe("MyComponent", () => {
+  it("should render correctly", () => {
+    render(<MyComponent />);
+    expect(screen.getByText("Expected Text")).toBeInTheDocument();
+  });
+});
+
+// Bad ❌ - Wrong file location and extension
+// src/lib/my-util.spec.ts
+import { test } from "node:test"; // Wrong test runner
+TYPESCRIPT
+Development & Verification Workflow
+CRITICAL: When local.sh exists in the repository root, use it to start all services instead of running individual dev servers.
+
+Local Development Script
+Location: local.sh (repository root)
+Behavior: Runs npm run build, then uses PM2 to restart all services (Next.js app, workers, Typesense)
+Script exits immediately - Services run in background via PM2
+Preferred approach - Production server is more reliable indicator than dev mode
+Includes build step - No need to run npm run build separately before running ./local.sh
+Viewing logs:
+
+npm run dev:logs - Next.js dev server logs
+npm run prod:logs - Next.js production server logs
+npm run worker:logs - BullMQ worker logs
+npm run typesense:logs - Typesense search logs
+Code Verification Order
+For quick "does it work" checks:
+
+Build & restart - Run ./local.sh to rebuild and restart all services
+Manual verify - Test in browser/UI to confirm functionality
+Before completing work (full verification):
+
+Run /fix-build - Handles lint and build in the preferred manner
+Manual verify - Test in browser/UI as final confirmation
+Completing Work
+Before declaring work complete:
+
+Run /fix-build - If not already run during verification
+Manual verify - Test in browser/UI as final confirmation
+Inform the user that work is complete
+Note: The user will handle formatting and committing changes. Do not create commits.
+
+Example workflow:
+
+# Good ✅ - Quick check during development
+./local.sh                     # Build and restart all services
+# Then manually verify in browser
+
+# Good ✅ - Before declaring work complete
+# Use /fix-build slash command to handle lint and build
+# Then manually verify in browser
+# Then inform user work is complete
+
+# Bad ❌ - Skipping build verification
+# Making changes, testing in dev mode only, declaring work complete without /fix-build
+BASH
+Rules:
+
+NEVER skip the build step - Dev mode may hide issues (build happens in ./local.sh)
+ALWAYS use ./local.sh when it exists - Handles build and is more reliable than individual dev servers
+ALWAYS run /fix-build before declaring work complete - Ensures code quality
+NEVER create commits - User handles all git operations
+Browser Testing - Chrome DevTools MCP
+Available via MCP: Chrome browser with DevTools integration for UI validation and testing.
+
+Development Credentials: admin / admin (username/password) in development mode
+
+Rules:
+
+ALWAYS validate UI changes in browser - Navigate to the page, check console errors, take screenshots
+NEVER open raw screenshots directly - Convert to JPEG first to avoid API size limits
+ALWAYS check browser console - Errors may not be visible in the UI
+Use snapshots for text content - take_snapshot is faster and cheaper than screenshots
+Typical UI Validation Workflow:
+
+# 1. Navigate to the page
+mcp__chrome-devtools__navigate_page({ url: "http://localhost:3000/dashboard" })
+
+# 2. Take text snapshot to verify content
+mcp__chrome-devtools__take_snapshot()
+
+# 3. Check console for errors
+mcp__chrome-devtools__list_console_messages()
+
+# 4. Take screenshot and convert to JPEG
+mcp__chrome-devtools__take_screenshot({ filePath: "/tmp/screenshot.png" })
+# Convert before viewing (avoid API size limits)
+ffmpeg -i /tmp/screenshot.png -q:v 5 /tmp/screenshot.jpg
+# Now view the JPEG
+BASH
+Screenshot Best Practices:
+
+PNG screenshots are too large for Claude API - always convert to JPEG first
+Use ffmpeg -i input.png -q:v 5 output.jpg for compression
+Quality flag -q:v 5 balances size and readability (range: 2-31, lower is better)
+Save screenshots to /tmp/ or local/ (not version controlled)
+Example - Complete UI Change Validation:
+
+// After making UI changes to a component:
+
+// 1. Navigate to page
+await navigate_page({ url: "http://localhost:3000/scripts/123" });
+
+// 2. Take snapshot to verify text content
+await take_snapshot();
+
+// 3. Check for console errors
+const messages = await list_console_messages({ types: ["error", "warn"] });
+
+// 4. Take screenshot for visual verification
+await take_screenshot({ filePath: "/tmp/ui-check.png" });
+
+// 5. Convert to JPEG before viewing
+await bash("ffmpeg -i /tmp/ui-check.png -q:v 5 /tmp/ui-check.jpg");
+
+// 6. View the JPEG
+await read("/tmp/ui-check.jpg");
+TYPESCRIPT
+Data Fetching - TanStack Query
+Library: @tanstack/react-query (React Query)
+
+CRITICAL: All client-side data fetching MUST use TanStack Query hooks. NEVER manually implement fetch logic with useState/useEffect.
+
+Rules:
+
+ALWAYS use query hooks from @/hooks/use-* - Never call fetch directly in components
+NEVER write manual fetch logic - Use existing hooks or create new ones following the pattern
+Hooks handle caching, refetching, and mutations automatically - Trust the library
+Query Hooks Pattern:
+
+// Good ✅
+import { useModules } from "@/hooks/use-modules";
+
+export function ModulesList() {
+  const {
+    data: modules = [],
+    isLoading,
+    error,
+    refetch,
+  } = useModules();
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error.message} onRetry={refetch} />;
+
+  return <div>{modules.map((m) => ...)}</div>;
+}
+
+// Bad ❌ - Manual fetch implementation
+export function ModulesList() {
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/modules")
+      .then((res) => res.json())
+      .then((data) => setModules(data.modules))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ... rest of component
+}
+TYPESCRIPT
+Mutation Hooks Pattern:
+
+// Good ✅
+import { useDeleteModule } from "@/hooks/use-modules";
+
+export function DeleteButton({ moduleId }: Props) {
+  const { mutate: deleteModule, isPending } = useDeleteModule();
+
+  const handleDelete = () => {
+    deleteModule(moduleId, {
+      onSuccess: () => toast.success("Deleted successfully"),
+      onError: (err) => toast.error(err.message),
+    });
+  };
+
+  return (
+    <Button onClick={handleDelete} disabled={isPending}>
+      {isPending ? "Deleting..." : "Delete"}
+    </Button>
+  );
+}
+
+// Bad ❌ - Manual mutation with fetch
+export function DeleteButton({ moduleId }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    const response = await fetch(`/api/modules/${moduleId}`, {
+      method: "DELETE",
+    });
+    setLoading(false);
+    // Manual refetch needed...
+  };
+}
+TYPESCRIPT
+Adding New Hooks:
+
+Create hook file in src/hooks/ (e.g., use-teams.ts)
+Use useQuery for GET operations, useMutation for POST/PATCH/DELETE
+Set appropriate queryKey for caching (e.g., ["teams"] or ["teams", teamId])
+Mutations should invalidate related queries with queryClient.invalidateQueries()
+Example Hook Structure:
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+export function useTeams() {
+  return useQuery({
+    queryKey: ["teams"],
+    queryFn: async () => {
+      const response = await fetch("/api/teams");
+      if (!response.ok) throw new Error("Failed to fetch teams");
+      return response.json();
+    },
+  });
+}
+
+export function useDeleteTeam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (teamId: string) => {
+      const response = await fetch(`/api/teams/${teamId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete team");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+    },
+  });
+}
+TYPESCRIPT
+Query Configuration (in src/components/query-provider.tsx):
+
+staleTime: 5 minutes - Data considered fresh for 5 minutes
+gcTime: 10 minutes - Cache kept for 10 minutes after last use
+retry: 1 - Retry failed requests once
+refetchOnWindowFocus: false - Don't refetch when window gains focus
