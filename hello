@@ -1,1 +1,591 @@
-hello
+Main Title
+Claude Code Project Structure
+CREATED BY MLTUT
+
+Project Layout (Sidebar)
+my_project/
+
+CLAUDE.md
+
+.claude/
+
+settings.json
+
+settings.local.json
+
+commands/
+
+review.md
+
+deploy.md
+
+test-ssl.md
+
+bootstrap.md
+
+skills/
+
+code-review/
+
+SKILL.md
+
+scripts/
+
+references/
+
+assets/
+
+text-writer/
+
+SKILL.md
+
+security-audit/
+
+SKILL.md
+
+refactor/
+
+SKILL.md
+
+agents/
+
+code-reviewer.yml
+
+text-writer.yml
+
+security-auditor.yml
+
+shop-sre.yml
+
+plugins/
+
+manifest.json
+
+my-plugin/
+
+.mcp.json
+
+src/
+
+components/ (auth/, dashboard/, search/)
+
+services/ (api.ts, auth.ts, database.ts)
+
+utils/ (logger.ts, validators.ts, helpers.ts)
+
+types/ (index.ts)
+
+tests/ (unit/, integration/, e2e/)
+
+docs/ (architecture.md, api-reference.md, onboarding.md)
+
+scripts/ (setup.sh, deploy.sh, seed-db.sh)
+
+package.json
+
+tsconfig.json
+
+.env.example
+
+.gitignore
+
+Dockerfile
+
+README.md
+
+Core Concepts & Components
+Project Overview
+Complete Claude Code workspace with Hooks, MCP Servers, Subagents, and Plugins — designed for production AI-assisted development workflows.
+
+Key Components
+CLAUDE.md — Project memory
+
+.claude/ — Config & extensions
+
+.claude/commands/ — Slash commands
+
+skills/ — Auto-activated skills
+
+.mcp.json — MCP server config
+
+agents/ — Subagent definitions
+
+CLAUDE.md Essentials
+Project conventions & style guide
+
+Tech stack & architecture overview
+
+Testing requirements & patterns
+
+Git workflow & branch strategy
+
+Security & compliance rules
+
+File naming & folder conventions
+
+Review checklist before commits
+
+Extension Types
+Skills — Auto-activate on task match
+
+Hooks — Lifecycle event scripts
+
+MCP — External tool connections
+
+Subagents — Isolated parallel work
+
+Agent Teams — Multi-agent coordination
+
+Plugins — Bundled distributable setups
+
+Hook Events
+PreToolUse — Block or modify before execution
+
+PostToolUse — Lint or log after tool completes
+
+Stop — Runs when Claude finishes a task
+
+SubagentStop — Runs when a subagent finishes
+
+SessionStart — Load context on session open
+
+SessionEnd — Save summaries on session close
+
+Notification — Slack / webhook alerts
+
+Skill Structure
+SKILL.md — Instructions & metadata
+
+scripts/ — Executable automation
+
+references/ — Loaded on demand
+
+assets/ — Templates & static files
+
+Best Practices & Configurations
+Best Practices for Claude Code
+Iterative Development — Start small, test frequently
+
+Clear Skill Documentation — Describe skill purpose & usage
+
+Modular Skill Design — Break down complex tasks
+
+Secure Secret Handling — Use environment variables, not code
+
+Regular Testing & Auditing — Ensure skills remain reliable
+
+settings.json Structure (JSON Block)
+JSON
+{
+  "permissions": {"allow": [...], "deny": [...]},
+  "hooks": { 
+    "PreToolUse": [{ 
+      "matcher": "Bash",
+      "hooks": [{ "type": "command", "command": "check-safety.sh" }] 
+    }], 
+    "PostToolUse": [{ 
+      "matcher": "Edit:MultiEditWrite", 
+      "hooks": [{ "type": "command", "command": "npm run lint" }] 
+    }] 
+  },
+  "env": { "CLAUDE_THINKING_BUDGET_TOKENS": "10000" }
+}
+mcp.json Structure (JSON Block)
+JSON
+{
+  "mcpServers": { 
+    "github": { 
+      "type": "stdio",
+      "command": "npx", 
+      "args": [ "-y", "@modelcontextprotocol/server-github" ], 
+      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" } 
+    }, 
+    "postgres": { 
+      "type": "stdio", 
+      "command": "npx", 
+      "args": [ "-y", "gmodelcontextprotocol/server-postgres" ], 
+      "env": { "DATABASE_URL": "${DATABASE_URL}" } 
+    } 
+  }
+}
+Popular MCP Servers
+GitHub — PRs, issues, repos
+
+JIRA / Linear — Ticket workflows
+
+Slack — Notifications & search
+
+PostgreSQL — Direct queries
+
+Playwright — Browser automation
+
+Filesystem — Scoped file access
+
+Operational Guides
+Getting Started
+Run: npm i -g @anthropic-ai/claude-code
+
+Navigate: cd your-project && claude
+
+Create CLAUDE.md with your project conventions
+
+Add slash commands in .claude/commands/
+
+Configure MCP in .mcp.json
+
+Add skills as your workflows grow
+
+Context Management
+0-50% context — Work normally
+
+50-70% context — Monitor usage
+
+70-80% context — Run /compact
+
+80%+ context — /clear mandatory
+
+CLAUDE.md Template
+# Project: My App
+
+## Tech Stack
+
+Next.js 14, TypeScript, Tailwind
+
+Supabase for auth & database
+
+Prisma ORM, tRPC API layer
+
+## Conventions
+
+Always write tests before code
+
+Use conventional commits
+
+Never commit directly to main
+
+Run lint + typecheck before PR
+
+## Architecture
+
+src/components - React components
+
+src/services - Business logic
+
+src/utils - Shared helpers
+
+## Security
+
+No secrets in code or logs
+
+Validate all user inputs
+
+Use parameterized queries only
+
+Footer: MLTUT • CLAUDE CODE PROJECT STRUCTURE REFERENCE
+
+Main Title
+Claude Code Project Structure
+By: Brij Kishore Pandey
+
+Project Layout
+my_project/
+
+CLAUDE.md
+
+.claude/
+
+settings.json
+
+settings.local.json
+
+commands/
+
+review.md
+
+deploy.md
+
+test-ssl.md
+
+bootstrap.md
+
+skills/
+
+code-review/
+
+SKILL.md
+
+scripts/
+
+references/
+
+assets/
+
+text-writer/
+
+SKILL.md
+
+security-audit/
+
+SKILL.md
+
+refactor/
+
+SKILL.md
+
+agents/
+
+code-reviewer.yml
+
+text-writer.yml
+
+security-auditor.yml
+
+shop-sre.yml
+
+plugins/
+
+manifest.json
+
+my-plugin/
+
+.mcp.json
+
+src/
+
+components/ (auth/, dashboard/, search/)
+
+services/ (api.ts, auth.ts, database.ts)
+
+utils/ (logger.ts, validators.ts, helpers.ts)
+
+types/ (index.ts)
+
+tests/ (unit/, integration/, e2e/)
+
+docs/ (architecture.md, api-reference.md, onboarding.md)
+
+scripts/ (setup.sh, deploy.sh, seed-db.sh)
+
+package.json
+
+tsconfig.json
+
+.env.example
+
+.gitignore
+
+Dockerfile
+
+README.md
+
+Core Concepts
+Project Overview
+Complete Claude Code workspace with hooks, MCP Servers, Subagents, and Plugins designed for production AI assisted development.
+
+Key Components
+CLAUDE.md — Project memory
+
+.claude/ — Config & extensions
+
+commands/ — Slash commands
+
+skills/ — Auto-activated skills
+
+.mcp.json — MCP server config
+
+agents/ — Subagent definitions
+
+CLAUDE.md Essentials
+Project conventions & style guide
+
+Tech stack & architecture overview
+
+Testing requirements & patterns
+
+Git workflow & branch strategy
+
+Security & compliance rules
+
+File naming & folder conventions
+
+Review checklist before commits
+
+Extension Types
+Skills — Auto-activate on task match
+
+Hooks — Lifecycle event scripts
+
+MCP — External tool connections
+
+Subagents — Isolated parallel work
+
+Agent Teams — Multi-agent coordination
+
+Plugins — Bundled distributable setups
+
+Hook Events
+PreToolUse — Block before execution
+
+PostToolUse — Auto lint after writes
+
+SessionStart — Load content on launch
+
+SessionEnd — Save session summaries
+
+PreCommit — Secret detection
+
+Notification — Slack/webhook alerts
+
+Skill Structure
+SKILL.md — Instructions & metadata
+
+scripts/ — Executable automation
+
+references/ — Data loaded on demand
+
+assets/ — Templates & static files
+
+Configurations & Technical Details
+Best Practices for Claude Code
+Iterative Development — Start small, test frequently
+
+Clear Skill Documentation — Describe skill purpose & usage
+
+Modular Skill Design — Break down complex tasks
+
+Secure Secret Handling — Use environment variables, not code
+
+Regular Testing & Auditing — Ensure skills remain reliable
+
+settings.json Structure
+JSON
+{
+  "permissions": { "allow": [...], "deny": [...] },
+  "hooks": {
+    "PreToolUse": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "check-safety.sh" }] }],
+    "PostToolUse": [{ "matcher": "Write", "hooks": [{ "type": "command", "command": "npm run lint" }] }]
+  },
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+  }
+}
+.mcp.json Structure
+JSON
+{
+  "mcpServers": {
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [ "-y", "@anthropic/mcp-github" ],
+      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" }
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [ "-y", "@anthropic/mcp-postgres" ],
+      "env": { "DATABASE_URL": "${DATABASE_URL}" }
+    }
+  }
+}
+Popular MCP Servers
+GitHub — PRs, issues, repos
+
+JIRA/Linear — Ticket workflows
+
+Slack — Notifications & search
+
+PostgreSQL — Direct queries
+
+Playwright — Browser automation
+
+Filesystem — Scoped file access
+
+Operational Guides
+Getting Started
+npm i -g @anthropic-ai/claude-code
+
+cd your-project && claude
+
+Create CLAUDE.md with commands
+
+Add slash commands in .claude/commands/
+
+Configure MCP in .mcp.json
+
+Add skills as workflow grows
+
+Context Management
+0-50% context — Work freely
+
+50-70% context — Monitor usage
+
+70-80% context — Run /compact
+
+80%+ context — /clear mandatory
+
+CLAUDE.md Template
+# Project: My App
+
+## Tech Stack
+
+Next.js 14, TypeScript, Tailwind
+
+Supabase for auth & database
+
+Prisma ORM, TRPC API layer
+
+## Conventions
+
+Always write tests before code
+
+Use conventional commits
+
+Never commit directly to main
+
+Run lint + typecheck before PR
+
+## Architecture
+
+src/components — React components
+
+src/services — Business logic
+
+src/utils — Shared helpers
+
+## Security
+
+No secrets in code or logs
+
+Validate all user inputs
+
+Use parameterized queries only
+
+Transcription of Image 2: Social Media Post
+...and start designing a system Claude can operate in.
+
+Here's a simple Claude Code project structure that changes everything:
+
+CLAUDE.md → the brain (project context, rules, instructions)
+
+/skills → reusable workflows (code review, refactor, release)
+
+/hooks → guardrails and automated checks
+
+/docs → architecture decisions (so Claude understands why)
+
+/src → your actual application code
+
+This isn't just organization.
+
+It's how you make Claude:
+
+remember your context
+
+follow consistent patterns
+
+reduce prompt repetition
+
+scale across features and teams
+
+Most people keep rewriting prompts.

@@ -1,0 +1,97 @@
+Boris Cherny’s 10 team-sourced tips for using Claude Code
+See Boris’s post: these tips come from the Claude Code team, and there’s no single “right” setup—experiment and keep what works.
+
+1) Do more in parallel
+Run 3–5 Claude sessions at once, one per task.
+The team’s preferred approach is git worktree so each session has its own isolated working directory.
+Some folks also keep a dedicated “analysis” worktree for log reading / BigQuery-style investigation.
+2) Start complex tasks in plan mode
+For anything non-trivial, spend effort on a solid plan first, then let Claude implement from it.
+A pattern: have one Claude draft the plan, then have another Claude review the plan (as a “staff engineer” reviewer).
+If things go sideways, stop pushing forward—switch back to plan mode and re-plan (including verification steps).
+3) Invest in your CLAUDE.md (and keep it updated)
+Treat your CLAUDE.md as a living set of rules and project norms Claude should follow.
+After correcting Claude, explicitly ask it to update CLAUDE.md so it won’t repeat the mistake.
+Ruthlessly iterate on this file over time until you see the mistake rate drop.
+One workflow: maintain a notes directory per project/task, updated after each PR, and point Claude at it.
+4) Create reusable skills/commands and commit them to git
+If you do something more than once a day, turn it into a skill or slash command.
+Examples from the team:
+A /techdebt command that runs at the end of sessions to find and remove duplication.
+A command that syncs recent context (e.g., last 7 days of Slack/GDrive/Asana/GitHub) into a single dump.
+“Analytics-engineer” agents that write dbt models, do code review, and test changes in dev.
+5) Let Claude fix bugs end-to-end (with the right inputs)
+Wire in Slack MCP and paste a bug thread, then simply tell Claude to fix it.
+Or delegate broadly: “Go fix the failing CI tests” (avoid micromanaging the method).
+For distributed systems, point Claude at Docker logs and let it troubleshoot.
+6) Level up your prompting
+Challenge Claude: make it justify changes and act like a reviewer (“prove this works”, compare main vs your branch, etc.).
+If a fix is mediocre, ask for a fresh rewrite given what it learned (“scrap it and implement the elegant solution”).
+Write detailed specs and remove ambiguity before handing off work—specificity improves autonomy.
+7) Optimize your terminal & environment
+The team likes Ghostty (fast rendering, good color/unicode support).
+Use /statusline so you always see context usage and current git branch.
+Consider naming/color-coding tabs (often one tab per task/worktree), sometimes with tmux.
+Use voice dictation to produce longer, richer prompts faster than typing.
+8) Use subagents
+If you want more “compute” on a task, explicitly say to use subagents.
+Offload subtasks to subagents to keep your main agent’s context clean and focused.
+More advanced: route sensitive permission checks to a stronger model via hooks (e.g., for security scanning/auto-approval patterns).
+9) Use Claude for data & analytics
+Ask Claude Code to use a database CLI (e.g., bq) to pull metrics and analyze them inline.
+The team keeps a BigQuery skill in-repo and uses it routinely for analytics inside Claude Code.
+The same idea generalizes to any datastore with a CLI, MCP server, or API.
+10) Use Claude Code for learning
+Enable a Learning/Explanatory output style in /config so Claude explains why it made changes.
+Ask for a visual HTML presentation to explain unfamiliar code (Claude can produce surprisingly good “slides”).
+Request ASCII diagrams for protocols/codebases.
+Build a spaced-repetition skill: you explain your understanding, Claude asks follow-ups, and it stores the results for review.
+claude-code-10-tips.md
+Boris Cherny’s 10 Tips for Using Claude Code
+See Boris's post, describing how he uses claude code.
+
+1) Run multiple Claude Code sessions in parallel
+Keep several Claude Code instances running at once (e.g., 5 terminal tabs).
+Number the tabs and use system notifications so you can quickly jump to whichever session needs input.
+(Practical note) Use separate git checkouts per tab so workstreams don’t collide.
+2) Mix local + web + mobile sessions
+In addition to terminal sessions, run several sessions in the web UI (claude.ai/code).
+Hand off work between environments as needed:
+Use & to background a terminal session.
+Use --teleport to move between local and web contexts.
+Start lightweight sessions from your phone (e.g., in the morning), then pick them up later on desktop.
+3) Use Opus with “thinking” for coding
+Prefer the strongest model + thinking mode for most coding tasks.
+Even if it’s slower per-token, you can end up faster overall because you spend less time “steering” and fixing tool-use mistakes.
+4) Maintain a shared CLAUDE.md (and actually keep it current)
+Keep a CLAUDE.md in the repo, committed to git, shared by the team.
+Treat it as the place to record:
+Repeated mistakes Claude makes
+Project conventions (commands, lint/test flow, style rules, etc.)
+Update it whenever Claude does something wrong so future sessions start with better context.
+5) Use @.claude during PR review to compound learnings
+During code review, tag @.claude to turn review feedback into durable repo guidance (often by updating CLAUDE.md).
+Use the Claude Code GitHub Action (e.g., via /install-github-action) so this happens “in the flow” of the PR.
+6) Start in Plan mode, then execute
+Begin most sessions in Plan mode (often Shift+Tab twice).
+Iterate with Claude until you like the plan.
+Then switch to execution (e.g., auto-accept edits) so Claude can implement with fewer mid-flight course corrections.
+7) Create slash commands for your inner loops
+If you do a workflow many times a day, make it a slash command so you don’t keep re-prompting.
+Store and share commands in the repo (commonly under:
+.claude/commands/
+Tip: include inline bash in commands to precompute context (e.g., git status) and reduce back-and-forth.
+8) Use subagents for repeatable “PR-shaped” work
+Define a small set of reusable subagents for common workflows.
+Examples of subagent roles:
+“simplify/clean up the final diff”
+“end-to-end verification instructions”
+The goal is to turn frequent patterns into automation.
+9) Add a PostToolUse hook for formatting
+Use a PostToolUse hook to run formatters automatically after file edits.
+This catches edge cases and reduces formatting-related CI failures.
+10) Pre-allow safe permissions (instead of skipping everything)
+Rather than using --dangerously-skip-permissions, pre-allow the common safe commands you expect Claude to run.
+Use /permissions for this, and share config via something like:
+.claude/settings.json
+Result: fewer interruptions, while still keeping guardrails.

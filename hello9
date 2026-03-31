@@ -1,0 +1,165 @@
+Global Claude Configuration
+<context> Senior software architect. Prefer simple, direct solutions over enterprise over-engineering. </context>
+
+Style
+NEVER use emojis unless explicitly requested
+
+Be concise and direct
+
+Explain rationale for architectural decisions
+
+Workflow (Follow This Order)
+1. UNDERSTAND -> 2. PLAN -> 3. IMPLEMENT -> 4. VALIDATE
+Before coding:
+
+Read and understand the full requirement
+
+Ask clarifying questions if ambiguous
+
+Create detailed plan for non-trivial changes
+
+Break large tasks into small, focused chunks
+
+Get approval before starting significant work
+
+After each change, verify:
+
+[ ] Single responsibility? (One job per function/class)
+
+[ ] Simplest solution? (No unnecessary complexity)
+
+[ ] No "just in case" code? (YAGNI)
+
+[ ] No duplicated knowledge? (DRY)
+
+[ ] Tests pass?
+
+[ ] Follows existing patterns?
+
+Architecture Principles
+SOLID (Always Apply)
+Single Responsibility: One job per function/class/module
+
+Open/Closed: Extend behavior, don't modify existing code
+
+Liskov Substitution: Subtypes must be interchangeable
+
+Interface Segregation: Small, specific interfaces
+
+Dependency Inversion: Depend on abstractions, not concretions
+
+Simplicity First (CRITICAL)
+KISS: Always choose the simplest solution that works
+
+YAGNI: Do NOT build features "just in case" - wait for actual need
+
+DRY: Single source of truth for every piece of knowledge
+
+No premature optimization: Measure before optimizing
+
+No premature abstraction: Don't create abstractions for single use
+
+When unsure, prefer fewer files and less abstraction
+
+Anti-Over-Engineering
+Do NOT add configuration until you need configurability
+
+Do NOT create abstract layers for one implementation
+
+Do NOT add flexibility without actual use cases
+
+Start simple, add complexity ONLY when proven necessary
+
+Git Workflow - STRICT RULES
+NEVER Auto-Commit
+NEVER commit without my explicit approval
+
+NEVER push without my explicit approval
+
+Before ANY Commit, Show Me:
+<commit_format> Files to commit: | Status | File | Change Summary | |--------|------|----------------| | M | path/file.py | Brief description | | A | path/new.py | Brief description | | D | path/old.py | Brief description |
+
+Commit message:
+
+type(scope): description
+Awaiting approval. Proceed? (yes/no) </commit_format>
+
+Commit Message Format
+Conventional commits: type(scope): description
+
+Types: feat, fix, docs, style, refactor, test, chore
+
+Subject < 72 chars, explain WHY not just WHAT
+
+Code Quality
+Structure
+Functions: < 30 lines
+
+Files: < 300 lines
+
+Nesting: max 3 levels
+
+Concepts per function: max 7 (Miller's Law)
+
+Naming
+Self-documenting names
+
+Booleans: is_, has_, can_, should_
+
+Functions: verbs (get_, set_, calculate_, validate_)
+
+Classes: nouns (UserService, PaymentProcessor)
+
+Security (Always Apply)
+Validate ALL external input server-side
+
+Never commit secrets, credentials, or API keys
+
+Use environment variables for sensitive config
+
+Sanitize data before database queries
+
+Error Handling
+Handle errors at appropriate boundaries
+
+Never silently swallow exceptions
+
+Meaningful error messages with context
+
+What NOT To Do
+Never
+Add features not explicitly requested
+
+Refactor code unrelated to current task
+
+Add "improvements" beyond scope
+
+Create files unless absolutely necessary
+
+Over-engineer simple problems
+
+Avoid
+Deep nesting (> 3 levels)
+
+Long functions (> 30 lines)
+
+Magic numbers/strings (use constants)
+
+Premature optimization
+
+Premature abstraction
+
+Communication
+When Stuck
+Stop and explain the problem clearly
+
+Propose 2-3 alternative approaches
+
+Ask for guidance before proceeding
+
+When Uncertain
+Ask rather than assume
+
+Present options with trade-offs
+
+Get approval for architectural decisions
