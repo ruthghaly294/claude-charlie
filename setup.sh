@@ -164,9 +164,84 @@ else
   log_warn "See: https://github.com/get-shit-done/gsd"
 fi
 
-# ─── Step 6: Merge model setting ─────────────────────────────────────
+# ─── Step 6: NotebookLM setup ────────────────────────────────────────
 
-log_step "Step 6: Configuring model preference..."
+log_step "Step 6: Setting up NotebookLM integration..."
+
+ensure_pip() {
+  if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -m ensurepip --default-pip 2>/dev/null || true
+    if command -v pip3 >/dev/null 2>&1; then return 0; fi
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -qq && sudo apt-get install -y -qq python3-pip 2>/dev/null
+  elif command -v brew >/dev/null 2>&1; then
+    brew install python3
+  fi
+  command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1
+}
+
+PIP_CMD=""
+if command -v pip3 >/dev/null 2>&1; then
+  PIP_CMD="pip3"
+elif command -v pip >/dev/null 2>&1; then
+  PIP_CMD="pip"
+fi
+
+if [ -z "$PIP_CMD" ]; then
+  log_warn "pip not found. Attempting to install..."
+  if ensure_pip; then
+    PIP_CMD=$(command -v pip3 2>/dev/null || command -v pip 2>/dev/null)
+    log_ok "pip installed"
+  else
+    log_fail "Could not install pip. Install Python 3 + pip manually."
+    ERRORS=$((ERRORS + 1))
+  fi
+fi
+
+if [ -n "$PIP_CMD" ]; then
+  if command -v notebooklm >/dev/null 2>&1; then
+    log_ok "notebooklm CLI already installed"
+  else
+    log_warn "Installing notebooklm-py..."
+    $PIP_CMD install notebooklm-py 2>/dev/null
+    if command -v notebooklm >/dev/null 2>&1; then
+      log_ok "notebooklm CLI installed"
+    else
+      log_warn "notebooklm-py installed but CLI not on PATH (may need shell restart)"
+    fi
+  fi
+
+  # Install the base NotebookLM skill for Claude Code
+  if command -v notebooklm >/dev/null 2>&1; then
+    if [ -d "$HOME/.claude/skills/notebooklm" ]; then
+      log_ok "NotebookLM skill already installed"
+    else
+      notebooklm skill install 2>/dev/null && log_ok "NotebookLM skill installed" \
+        || log_warn "Could not install NotebookLM skill (run 'notebooklm skill install' manually)"
+    fi
+  fi
+
+  # Create storage directory
+  mkdir -p "$HOME/.notebooklm"
+  log_ok "~/.notebooklm/ directory ready"
+
+  # Check if already authenticated
+  if [ -f "$HOME/.notebooklm/storage_state.json" ]; then
+    log_ok "NotebookLM storage_state.json found (cookies present)"
+  else
+    log_warn "No NotebookLM cookies yet. To authenticate:"
+    log_warn "  1. Export cookies from notebooklm.google.com via Cookie-Editor extension"
+    log_warn "  2. Run: python3 scripts/refresh_notebooklm_auth.py"
+  fi
+fi
+
+# ─── Step 7: Merge model setting ─────────────────────────────────────
+
+log_step "Step 7: Configuring model preference..."
 
 node -e "
 const fs = require('fs');
@@ -180,9 +255,9 @@ fs.writeFileSync(path, JSON.stringify(settings, null, 2) + '\n');
 
 log_ok "Model set to opus (if not already configured)"
 
-# ─── Step 7: Verify installation ─────────────────────────────────────
+# ─── Step 8: Verify installation ─────────────────────────────────────
 
-log_step "Step 7: Verifying installation..."
+log_step "Step 8: Verifying installation..."
 
 CHECKS=0
 PASSED=0
@@ -209,10 +284,11 @@ verify "$HOME/.claude/commands/pr.md" "PR command"
 verify "$HOME/.claude/agents/tdd-guardian.md" "TDD guardian agent"
 verify "$HOME/.claude/agents/pr-reviewer.md" "PR reviewer agent"
 verify "$HOME/.claude/settings.json" "Global settings"
+verify "$HOME/.notebooklm" "NotebookLM storage directory"
 
-# ─── Step 8: Verify project template ─────────────────────────────────
+# ─── Step 9: Verify project template ─────────────────────────────────
 
-log_step "Step 8: Verifying project template..."
+log_step "Step 9: Verifying project template..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -230,6 +306,7 @@ verify "$SCRIPT_DIR/.claude/skills/project-onboarding/SKILL.md" "project-onboard
 verify "$SCRIPT_DIR/CLAUDE.md" "Project CLAUDE.md"
 verify "$SCRIPT_DIR/.mcp.json" "MCP configuration"
 verify "$SCRIPT_DIR/README.md" "README"
+verify "$SCRIPT_DIR/scripts/refresh_notebooklm_auth.py" "NotebookLM auth refresh script"
 
 # ─── Summary ──────────────────────────────────────────────────────────
 
@@ -248,6 +325,11 @@ if [ "$PASSED" -eq "$CHECKS" ]; then
   echo "    1. cd your-project"
   echo "    2. claude"
   echo "    3. /sync-context"
+  echo ""
+  echo "  NotebookLM (optional):"
+  echo "    1. Export cookies from notebooklm.google.com via Cookie-Editor"
+  echo "    2. python3 scripts/refresh_notebooklm_auth.py"
+  echo "    3. notebooklm use <notebook-id>"
   echo ""
 else
   FAILED=$((CHECKS - PASSED))
