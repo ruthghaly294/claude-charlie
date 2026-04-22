@@ -93,9 +93,29 @@ ensure_gh() {
   fi
 }
 
+ensure_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    log_ok "bun found: $(bun --version)"
+  else
+    log_warn "bun not found. Installing..."
+    BUN_VERSION="1.3.10"
+    tmpfile=$(mktemp)
+    curl -fsSL "https://bun.sh/install" -o "$tmpfile"
+    BUN_VERSION="$BUN_VERSION" bash "$tmpfile" && rm "$tmpfile"
+    export PATH="$HOME/.bun/bin:$PATH"
+    if command -v bun >/dev/null 2>&1; then
+      log_ok "bun installed: $(bun --version)"
+    else
+      log_fail "Failed to install bun. Install manually from https://bun.sh"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
 ensure_node
 ensure_claude
 ensure_gh
+ensure_bun
 
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
@@ -164,9 +184,27 @@ else
   log_warn "See: https://github.com/get-shit-done/gsd"
 fi
 
-# ─── Step 6: NotebookLM setup ────────────────────────────────────────
+# ─── Step 6: Install gstack ──────────────────────────────────────────
 
-log_step "Step 6: Setting up NotebookLM integration..."
+log_step "Step 6: Installing gstack (headless browser + QA skills)..."
+
+if [ -d "$HOME/.claude/skills/gstack" ]; then
+  log_warn "gstack already installed, skipping"
+else
+  export PATH="$HOME/.bun/bin:$PATH"
+  git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git "$HOME/.claude/skills/gstack"
+  cd "$HOME/.claude/skills/gstack" && ./setup && cd - >/dev/null
+  if [ -d "$HOME/.claude/skills/gstack" ]; then
+    log_ok "gstack installed"
+  else
+    log_fail "gstack installation failed"
+    ERRORS=$((ERRORS + 1))
+  fi
+fi
+
+# ─── Step 7: NotebookLM setup ────────────────────────────────────────
+
+log_step "Step 7: Setting up NotebookLM integration..."
 
 ensure_pip() {
   if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
@@ -239,9 +277,9 @@ if [ -n "$PIP_CMD" ]; then
   fi
 fi
 
-# ─── Step 7: Merge model setting ─────────────────────────────────────
+# ─── Step 8: Merge model setting ─────────────────────────────────────
 
-log_step "Step 7: Configuring model preference..."
+log_step "Step 8: Configuring model preference..."
 
 node -e "
 const fs = require('fs');
@@ -255,9 +293,9 @@ fs.writeFileSync(path, JSON.stringify(settings, null, 2) + '\n');
 
 log_ok "Model set to opus (if not already configured)"
 
-# ─── Step 8: Verify installation ─────────────────────────────────────
+# ─── Step 9: Verify installation ─────────────────────────────────────
 
-log_step "Step 8: Verifying installation..."
+log_step "Step 9: Verifying installation..."
 
 CHECKS=0
 PASSED=0
@@ -285,10 +323,11 @@ verify "$HOME/.claude/agents/tdd-guardian.md" "TDD guardian agent"
 verify "$HOME/.claude/agents/pr-reviewer.md" "PR reviewer agent"
 verify "$HOME/.claude/settings.json" "Global settings"
 verify "$HOME/.notebooklm" "NotebookLM storage directory"
+verify "$HOME/.claude/skills/gstack" "gstack skills"
 
-# ─── Step 9: Verify project template ─────────────────────────────────
+# ─── Step 10: Verify project template ────────────────────────────────
 
-log_step "Step 9: Verifying project template..."
+log_step "Step 10: Verifying project template..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
