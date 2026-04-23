@@ -202,9 +202,25 @@ else
   fi
 fi
 
-# ─── Step 7: NotebookLM setup ────────────────────────────────────────
+# ─── Step 7: Install additional skills ───────────────────────────────
 
-log_step "Step 7: Setting up NotebookLM integration..."
+log_step "Step 7: Installing additional skills..."
+
+install_skill() {
+  local url="$1"
+  local name="$2"
+  if npx --yes @anthropic-ai/claude-code skills add "$url" 2>/dev/null; then
+    log_ok "$name skill installed"
+  else
+    log_warn "Could not install $name skill. Run manually: npx skills add $url"
+  fi
+}
+
+install_skill "https://github.com/Leonxlnx/taste-skill" "taste"
+
+# ─── Step 8: NotebookLM setup ────────────────────────────────────────
+
+log_step "Step 8: Setting up NotebookLM integration..."
 
 ensure_pip() {
   if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
@@ -277,9 +293,9 @@ if [ -n "$PIP_CMD" ]; then
   fi
 fi
 
-# ─── Step 8: Merge model setting ─────────────────────────────────────
+# ─── Step 9: Merge model setting ─────────────────────────────────────
 
-log_step "Step 8: Configuring model preference..."
+log_step "Step 9: Configuring model preference..."
 
 node -e "
 const fs = require('fs');
@@ -293,9 +309,9 @@ fs.writeFileSync(path, JSON.stringify(settings, null, 2) + '\n');
 
 log_ok "Model set to opus (if not already configured)"
 
-# ─── Step 9: Verify installation ─────────────────────────────────────
+# ─── Step 10: Verify installation ────────────────────────────────────
 
-log_step "Step 9: Verifying installation..."
+log_step "Step 10: Verifying installation..."
 
 CHECKS=0
 PASSED=0
@@ -325,9 +341,9 @@ verify "$HOME/.claude/settings.json" "Global settings"
 verify "$HOME/.notebooklm" "NotebookLM storage directory"
 verify "$HOME/.claude/skills/gstack" "gstack skills"
 
-# ─── Step 10: Verify project template ────────────────────────────────
+# ─── Step 11: Verify project template ────────────────────────────────
 
-log_step "Step 10: Verifying project template..."
+log_step "Step 11: Verifying project template..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
