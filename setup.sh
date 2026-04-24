@@ -114,6 +114,7 @@ ensure_bun() {
 
 ensure_node
 ensure_claude
+ensure_gemini
 ensure_gh
 ensure_bun
 
@@ -378,6 +379,20 @@ if [ "$PASSED" -eq "$CHECKS" ]; then
   echo ""
   echo "  Next steps:"
   echo "    1. cd your-project"
+  echo "    2. claude"
+  echo "    3. /sync-context"
+  echo ""
+  echo "  NotebookLM (optional):"
+  echo "    1. Export cookies from notebooklm.google.com via Cookie-Editor"
+  echo "    2. python3 scripts/refresh_notebooklm_auth.py"
+  echo "    3. notebooklm use <notebook-id>"
+  echo ""
+else
+  FAILED=$((CHECKS - PASSED))
+  log_warn "$FAILED check(s) failed. Review the output above."
+  exit 1
+fi
+d your-project"
   echo "    2. claude"
   echo "    3. /sync-context"
   echo ""
