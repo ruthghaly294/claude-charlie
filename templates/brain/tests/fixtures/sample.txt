@@ -1,0 +1,2 @@
+Hello second brain.
+This is a sample text file for testing capture.
