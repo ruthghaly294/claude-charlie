@@ -548,6 +548,37 @@ ensure_obsidian_skills_plugin() {
   fi
 }
 
+install_brain_scripts() {
+  local src="$SCRIPT_DIR/templates/brain"
+  local dst="$HOME/.claude/scripts/brain"
+
+  if [ ! -d "$src" ]; then
+    log_fail "templates/brain/ missing in repo"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  mkdir -p "$dst"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete --exclude 'tests/' "$src/" "$dst/"
+  else
+    cp -R "$src/." "$dst/"
+    [ -d "$dst/tests" ] && rm -rf "$dst/tests"
+  fi
+
+  chmod +x "$dst/brain" "$dst"/adapters/*.sh "$dst"/pipelines/*.sh
+
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$dst/brain" "$HOME/.local/bin/brain"
+
+  mkdir -p "$HOME/.claude/commands"
+  cp "$SCRIPT_DIR/.claude/commands/brain.md" "$HOME/.claude/commands/brain.md"
+
+  log_ok "brain scripts installed at $dst"
+  log_ok "brain symlinked to ~/.local/bin/brain"
+  log_ok "/brain slash command installed"
+}
+
 ensure_python3
 ensure_pipx
 ensure_markitdown
@@ -557,6 +588,7 @@ ensure_bats
 ensure_qmd
 ensure_graphify_python
 ensure_obsidian_skills_plugin
+install_brain_scripts
 
 # ─── Summary ──────────────────────────────────────────────────────────
 
