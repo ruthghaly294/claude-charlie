@@ -579,6 +579,33 @@ install_brain_scripts() {
   log_ok "/brain slash command installed"
 }
 
+register_qmd_mcp() {
+  local settings="$HOME/.claude/settings.json"
+  command -v jq >/dev/null || { log_fail "jq required for MCP registration"; ERRORS=$((ERRORS + 1)); return; }
+
+  if [ ! -f "$settings" ]; then
+    echo '{}' > "$settings"
+  fi
+
+  if ! jq empty "$settings" 2>/dev/null; then
+    log_warn "settings.json is malformed — backing up and resetting"
+    cp "$settings" "${settings}.broken.$(date +%s).bak"
+    echo '{}' > "$settings"
+  fi
+
+  cp "$settings" "${settings}.bak"
+
+  jq '.mcpServers = ((.mcpServers // {}) + {qmd: {command: "qmd", args: ["mcp"]}})' \
+    "$settings" > "${settings}.tmp" && mv "${settings}.tmp" "$settings"
+
+  if jq -e '.mcpServers.qmd.command == "qmd"' "$settings" >/dev/null; then
+    log_ok "qmd MCP registered in $settings"
+  else
+    log_fail "failed to register qmd MCP"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
 ensure_python3
 ensure_pipx
 ensure_markitdown
@@ -589,6 +616,7 @@ ensure_qmd
 ensure_graphify_python
 ensure_obsidian_skills_plugin
 install_brain_scripts
+register_qmd_mcp
 
 # ─── Summary ──────────────────────────────────────────────────────────
 
