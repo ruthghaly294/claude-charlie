@@ -364,6 +364,142 @@ verify "$SCRIPT_DIR/.mcp.json" "MCP configuration"
 verify "$SCRIPT_DIR/README.md" "README"
 verify "$SCRIPT_DIR/scripts/refresh_notebooklm_auth.py" "NotebookLM auth refresh script"
 
+# ─── Step 12: Second Brain stack ─────────────────────────────────────
+
+log_step "Step 12: Installing Second-Brain stack..."
+
+ensure_python3() {
+  if command -v python3 >/dev/null 2>&1; then
+    log_ok "python3 found: $(python3 --version 2>&1)"
+  else
+    log_warn "python3 not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update && sudo apt-get install -y python3 python3-pip pipx
+    elif command -v brew >/dev/null 2>&1; then
+      brew install python pipx
+    else
+      log_fail "Cannot auto-install python3. Install from https://python.org"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+      log_ok "python3 installed: $(python3 --version 2>&1)"
+    else
+      log_fail "Failed to install python3"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_pipx() {
+  if command -v pipx >/dev/null 2>&1; then
+    log_ok "pipx found: $(pipx --version 2>&1)"
+  else
+    log_warn "pipx not found. Installing..."
+    python3 -m pip install --user pipx 2>/dev/null || true
+    python3 -m pipx ensurepath 2>/dev/null || true
+    export PATH="$HOME/.local/bin:$PATH"
+    if command -v pipx >/dev/null 2>&1; then
+      log_ok "pipx installed"
+    else
+      log_fail "Failed to install pipx"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_markitdown() {
+  if command -v markitdown >/dev/null 2>&1; then
+    log_ok "markitdown found"
+  else
+    log_warn "markitdown not found. Installing markitdown[all] via pipx..."
+    pipx install 'markitdown[all]' 2>/dev/null || pipx install markitdown
+    if command -v markitdown >/dev/null 2>&1; then
+      log_ok "markitdown installed"
+    else
+      log_fail "Failed to install markitdown. Run: pipx install 'markitdown[all]'"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_yq() {
+  if command -v yq >/dev/null 2>&1; then
+    log_ok "yq found: $(yq --version 2>&1 | head -1)"
+  else
+    log_warn "yq not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      local arch
+      arch="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+      sudo wget -qO /usr/local/bin/yq \
+        "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+        && sudo chmod +x /usr/local/bin/yq
+    elif command -v brew >/dev/null 2>&1; then
+      brew install yq
+    else
+      log_fail "Cannot auto-install yq. Install from https://github.com/mikefarah/yq"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v yq >/dev/null 2>&1; then
+      log_ok "yq installed"
+    else
+      log_fail "Failed to install yq"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_jq() {
+  if command -v jq >/dev/null 2>&1; then
+    log_ok "jq found: $(jq --version 2>&1)"
+  else
+    log_warn "jq not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get install -y jq
+    elif command -v brew >/dev/null 2>&1; then
+      brew install jq
+    else
+      log_fail "Cannot auto-install jq"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v jq >/dev/null 2>&1; then
+      log_ok "jq installed"
+    else
+      log_fail "Failed to install jq"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_bats() {
+  if command -v bats >/dev/null 2>&1; then
+    log_ok "bats found: $(bats --version 2>&1 | head -1)"
+  else
+    log_warn "bats not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get install -y bats
+    elif command -v brew >/dev/null 2>&1; then
+      brew install bats-core
+    else
+      npm install -g bats
+    fi
+    if command -v bats >/dev/null 2>&1; then
+      log_ok "bats installed"
+    else
+      log_warn "bats install failed — tests will be unavailable until bats is installed manually"
+    fi
+  fi
+}
+
+ensure_python3
+ensure_pipx
+ensure_markitdown
+ensure_yq
+ensure_jq
+ensure_bats
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""
@@ -379,20 +515,6 @@ if [ "$PASSED" -eq "$CHECKS" ]; then
   echo ""
   echo "  Next steps:"
   echo "    1. cd your-project"
-  echo "    2. claude"
-  echo "    3. /sync-context"
-  echo ""
-  echo "  NotebookLM (optional):"
-  echo "    1. Export cookies from notebooklm.google.com via Cookie-Editor"
-  echo "    2. python3 scripts/refresh_notebooklm_auth.py"
-  echo "    3. notebooklm use <notebook-id>"
-  echo ""
-else
-  FAILED=$((CHECKS - PASSED))
-  log_warn "$FAILED check(s) failed. Review the output above."
-  exit 1
-fi
-d your-project"
   echo "    2. claude"
   echo "    3. /sync-context"
   echo ""
