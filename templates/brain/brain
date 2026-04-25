@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# brain — main router for second-brain pipelines.
+# Subcommands: capture, reindex, status, query, canvas, init, help
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$HERE/lib/log.sh"
+# shellcheck disable=SC1091
+source "$HERE/lib/config.sh"
+
+CONFIG_PATH="${BRAIN_CONFIG:-$HOME/second-brain/brain.config.yml}"
+
+usage() {
+  cat <<'EOF'
+brain — second-brain orchestrator.
+
+Usage:
+  brain capture <file|url|"text...">      Convert input → markdown in 00-Inbox/
+  brain reindex                            qmd embed + graphify --update
+  brain status                             Vault stats + tool availability
+  brain query "<question>"                 Hybrid qmd search
+  brain canvas <topic>                     Build JSON Canvas of topic neighborhood
+  brain init                               Bootstrap or repair the vault
+  brain help                               This message
+EOF
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  init|help|-h|--help)
+    : # config not required for these
+    ;;
+  *)
+    config_load "$CONFIG_PATH"
+    ;;
+esac
+
+case "$cmd" in
+  capture)
+    "$HERE/pipelines/capture.sh" "$@"
+    ;;
+  reindex)
+    "$HERE/pipelines/reindex.sh" "$@"
+    ;;
+  status)
+    "$HERE/pipelines/status.sh"
+    ;;
+  query)
+    "$HERE/pipelines/query.sh" "$@"
+    ;;
+  canvas)
+    "$HERE/pipelines/canvas.sh" "$@"
+    ;;
+  init)
+    "$HERE/pipelines/init.sh"
+    ;;
+  help|-h|--help|"")
+    usage
+    ;;
+  *)
+    log_fail "unknown subcommand: $cmd"
+    usage
+    exit 2
+    ;;
+esac
