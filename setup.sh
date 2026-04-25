@@ -18,6 +18,13 @@ log_step() { echo -e "\n${BOLD}$1${NC}"; }
 
 ERRORS=0
 
+RUN_TESTS=0
+for arg in "$@"; do
+  case "$arg" in
+    --test|-t) RUN_TESTS=1 ;;
+  esac
+done
+
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║  Ultimate Claude Code Setup                      ║"
@@ -606,6 +613,15 @@ register_qmd_mcp() {
   fi
 }
 
+bootstrap_vault() {
+  if [ -d "$HOME/second-brain" ]; then
+    log_ok "vault already exists at ~/second-brain"
+  else
+    "$HOME/.claude/scripts/brain/brain" init
+    log_ok "vault bootstrapped"
+  fi
+}
+
 ensure_python3
 ensure_pipx
 ensure_markitdown
@@ -617,6 +633,21 @@ ensure_graphify_python
 ensure_obsidian_skills_plugin
 install_brain_scripts
 register_qmd_mcp
+bootstrap_vault
+
+if [ "$RUN_TESTS" -eq 1 ]; then
+  log_step "Step 12.1: Running brain bats tests..."
+  if command -v bats >/dev/null 2>&1; then
+    if bats "$SCRIPT_DIR/templates/brain/tests/" 2>&1 | tail -20; then
+      log_ok "brain tests passed"
+    else
+      log_fail "brain tests failed"
+      ERRORS=$((ERRORS + 1))
+    fi
+  else
+    log_warn "bats not installed — tests skipped"
+  fi
+fi
 
 # ─── Summary ──────────────────────────────────────────────────────────
 
