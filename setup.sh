@@ -18,6 +18,13 @@ log_step() { echo -e "\n${BOLD}$1${NC}"; }
 
 ERRORS=0
 
+RUN_TESTS=0
+for arg in "$@"; do
+  case "$arg" in
+    --test|-t) RUN_TESTS=1 ;;
+  esac
+done
+
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║  Ultimate Claude Code Setup                      ║"
@@ -364,6 +371,284 @@ verify "$SCRIPT_DIR/.mcp.json" "MCP configuration"
 verify "$SCRIPT_DIR/README.md" "README"
 verify "$SCRIPT_DIR/scripts/refresh_notebooklm_auth.py" "NotebookLM auth refresh script"
 
+# ─── Step 12: Second Brain stack ─────────────────────────────────────
+
+log_step "Step 12: Installing Second-Brain stack..."
+
+ensure_python3() {
+  if command -v python3 >/dev/null 2>&1; then
+    log_ok "python3 found: $(python3 --version 2>&1)"
+  else
+    log_warn "python3 not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update && sudo apt-get install -y python3 python3-pip pipx
+    elif command -v brew >/dev/null 2>&1; then
+      brew install python pipx
+    else
+      log_fail "Cannot auto-install python3. Install from https://python.org"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+      log_ok "python3 installed: $(python3 --version 2>&1)"
+    else
+      log_fail "Failed to install python3"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_pipx() {
+  if command -v pipx >/dev/null 2>&1; then
+    log_ok "pipx found: $(pipx --version 2>&1)"
+  else
+    log_warn "pipx not found. Installing..."
+    python3 -m pip install --user pipx 2>/dev/null || true
+    python3 -m pipx ensurepath 2>/dev/null || true
+    export PATH="$HOME/.local/bin:$PATH"
+    if command -v pipx >/dev/null 2>&1; then
+      log_ok "pipx installed"
+    else
+      log_fail "Failed to install pipx"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_markitdown() {
+  if command -v markitdown >/dev/null 2>&1; then
+    log_ok "markitdown found"
+  else
+    log_warn "markitdown not found. Installing markitdown[all] via pipx..."
+    pipx install 'markitdown[all]' 2>/dev/null || pipx install markitdown
+    if command -v markitdown >/dev/null 2>&1; then
+      log_ok "markitdown installed"
+    else
+      log_fail "Failed to install markitdown. Run: pipx install 'markitdown[all]'"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_yq() {
+  if command -v yq >/dev/null 2>&1; then
+    log_ok "yq found: $(yq --version 2>&1 | head -1)"
+  else
+    log_warn "yq not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      local arch
+      arch="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+      sudo wget -qO /usr/local/bin/yq \
+        "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+        && sudo chmod +x /usr/local/bin/yq
+    elif command -v brew >/dev/null 2>&1; then
+      brew install yq
+    else
+      log_fail "Cannot auto-install yq. Install from https://github.com/mikefarah/yq"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v yq >/dev/null 2>&1; then
+      log_ok "yq installed"
+    else
+      log_fail "Failed to install yq"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_jq() {
+  if command -v jq >/dev/null 2>&1; then
+    log_ok "jq found: $(jq --version 2>&1)"
+  else
+    log_warn "jq not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get install -y jq
+    elif command -v brew >/dev/null 2>&1; then
+      brew install jq
+    else
+      log_fail "Cannot auto-install jq"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v jq >/dev/null 2>&1; then
+      log_ok "jq installed"
+    else
+      log_fail "Failed to install jq"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_bats() {
+  if command -v bats >/dev/null 2>&1; then
+    log_ok "bats found: $(bats --version 2>&1 | head -1)"
+  else
+    log_warn "bats not found. Installing..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get install -y bats
+    elif command -v brew >/dev/null 2>&1; then
+      brew install bats-core
+    else
+      npm install -g bats
+    fi
+    if command -v bats >/dev/null 2>&1; then
+      log_ok "bats installed"
+    else
+      log_warn "bats install failed — tests will be unavailable until bats is installed manually"
+    fi
+  fi
+}
+
+ensure_qmd() {
+  if command -v qmd >/dev/null 2>&1; then
+    log_ok "qmd found: $(qmd --version 2>&1 | head -1)"
+  else
+    log_warn "qmd not found. Installing @tobilu/qmd..."
+    if command -v bun >/dev/null 2>&1; then
+      bun install -g @tobilu/qmd
+    elif command -v npm >/dev/null 2>&1; then
+      npm install -g @tobilu/qmd
+    else
+      log_fail "Need bun or npm to install qmd"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v qmd >/dev/null 2>&1; then
+      log_ok "qmd installed"
+      log_warn "qmd will download GGUF models on first 'qmd embed' (~hundreds of MB)"
+    else
+      log_fail "Failed to install qmd"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_graphify_python() {
+  if command -v graphify >/dev/null 2>&1; then
+    log_ok "graphify found"
+  else
+    log_warn "graphify not found. Installing..."
+    if command -v uv >/dev/null 2>&1; then
+      uv tool install graphify || uv tool install graphifyy
+    elif command -v pipx >/dev/null 2>&1; then
+      pipx install graphify || pipx install graphifyy
+    else
+      log_fail "Need uv or pipx to install graphify"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v graphify >/dev/null 2>&1; then
+      log_ok "graphify installed"
+    else
+      log_warn "graphify install attempted — may need manual follow-up"
+    fi
+  fi
+}
+
+ensure_obsidian_skills_plugin() {
+  if [ -d "$HOME/.claude/plugins/cache/obsidian-skills" ]; then
+    log_ok "obsidian-skills plugin present"
+  else
+    log_warn "obsidian-skills plugin not found at ~/.claude/plugins/cache/obsidian-skills"
+    log_warn "Install via: claude plugin marketplace add kepano/obsidian-skills && claude plugin install obsidian-skills"
+  fi
+}
+
+install_brain_scripts() {
+  local src="$SCRIPT_DIR/templates/brain"
+  local dst="$HOME/.claude/scripts/brain"
+
+  if [ ! -d "$src" ]; then
+    log_fail "templates/brain/ missing in repo"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  mkdir -p "$dst"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete --exclude 'tests/' "$src/" "$dst/"
+  else
+    cp -R "$src/." "$dst/"
+    [ -d "$dst/tests" ] && rm -rf "$dst/tests"
+  fi
+
+  chmod +x "$dst/brain" "$dst"/adapters/*.sh "$dst"/pipelines/*.sh
+
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$dst/brain" "$HOME/.local/bin/brain"
+
+  mkdir -p "$HOME/.claude/commands"
+  cp "$SCRIPT_DIR/.claude/commands/brain.md" "$HOME/.claude/commands/brain.md"
+
+  log_ok "brain scripts installed at $dst"
+  log_ok "brain symlinked to ~/.local/bin/brain"
+  log_ok "/brain slash command installed"
+}
+
+register_qmd_mcp() {
+  local settings="$HOME/.claude/settings.json"
+  command -v jq >/dev/null || { log_fail "jq required for MCP registration"; ERRORS=$((ERRORS + 1)); return; }
+
+  if [ ! -f "$settings" ]; then
+    echo '{}' > "$settings"
+  fi
+
+  if ! jq empty "$settings" 2>/dev/null; then
+    log_warn "settings.json is malformed — backing up and resetting"
+    cp "$settings" "${settings}.broken.$(date +%s).bak"
+    echo '{}' > "$settings"
+  fi
+
+  cp "$settings" "${settings}.bak"
+
+  jq '.mcpServers = ((.mcpServers // {}) + {qmd: {command: "qmd", args: ["mcp"]}})' \
+    "$settings" > "${settings}.tmp" && mv "${settings}.tmp" "$settings"
+
+  if jq -e '.mcpServers.qmd.command == "qmd"' "$settings" >/dev/null; then
+    log_ok "qmd MCP registered in $settings"
+  else
+    log_fail "failed to register qmd MCP"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
+bootstrap_vault() {
+  if [ -d "$HOME/second-brain" ]; then
+    log_ok "vault already exists at ~/second-brain"
+  else
+    "$HOME/.claude/scripts/brain/brain" init
+    log_ok "vault bootstrapped"
+  fi
+}
+
+ensure_python3
+ensure_pipx
+ensure_markitdown
+ensure_yq
+ensure_jq
+ensure_bats
+ensure_qmd
+ensure_graphify_python
+ensure_obsidian_skills_plugin
+install_brain_scripts
+register_qmd_mcp
+bootstrap_vault
+
+if [ "$RUN_TESTS" -eq 1 ]; then
+  log_step "Step 12.1: Running brain bats tests..."
+  if command -v bats >/dev/null 2>&1; then
+    if bats "$SCRIPT_DIR/templates/brain/tests/" 2>&1 | tail -20; then
+      log_ok "brain tests passed"
+    else
+      log_fail "brain tests failed"
+      ERRORS=$((ERRORS + 1))
+    fi
+  else
+    log_warn "bats not installed — tests skipped"
+  fi
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""
@@ -379,20 +664,6 @@ if [ "$PASSED" -eq "$CHECKS" ]; then
   echo ""
   echo "  Next steps:"
   echo "    1. cd your-project"
-  echo "    2. claude"
-  echo "    3. /sync-context"
-  echo ""
-  echo "  NotebookLM (optional):"
-  echo "    1. Export cookies from notebooklm.google.com via Cookie-Editor"
-  echo "    2. python3 scripts/refresh_notebooklm_auth.py"
-  echo "    3. notebooklm use <notebook-id>"
-  echo ""
-else
-  FAILED=$((CHECKS - PASSED))
-  log_warn "$FAILED check(s) failed. Review the output above."
-  exit 1
-fi
-d your-project"
   echo "    2. claude"
   echo "    3. /sync-context"
   echo ""
