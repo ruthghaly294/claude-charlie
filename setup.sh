@@ -493,12 +493,70 @@ ensure_bats() {
   fi
 }
 
+ensure_qmd() {
+  if command -v qmd >/dev/null 2>&1; then
+    log_ok "qmd found: $(qmd --version 2>&1 | head -1)"
+  else
+    log_warn "qmd not found. Installing @tobilu/qmd..."
+    if command -v bun >/dev/null 2>&1; then
+      bun install -g @tobilu/qmd
+    elif command -v npm >/dev/null 2>&1; then
+      npm install -g @tobilu/qmd
+    else
+      log_fail "Need bun or npm to install qmd"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v qmd >/dev/null 2>&1; then
+      log_ok "qmd installed"
+      log_warn "qmd will download GGUF models on first 'qmd embed' (~hundreds of MB)"
+    else
+      log_fail "Failed to install qmd"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+}
+
+ensure_graphify_python() {
+  if command -v graphify >/dev/null 2>&1; then
+    log_ok "graphify found"
+  else
+    log_warn "graphify not found. Installing..."
+    if command -v uv >/dev/null 2>&1; then
+      uv tool install graphify || uv tool install graphifyy
+    elif command -v pipx >/dev/null 2>&1; then
+      pipx install graphify || pipx install graphifyy
+    else
+      log_fail "Need uv or pipx to install graphify"
+      ERRORS=$((ERRORS + 1))
+      return
+    fi
+    if command -v graphify >/dev/null 2>&1; then
+      log_ok "graphify installed"
+    else
+      log_warn "graphify install attempted — may need manual follow-up"
+    fi
+  fi
+}
+
+ensure_obsidian_skills_plugin() {
+  if [ -d "$HOME/.claude/plugins/cache/obsidian-skills" ]; then
+    log_ok "obsidian-skills plugin present"
+  else
+    log_warn "obsidian-skills plugin not found at ~/.claude/plugins/cache/obsidian-skills"
+    log_warn "Install via: claude plugin marketplace add kepano/obsidian-skills && claude plugin install obsidian-skills"
+  fi
+}
+
 ensure_python3
 ensure_pipx
 ensure_markitdown
 ensure_yq
 ensure_jq
 ensure_bats
+ensure_qmd
+ensure_graphify_python
+ensure_obsidian_skills_plugin
 
 # ─── Summary ──────────────────────────────────────────────────────────
 
