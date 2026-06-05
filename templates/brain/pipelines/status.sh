@@ -24,6 +24,10 @@ echo "  Inbox    : $(count_md "$BRAIN_VAULT/$BRAIN_INBOX") notes"
 echo "  Sources  : $(count_md "$BRAIN_VAULT/$BRAIN_SOURCES") notes"
 echo "  Notes    : $(count_md "$BRAIN_VAULT/20-Notes") notes"
 echo "  Graphs   : $(count_md "$BRAIN_VAULT/$BRAIN_GRAPHS") notes"
+echo "  Signals  : $(count_md "$BRAIN_VAULT/01-Signals") notes"
+echo "  Insights : $(count_md "$BRAIN_VAULT/25-Insights") notes"
+echo "  Decisions: $(count_md "$BRAIN_VAULT/50-Decisions") notes"
+echo "  Execution: $(count_md "$BRAIN_VAULT/60-Execution") notes"
 
 if [ -f "$BRAIN_VAULT/.graphify-out/last_reindex.txt" ]; then
   echo "  Last reindex: $(cat "$BRAIN_VAULT/.graphify-out/last_reindex.txt")"

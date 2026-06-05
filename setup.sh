@@ -546,6 +546,24 @@ ensure_graphify_python() {
   fi
 }
 
+ensure_yt_dlp() {
+  if command -v yt-dlp >/dev/null 2>&1; then
+    log_ok "yt-dlp found"
+  else
+    log_warn "yt-dlp not found (needed by the DECODE youtube scanner). Installing..."
+    if command -v pipx >/dev/null 2>&1; then
+      pipx install yt-dlp 2>/dev/null || true
+    elif command -v pip3 >/dev/null 2>&1; then
+      pip3 install --user yt-dlp 2>/dev/null || true
+    fi
+    if command -v yt-dlp >/dev/null 2>&1; then
+      log_ok "yt-dlp installed"
+    else
+      log_warn "yt-dlp not installed — the youtube scanner will skip until it is"
+    fi
+  fi
+}
+
 ensure_obsidian_skills_plugin() {
   if [ -d "$HOME/.claude/plugins/cache/obsidian-skills" ]; then
     log_ok "obsidian-skills plugin present"
@@ -573,17 +591,19 @@ install_brain_scripts() {
     [ -d "$dst/tests" ] && rm -rf "$dst/tests"
   fi
 
-  chmod +x "$dst/brain" "$dst"/adapters/*.sh "$dst"/pipelines/*.sh
+  chmod +x "$dst/brain" "$dst/decode" "$dst"/adapters/*.sh "$dst"/pipelines/*.sh "$dst"/scanners/*.sh
 
   mkdir -p "$HOME/.local/bin"
   ln -sf "$dst/brain" "$HOME/.local/bin/brain"
+  ln -sf "$dst/decode" "$HOME/.local/bin/decode"
 
   mkdir -p "$HOME/.claude/commands"
   cp "$SCRIPT_DIR/.claude/commands/brain.md" "$HOME/.claude/commands/brain.md"
+  cp "$SCRIPT_DIR/.claude/commands/decode.md" "$HOME/.claude/commands/decode.md"
 
-  log_ok "brain scripts installed at $dst"
-  log_ok "brain symlinked to ~/.local/bin/brain"
-  log_ok "/brain slash command installed"
+  log_ok "brain + decode scripts installed at $dst"
+  log_ok "brain + decode symlinked to ~/.local/bin"
+  log_ok "/brain and /decode slash commands installed"
 }
 
 register_qmd_mcp() {
@@ -630,6 +650,7 @@ ensure_jq
 ensure_bats
 ensure_qmd
 ensure_graphify_python
+ensure_yt_dlp
 ensure_obsidian_skills_plugin
 install_brain_scripts
 register_qmd_mcp

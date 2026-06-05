@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "title": "Radiology revision guide",
+      "link": "https://example.com/guide",
+      "snippet": "A complete FRCR revision guide.",
+      "displayLink": "example.com"
+    },
+    {
+      "title": "Physics for radiologists",
+      "link": "https://example.com/physics",
+      "snippet": "Core physics concepts.",
+      "displayLink": "example.com"
+    }
+  ]
+}

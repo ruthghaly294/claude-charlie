@@ -21,3 +21,28 @@ teardown_brain_temp_vault() {
 brain_root() {
   cd "$(dirname "${BATS_TEST_FILENAME}")/.." && pwd
 }
+
+# Put a routing `curl` stub on PATH that returns canned fixtures based on the
+# requested URL. Lets scanner tests run fully offline.
+decode_stub_curl() {
+  local fix; fix="$(dirname "${BATS_TEST_FILENAME}")/fixtures"
+  STUB_BIN="$(mktemp -d)"
+  cat > "$STUB_BIN/curl" <<EOF
+#!/usr/bin/env bash
+for a in "\$@"; do
+  case "\$a" in
+    *reddit.com*)      cat "$fix/reddit_hot.json"; exit 0 ;;
+    *algolia*)         cat "$fix/hn_search.json"; exit 0 ;;
+    *api.github.com*)  cat "$fix/github_search.json"; exit 0 ;;
+  esac
+done
+cat "$fix/rss_sample.xml"
+EOF
+  chmod +x "$STUB_BIN/curl"
+  PATH="$STUB_BIN:$PATH"
+  export PATH
+}
+
+decode_clean_stub_curl() {
+  [ -n "${STUB_BIN:-}" ] && [[ "$STUB_BIN" == /tmp/* ]] && rm -rf "$STUB_BIN"
+}
