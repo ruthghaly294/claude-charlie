@@ -20,6 +20,14 @@ Thumbs.db
 dist/
 .next/
 out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Local data stores
+*.db
+*.db-journal
+*.db-wal
+data/
 
 # IDE
 .vscode/
