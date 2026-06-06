@@ -54,4 +54,4 @@ sources:
   google_cse:
     enabled: false       # flip to true once GOOGLE_CSE_KEY + GOOGLE_CSE_ID are set
   producthunt:
-    enabled: false       # needs PRODUCTHUNT_TOKEN
+    enabled: true        # uses PRODUCTHUNT_TOKEN from .env.local
