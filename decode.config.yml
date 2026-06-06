@@ -1,57 +1,87 @@
-# DECODE — broad multi-source starter config.
+# DECODE — config tuned to your topics.
 # Safe to commit (no secrets). API keys live in .env.local.
-# Edit keywords / subreddits / topics to match what *you* care about.
 
 vault: ~/second-brain
 
 business:
-  name: "My Intelligence OS"
-  description: "Broad signal scanning across the open web and social."
-  # Keywords drive relevance scoring + clustering. Leave [] to keep & cluster
-  # EVERYTHING by source. Add terms to focus the loop on specific topics.
+  name: "Signal Desk"
+  description: "Finance, congressional/insider trades, trading & risk analysis, web scraping, SaaS/marketing growth, trending GitHub, and radiology."
+  # Keywords drive relevance scoring + clustering. NOTE: score = matched/total,
+  # so a long list means each signal matches a small fraction — keep_threshold
+  # is set low below to compensate. Empty [] = keep & cluster everything by source.
   keywords:
-    - ai agents
-    - llm
-    - open source
-    - startups
-    - developer tools
+    - macro
+    - 13F
+    - insider trading
+    - institutional trading
+    - order flow
+    - congress trades
+    - pelosi
+    - technical analysis
+    - risk management
+    - web scraping
+    - scraping
+    - saas
+    - marketing
+    - seo
+    - radiology
+    - trending
   competitors: []
 
 scoring:
-  # Signals scoring below this are archived (not observed). Lower = keep more.
-  keep_threshold: 0.2
+  # Low threshold so matching even ONE keyword (of many) keeps the signal.
+  keep_threshold: 0.05
 
 observe:
-  # Ignore clusters smaller than this when distilling insights.
-  min_cluster_size: 2
+  min_cluster_size: 1   # form insights as soon as a topic appears
 
 decide:
-  # Optional cluster -> lane overrides; otherwise lanes round-robin.
   cluster_lanes: {}
 
 execute:
-  # How many top decisions to draft assets for each run.
-  top_n: 3
+  top_n: 5
 
 sources:
   # --- no API key required ---
   rss:
     - https://hnrss.org/frontpage
-    - https://www.reddit.com/r/programming/.rss
+    - https://www.cnbc.com/id/20910258/device/rss/rss.html        # CNBC markets
+    - http://feeds.marketwatch.com/marketwatch/topstories/        # MarketWatch
+    - https://seekingalpha.com/feed.xml                           # Seeking Alpha
+    - https://www.federalreserve.gov/feeds/press_all.xml          # Fed press
+    # SEC 13F current filings (Atom). NOTE: SEC requires a User-Agent header;
+    # if this 403s, the connector needs a UA set — tell me and I'll add it.
+    - "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=13F&output=atom"
+    - https://www.reddit.com/r/algotrading/.rss
   github_trending:
-    topics: [ai-agents, llm, developer-tools]
+    topics: [web-scraping, trading, quant, saas, marketing, frontend, backend]
     window: daily
   reddit:
-    subreddits: [programming, technology, MachineLearning, startups, LocalLLaMA]
+    subreddits:
+      - stocks
+      - investing
+      - wallstreetbets
+      - algotrading
+      - SecurityAnalysis
+      - webscraping
+      - SaaS
+      - Entrepreneur
+      - marketing
+      - Radiology
   hackernews:
     query: ""
 
   # --- API key required (set in .env.local) ---
   youtube:
-    queries: []          # needs YOUTUBE_API_KEY
+    queries:
+      - stock market technical analysis
+      - congress insider trading stocks
+      - web scraping tutorial
+      - saas marketing growth
+      - radiology cases
   twitter:
-    enabled: true        # uses TWITTER_BEARER from .env.local
-  google_cse:
-    enabled: false       # flip to true once GOOGLE_CSE_KEY + GOOGLE_CSE_ID are set
+    enabled: true        # uses TWITTER_BEARER; searches the keywords above
   producthunt:
-    enabled: true        # uses PRODUCTHUNT_TOKEN from .env.local
+    enabled: true        # uses PRODUCTHUNT_TOKEN
+  google_cse:
+    enabled: false       # flip true once GOOGLE_CSE_KEY + GOOGLE_CSE_ID are set
