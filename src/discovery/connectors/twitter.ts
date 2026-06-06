@@ -2,7 +2,15 @@ import { z } from "zod";
 import type { Connector, ConnectorContext, RawSignal } from "../types";
 import { fetchJson } from "../fetchWithRetry";
 
-const cfgSchema = z.object({ enabled: z.boolean().default(false) });
+const cfgSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** specific handles to follow, e.g. ["realDonaldTrump", "unusual_whales"] */
+  accounts: z.array(z.string()).default([]),
+  /** raw query override; if set, used verbatim and nothing else is built */
+  query: z.string().optional(),
+  /** also run a keyword/business-name search alongside accounts (default true) */
+  use_keywords: z.boolean().default(true),
+});
 
 const apiSchema = z.object({
   data: z
@@ -17,12 +25,45 @@ const apiSchema = z.object({
     .default([]),
 });
 
-function query(ctx: ConnectorContext): string {
-  const base =
-    ctx.keywords.length > 0
-      ? ctx.keywords.join(" OR ")
-      : ctx.businessName.trim();
-  return base ? `${base} -is:retweet lang:en` : "";
+/** Max from: operators per query — keeps the search string well under limits. */
+const ACCOUNTS_PER_QUERY = 20;
+
+/**
+ * Build the list of recent-search queries this connector will run. Accounts
+ * become `(from:a OR from:b) -is:retweet` groups (one API call each), and—when
+ * enabled—keywords (or the business name) add a topic search. Each query is a
+ * separate request, like the YouTube connector.
+ */
+export function buildTwitterQueries(ctx: ConnectorContext): string[] {
+  const parsed = cfgSchema.safeParse(ctx.config ?? {});
+  const cfg = parsed.success ? parsed.data : cfgSchema.parse({});
+
+  if (cfg.query && cfg.query.trim()) return [cfg.query.trim()];
+
+  const out: string[] = [];
+  const accounts = cfg.accounts
+    .map((a) => a.replace(/^@/, "").trim())
+    .filter(Boolean);
+
+  for (let i = 0; i < accounts.length; i += ACCOUNTS_PER_QUERY) {
+    const group = accounts
+      .slice(i, i + ACCOUNTS_PER_QUERY)
+      .map((a) => `from:${a}`)
+      .join(" OR ");
+    out.push(`(${group}) -is:retweet`);
+  }
+
+  if (cfg.use_keywords) {
+    const base =
+      ctx.keywords.length > 0
+        ? ctx.keywords.join(" OR ")
+        : accounts.length === 0
+          ? ctx.businessName.trim()
+          : "";
+    if (base) out.push(`${base} -is:retweet lang:en`);
+  }
+
+  return out;
 }
 
 export const twitterConnector: Connector = {
@@ -38,29 +79,40 @@ export const twitterConnector: Connector = {
     if (!ctx.env.TWITTER_BEARER) {
       return { configured: false, reason: "TWITTER_BEARER not set" };
     }
-    if (!query(ctx)) return { configured: false, reason: "no query/keywords" };
+    if (buildTwitterQueries(ctx).length === 0) {
+      return { configured: false, reason: "no accounts/query/keywords" };
+    }
     return { configured: true };
   },
 
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {
     const bearer = ctx.env.TWITTER_BEARER as string;
-    const url =
-      `https://api.twitter.com/2/tweets/search/recent?max_results=10` +
-      `&tweet.fields=author_id,created_at&query=${encodeURIComponent(query(ctx))}`;
-    const data = await fetchJson(
-      url,
-      apiSchema,
-      { headers: { authorization: `Bearer ${bearer}` } },
-      { fetchImpl: ctx.fetchImpl, signal: ctx.signal },
-    );
-    return data.data.map((t) => ({
-      source: "twitter",
-      title: t.text.replace(/\s+/g, " ").slice(0, 80),
-      url: `https://twitter.com/i/web/status/${t.id}`,
-      author: t.author_id,
-      publishedAt: t.created_at,
-      tags: ["twitter"],
-      raw: t.text,
-    }));
+    const byId = new Map<string, RawSignal>();
+
+    for (const q of buildTwitterQueries(ctx)) {
+      const url =
+        `https://api.twitter.com/2/tweets/search/recent?max_results=10` +
+        `&tweet.fields=author_id,created_at&query=${encodeURIComponent(q)}`;
+      const data = await fetchJson(
+        url,
+        apiSchema,
+        { headers: { authorization: `Bearer ${bearer}` } },
+        { fetchImpl: ctx.fetchImpl, signal: ctx.signal },
+      );
+      for (const t of data.data) {
+        if (byId.has(t.id)) continue;
+        byId.set(t.id, {
+          source: "twitter",
+          title: t.text.replace(/\s+/g, " ").slice(0, 80),
+          url: `https://twitter.com/i/web/status/${t.id}`,
+          author: t.author_id,
+          publishedAt: t.created_at,
+          tags: ["twitter"],
+          raw: t.text,
+        });
+      }
+    }
+
+    return [...byId.values()];
   },
 };

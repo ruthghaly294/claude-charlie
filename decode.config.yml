@@ -80,7 +80,16 @@ sources:
       - saas marketing growth
       - radiology cases
   twitter:
-    enabled: true        # uses TWITTER_BEARER; searches the keywords above
+    enabled: true        # uses TWITTER_BEARER
+    # Follow specific handles (all recent tweets), in addition to the keyword
+    # search below. Edit freely. (Pelosi has no official trade feed; trackers
+    # like unusual_whales / PelosiTracker_ surface congressional trades.)
+    accounts:
+      - realDonaldTrump
+      - unusual_whales
+      - PelosiTracker_
+      - QuiverQuant
+    use_keywords: true   # also run the topic keyword search
   producthunt:
     enabled: true        # uses PRODUCTHUNT_TOKEN
   google_cse:

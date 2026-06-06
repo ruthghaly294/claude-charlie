@@ -6,7 +6,7 @@ import { redditConnector } from "./reddit";
 import { hackernewsConnector } from "./hackernews";
 import { youtubeConnector } from "./youtube";
 import { googleCseConnector } from "./googleCse";
-import { twitterConnector } from "./twitter";
+import { twitterConnector, buildTwitterQueries } from "./twitter";
 import { productHuntConnector } from "./productHunt";
 import { CONNECTORS, getConnector } from "./index";
 
@@ -299,6 +299,51 @@ describe("twitter (key-gated)", () => {
       source: "twitter",
       url: "https://twitter.com/i/web/status/9",
     });
+  });
+
+  it("builds from: queries for followed accounts", () => {
+    const qs = buildTwitterQueries(
+      ctx({
+        config: { enabled: true, accounts: ["@realDonaldTrump", "unusual_whales"] },
+        keywords: [],
+      }),
+    );
+    expect(qs).toContain("(from:realDonaldTrump OR from:unusual_whales) -is:retweet");
+  });
+
+  it("runs both an account query and a keyword query, deduping by id", async () => {
+    const body = {
+      data: [{ id: "9", text: "hello world", author_id: "u", created_at: "2026" }],
+    };
+    // fresh Response per call — a single Response's body can only be read once
+    const fetchImpl = vi.fn((..._args: unknown[]) =>
+      Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    const out = await twitterConnector.fetch(
+      ctx({
+        config: { enabled: true, accounts: ["nancy"] },
+        keywords: ["pelosi"],
+        env: { TWITTER_BEARER: "b" },
+        fetchImpl,
+      }),
+    );
+    // two queries (accounts + keywords) → two calls, same tweet id → one result
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const firstUrl = String(fetchImpl.mock.calls[0]?.[0]);
+    expect(decodeURIComponent(firstUrl)).toContain("from:nancy");
+    expect(out).toHaveLength(1);
+  });
+
+  it("honors a raw query override", () => {
+    const qs = buildTwitterQueries(
+      ctx({ config: { enabled: true, query: "from:foo lang:en" }, keywords: ["x"] }),
+    );
+    expect(qs).toEqual(["from:foo lang:en"]);
   });
 });
 
