@@ -68,7 +68,86 @@ export type SourceRunResult = {
   error?: string;
 };
 
+/** Observe: a distilled insight over a cluster of signals. */
+export const insights = sqliteTable(
+  "insights",
+  {
+    id: text("id").primaryKey(),
+    cluster: text("cluster").notNull().default("unclustered"),
+    trend: text("trend").notNull(),
+    importance: text("importance", { enum: ["high", "medium", "low"] })
+      .notNull()
+      .default("medium"),
+    body: text("body").notNull().default(""),
+    evidence: text("evidence", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [index("insights_cluster_idx").on(t.cluster)],
+);
+
+/** Decide: a prioritized recommendation derived from insights. */
+export const decisions = sqliteTable(
+  "decisions",
+  {
+    id: text("id").primaryKey(),
+    lane: text("lane", {
+      enum: ["product", "content", "marketing", "strategic"],
+    })
+      .notNull()
+      .default("content"),
+    title: text("title").notNull(),
+    impact: text("impact", { enum: ["high", "medium", "low"] })
+      .notNull()
+      .default("medium"),
+    effort: text("effort", { enum: ["high", "medium", "low"] })
+      .notNull()
+      .default("medium"),
+    priority: real("priority").notNull().default(0),
+    rationale: text("rationale").notNull().default(""),
+    fromInsights: text("from_insights", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    status: text("status", { enum: ["open", "done"] })
+      .notNull()
+      .default("open"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [index("decisions_priority_idx").on(t.priority)],
+);
+
+/** Execute: a drafted asset for a top decision. */
+export const executions = sqliteTable("executions", {
+  id: text("id").primaryKey(),
+  decisionId: text("decision_id"),
+  lane: text("lane").notNull().default("content"),
+  title: text("title").notNull(),
+  body: text("body").notNull().default(""),
+  status: text("status", { enum: ["draft", "published"] })
+    .notNull()
+    .default("draft"),
+  createdAt: text("created_at").notNull(),
+});
+
+/** Feedback: per-keyword performance multiplier consumed by curate/scoring. */
+export const rankings = sqliteTable("rankings", {
+  keyword: text("keyword").primaryKey(),
+  multiplier: real("multiplier").notNull().default(1),
+  value: real("value").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export type Signal = typeof signals.$inferSelect;
 export type NewSignal = typeof signals.$inferInsert;
 export type DiscoveryRun = typeof discoveryRuns.$inferSelect;
 export type NewDiscoveryRun = typeof discoveryRuns.$inferInsert;
+export type Insight = typeof insights.$inferSelect;
+export type NewInsight = typeof insights.$inferInsert;
+export type Decision = typeof decisions.$inferSelect;
+export type NewDecision = typeof decisions.$inferInsert;
+export type Execution = typeof executions.$inferSelect;
+export type NewExecution = typeof executions.$inferInsert;
+export type Ranking = typeof rankings.$inferSelect;

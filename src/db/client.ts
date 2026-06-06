@@ -48,6 +48,48 @@ export function ensureSchema(sqlite: Database.Database): void {
       per_source TEXT NOT NULL DEFAULT '[]',
       error TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS insights (
+      id TEXT PRIMARY KEY,
+      cluster TEXT NOT NULL DEFAULT 'unclustered',
+      trend TEXT NOT NULL,
+      importance TEXT NOT NULL DEFAULT 'medium',
+      body TEXT NOT NULL DEFAULT '',
+      evidence TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS insights_cluster_idx ON insights(cluster);
+
+    CREATE TABLE IF NOT EXISTS decisions (
+      id TEXT PRIMARY KEY,
+      lane TEXT NOT NULL DEFAULT 'content',
+      title TEXT NOT NULL,
+      impact TEXT NOT NULL DEFAULT 'medium',
+      effort TEXT NOT NULL DEFAULT 'medium',
+      priority REAL NOT NULL DEFAULT 0,
+      rationale TEXT NOT NULL DEFAULT '',
+      from_insights TEXT NOT NULL DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS decisions_priority_idx ON decisions(priority);
+
+    CREATE TABLE IF NOT EXISTS executions (
+      id TEXT PRIMARY KEY,
+      decision_id TEXT,
+      lane TEXT NOT NULL DEFAULT 'content',
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'draft',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS rankings (
+      keyword TEXT PRIMARY KEY,
+      multiplier REAL NOT NULL DEFAULT 1,
+      value REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
   `);
 }
 
