@@ -32,6 +32,7 @@ export function runCurate(db: DB, config: DecodeConfig): CurateSummary {
       `${row.title} ${row.raw}`,
       config.keywords,
       multipliers,
+      row.source,
     );
     const status: "new" | "archived" =
       score >= config.keepThreshold ? "new" : "archived";

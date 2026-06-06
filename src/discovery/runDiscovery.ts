@@ -181,6 +181,7 @@ export async function runDiscovery(
       `${s.title} ${s.raw}`,
       config.keywords,
       multipliers,
+      s.source,
     );
     const row: NewSignal = {
       id: randomUUID(),

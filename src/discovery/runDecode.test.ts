@@ -67,6 +67,24 @@ describe("runDecode", () => {
     expect(db.select().from(signals).get()?.score).toBe(0.75);
   });
 
+  it("clusters by source for broad, keyword-light runs", () => {
+    const db = createDb(":memory:");
+    seed(db, [
+      { id: "a", source: "reddit", title: "anything at all", raw: "" },
+      { id: "b", source: "github_trending", title: "some repo", raw: "" },
+    ]);
+    const digest = runDecode(db, cfg({ keywords: [] }));
+    expect(digest.signals.kept).toBe(2);
+    expect(digest.insights.count).toBe(2);
+    const clusters = db
+      .select()
+      .from(signals)
+      .all()
+      .map((s) => s.cluster)
+      .sort();
+    expect(clusters).toEqual(["github_trending", "reddit"]);
+  });
+
   it("is idempotent end-to-end", () => {
     const db = createDb(":memory:");
     seed(db, [

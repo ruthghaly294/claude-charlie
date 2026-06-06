@@ -46,6 +46,18 @@ describe("scoreSignal", () => {
     expect(scoreSignal("anything", []).score).toBe(1);
   });
 
+  it("falls back to the given cluster when no keyword matches", () => {
+    const r = scoreSignal("pasta recipe", kw, {}, "reddit");
+    expect(r.score).toBe(0);
+    expect(r.cluster).toBe("reddit");
+  });
+
+  it("uses the fallback cluster even with no keywords configured", () => {
+    const r = scoreSignal("anything", [], {}, "github_trending");
+    expect(r.score).toBe(1);
+    expect(r.cluster).toBe("github_trending");
+  });
+
   it("is case-insensitive", () => {
     expect(scoreSignal("RADIOLOGY", ["radiology"]).score).toBe(1);
   });
