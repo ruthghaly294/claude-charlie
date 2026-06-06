@@ -1,0 +1,57 @@
+# DECODE — broad multi-source starter config.
+# Safe to commit (no secrets). API keys live in .env.local.
+# Edit keywords / subreddits / topics to match what *you* care about.
+
+vault: ~/second-brain
+
+business:
+  name: "My Intelligence OS"
+  description: "Broad signal scanning across the open web and social."
+  # Keywords drive relevance scoring + clustering. Leave [] to keep & cluster
+  # EVERYTHING by source. Add terms to focus the loop on specific topics.
+  keywords:
+    - ai agents
+    - llm
+    - open source
+    - startups
+    - developer tools
+  competitors: []
+
+scoring:
+  # Signals scoring below this are archived (not observed). Lower = keep more.
+  keep_threshold: 0.2
+
+observe:
+  # Ignore clusters smaller than this when distilling insights.
+  min_cluster_size: 2
+
+decide:
+  # Optional cluster -> lane overrides; otherwise lanes round-robin.
+  cluster_lanes: {}
+
+execute:
+  # How many top decisions to draft assets for each run.
+  top_n: 3
+
+sources:
+  # --- no API key required ---
+  rss:
+    - https://hnrss.org/frontpage
+    - https://www.reddit.com/r/programming/.rss
+  github_trending:
+    topics: [ai-agents, llm, developer-tools]
+    window: daily
+  reddit:
+    subreddits: [programming, technology, MachineLearning, startups, LocalLLaMA]
+  hackernews:
+    query: ""
+
+  # --- API key required (set in .env.local) ---
+  youtube:
+    queries: []          # needs YOUTUBE_API_KEY
+  twitter:
+    enabled: true        # uses TWITTER_BEARER from .env.local
+  google_cse:
+    enabled: false       # flip to true once GOOGLE_CSE_KEY + GOOGLE_CSE_ID are set
+  producthunt:
+    enabled: false       # needs PRODUCTHUNT_TOKEN
