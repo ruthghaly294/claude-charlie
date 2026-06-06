@@ -15,7 +15,18 @@ describe("parseConfig", () => {
     expect(c.businessName).toBe("My Business");
     expect(c.keepThreshold).toBe(0.35);
     expect(c.topN).toBe(3);
+    expect(c.minClusterSize).toBe(1);
+    expect(c.clusterLanes).toEqual({});
     expect(c.sources).toEqual(DEFAULT_SOURCES);
+  });
+
+  it("reads observe and decide blocks", () => {
+    const c = parseConfig({
+      observe: { min_cluster_size: 3 },
+      decide: { cluster_lanes: { radiology: "product" } },
+    });
+    expect(c.minClusterSize).toBe(3);
+    expect(c.clusterLanes).toEqual({ radiology: "product" });
   });
 
   it("expands ~ in the vault path", () => {

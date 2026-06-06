@@ -12,7 +12,8 @@ export type DB = BetterSQLite3Database<typeof schema>;
 /**
  * Idempotent schema creation. We use CREATE TABLE IF NOT EXISTS (rather than a
  * migration step) so the app and tests are always runnable with zero setup.
- * Kept in sync with schema.ts by hand — there are only two tables.
+ * Kept in sync with schema.ts by hand across all tables (signals,
+ * discovery_runs, insights, decisions, executions, rankings).
  */
 export function ensureSchema(sqlite: Database.Database): void {
   sqlite.pragma("journal_mode = WAL");

@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 
+/** The four decision lanes recommendations are sorted into. */
+export const LANES = ["product", "content", "marketing", "strategic"] as const;
+export type Lane = (typeof LANES)[number];
+
 export type DecodeConfig = {
   vault: string;
   businessName: string;
@@ -12,6 +16,10 @@ export type DecodeConfig = {
   competitors: string[];
   keepThreshold: number;
   topN: number;
+  /** Observe ignores clusters with fewer than this many signals. */
+  minClusterSize: number;
+  /** Optional cluster→lane overrides used by Decide; otherwise lanes round-robin. */
+  clusterLanes: Record<string, Lane>;
   sources: Record<string, unknown>;
 };
 
@@ -27,6 +35,10 @@ const rawConfigSchema = z
       })
       .optional(),
     scoring: z.object({ keep_threshold: z.number().optional() }).optional(),
+    observe: z.object({ min_cluster_size: z.number().optional() }).optional(),
+    decide: z
+      .object({ cluster_lanes: z.record(z.string(), z.enum(LANES)).optional() })
+      .optional(),
     execute: z.object({ top_n: z.number().optional() }).optional(),
     sources: z.record(z.string(), z.unknown()).optional(),
   })
@@ -61,6 +73,8 @@ export function parseConfig(input: unknown): DecodeConfig {
     competitors: raw.business?.competitors ?? [],
     keepThreshold: raw.scoring?.keep_threshold ?? 0.35,
     topN: raw.execute?.top_n ?? 3,
+    minClusterSize: raw.observe?.min_cluster_size ?? 1,
+    clusterLanes: raw.decide?.cluster_lanes ?? {},
     sources:
       raw.sources && Object.keys(raw.sources).length > 0
         ? raw.sources
