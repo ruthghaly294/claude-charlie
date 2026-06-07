@@ -30,13 +30,13 @@ function seedDecision(
 }
 
 describe("runExecute", () => {
-  it("drafts the top-N decisions by priority and marks them done", () => {
+  it("drafts the top-N decisions by priority and marks them done", async () => {
     const db = createDb(":memory:");
     seedDecision(db, { id: "decision:1", priority: 10, title: "high" });
     seedDecision(db, { id: "decision:2", priority: 5, title: "mid" });
     seedDecision(db, { id: "decision:3", priority: 1, title: "low" });
 
-    const sum = runExecute(db, cfg({ topN: 2 }));
+    const sum = await runExecute(db, cfg({ topN: 2 }));
     expect(sum.executionsWritten).toBe(2);
 
     const drafts = db.select().from(executions).all();
@@ -59,21 +59,21 @@ describe("runExecute", () => {
     expect(low?.status).toBe("open");
   });
 
-  it("links each execution back to its decision and lane", () => {
+  it("links each execution back to its decision and lane", async () => {
     const db = createDb(":memory:");
     seedDecision(db, { id: "decision:1", lane: "product" });
-    runExecute(db, cfg());
+    await runExecute(db, cfg());
     const e = db.select().from(executions).get();
     expect(e?.decisionId).toBe("decision:1");
     expect(e?.lane).toBe("product");
     expect(e?.body.toLowerCase()).toContain("user stories");
   });
 
-  it("is idempotent — a second run finds no open decisions", () => {
+  it("is idempotent — a second run finds no open decisions", async () => {
     const db = createDb(":memory:");
     seedDecision(db);
-    runExecute(db, cfg());
-    const second = runExecute(db, cfg());
+    await runExecute(db, cfg());
+    const second = await runExecute(db, cfg());
     expect(second.executionsWritten).toBe(0);
     expect(db.select().from(executions).all()).toHaveLength(1);
   });

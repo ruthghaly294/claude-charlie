@@ -34,7 +34,7 @@ function seed(db: DB, rows: Array<Partial<typeof signals.$inferInsert>>) {
 }
 
 describe("runDecode", () => {
-  it("runs curate→observe→decide→execute and returns a 4-panel digest", () => {
+  it("runs curate→observe→decide→execute and returns a 4-panel digest", async () => {
     const db = createDb(":memory:");
     seed(db, [
       { id: "a", title: "Radiology FRCR advances", raw: "" },
@@ -42,7 +42,7 @@ describe("runDecode", () => {
       { id: "c", title: "Cooking pasta tonight", raw: "" },
     ]);
 
-    const digest = runDecode(db, cfg());
+    const digest = await runDecode(db, cfg());
 
     expect(digest.signals.kept).toBe(2);
     expect(digest.signals.archived).toBe(1);
@@ -53,10 +53,10 @@ describe("runDecode", () => {
     expect(digest.executions.top[0]?.title.toLowerCase()).toContain("radiology");
   });
 
-  it("applies feedback metrics before curating when provided", () => {
+  it("applies feedback metrics before curating when provided", async () => {
     const db = createDb(":memory:");
     seed(db, [{ id: "a", title: "FRCR tips", raw: "" }]);
-    const digest = runDecode(db, cfg(), {
+    const digest = await runDecode(db, cfg(), {
       metrics: [
         { keyword: "frcr", value: 10 },
         { keyword: "radiology", value: 0 },
@@ -67,13 +67,13 @@ describe("runDecode", () => {
     expect(db.select().from(signals).get()?.score).toBe(0.75);
   });
 
-  it("clusters by source for broad, keyword-light runs", () => {
+  it("clusters by source for broad, keyword-light runs", async () => {
     const db = createDb(":memory:");
     seed(db, [
       { id: "a", source: "reddit", title: "anything at all", raw: "" },
       { id: "b", source: "github_trending", title: "some repo", raw: "" },
     ]);
-    const digest = runDecode(db, cfg({ keywords: [] }));
+    const digest = await runDecode(db, cfg({ keywords: [] }));
     expect(digest.signals.kept).toBe(2);
     expect(digest.insights.count).toBe(2);
     const clusters = db
@@ -85,14 +85,14 @@ describe("runDecode", () => {
     expect(clusters).toEqual(["github_trending", "reddit"]);
   });
 
-  it("is idempotent end-to-end", () => {
+  it("is idempotent end-to-end", async () => {
     const db = createDb(":memory:");
     seed(db, [
       { id: "a", title: "Radiology FRCR", raw: "" },
       { id: "b", title: "Radiology imaging", raw: "" },
     ]);
-    runDecode(db, cfg());
-    const second = runDecode(db, cfg());
+    await runDecode(db, cfg());
+    const second = await runDecode(db, cfg());
     expect(second.insights.count).toBe(1);
     expect(db.select().from(decisions).all()).toHaveLength(1);
   });

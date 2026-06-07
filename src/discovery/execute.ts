@@ -17,11 +17,11 @@ export type ExecuteOptions = {
  * execution ids are stable (`exec:<decisionId>`) and only "open" decisions are
  * picked, so a second run with no new decisions is a no-op.
  */
-export function runExecute(
+export async function runExecute(
   db: DB,
   config: DecodeConfig,
   opts: ExecuteOptions = {},
-): ExecuteSummary {
+): Promise<ExecuteSummary> {
   const { reasoner = deterministicReasoner, now = () => new Date().toISOString() } =
     opts;
 
@@ -37,7 +37,7 @@ export function runExecute(
 
   const createdAt = now();
   for (const decision of top) {
-    const { title, body } = reasoner.draftAsset(decision);
+    const { title, body } = await reasoner.draftAsset(decision);
     const execution: NewExecution = {
       id: `exec:${decision.id}`,
       decisionId: decision.id,

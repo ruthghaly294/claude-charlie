@@ -35,10 +35,10 @@ describe("computePriority", () => {
 });
 
 describe("runDecide", () => {
-  it("writes one decision per insight with priority and provenance", () => {
+  it("writes one decision per insight with priority and provenance", async () => {
     const db = createDb(":memory:");
     seedInsight(db);
-    const sum = runDecide(db, cfg());
+    const sum = await runDecide(db, cfg());
     expect(sum.decisionsWritten).toBe(1);
 
     const d = db.select().from(decisions).get();
@@ -48,18 +48,18 @@ describe("runDecide", () => {
     expect(d?.title.toLowerCase()).toContain("radiology");
   });
 
-  it("respects an explicit cluster→lane override", () => {
+  it("respects an explicit cluster→lane override", async () => {
     const db = createDb(":memory:");
     seedInsight(db);
-    runDecide(db, cfg({ clusterLanes: { radiology: "product" } }));
+    await runDecide(db, cfg({ clusterLanes: { radiology: "product" } }));
     expect(db.select().from(decisions).get()?.lane).toBe("product");
   });
 
-  it("round-robins lanes across insights when no override is set", () => {
+  it("round-robins lanes across insights when no override is set", async () => {
     const db = createDb(":memory:");
     seedInsight(db, { id: "insight:a", cluster: "a" });
     seedInsight(db, { id: "insight:b", cluster: "b" });
-    runDecide(db, cfg());
+    await runDecide(db, cfg());
     const lanes = db
       .select()
       .from(decisions)
@@ -68,11 +68,11 @@ describe("runDecide", () => {
     expect(new Set(lanes).size).toBe(2);
   });
 
-  it("is idempotent — re-running updates rather than duplicating", () => {
+  it("is idempotent — re-running updates rather than duplicating", async () => {
     const db = createDb(":memory:");
     seedInsight(db);
-    runDecide(db, cfg());
-    runDecide(db, cfg());
+    await runDecide(db, cfg());
+    await runDecide(db, cfg());
     expect(db.select().from(decisions).all()).toHaveLength(1);
   });
 });

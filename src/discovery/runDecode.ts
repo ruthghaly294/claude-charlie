@@ -36,19 +36,19 @@ function countSignals(db: DB, where: SQL): number {
  * digest. Discovery is intentionally separate (it hits the network); this is
  * the reasoning half and is fully deterministic + idempotent.
  */
-export function runDecode(
+export async function runDecode(
   db: DB,
   config: DecodeConfig,
   opts: RunDecodeOptions = {},
-): DecodeDigest {
+): Promise<DecodeDigest> {
   const { reasoner, metrics, now } = opts;
   const stageOpts = { reasoner, now };
 
   if (metrics && metrics.length > 0) runFeedback(db, metrics);
   runCurate(db, config);
-  runObserve(db, config, stageOpts);
-  runDecide(db, config, stageOpts);
-  runExecute(db, config, stageOpts);
+  await runObserve(db, config, stageOpts);
+  await runDecide(db, config, stageOpts);
+  await runExecute(db, config, stageOpts);
 
   const kept = countSignals(db, ne(signals.status, "archived"));
   const archived = countSignals(db, eq(signals.status, "archived"));

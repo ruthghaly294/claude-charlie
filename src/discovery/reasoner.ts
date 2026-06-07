@@ -31,11 +31,17 @@ export type AssetDraft = {
  */
 export interface Reasoner {
   /** OBSERVE: distill a cluster of signals into one insight. */
-  summarizeCluster(cluster: string, signals: Signal[]): ClusterSummary;
+  summarizeCluster(
+    cluster: string,
+    signals: Signal[],
+  ): ClusterSummary | Promise<ClusterSummary>;
   /** DECIDE: turn an insight into a recommendation for a given lane. */
-  proposeDecision(insight: Insight, lane: Lane): DecisionProposal;
+  proposeDecision(
+    insight: Insight,
+    lane: Lane,
+  ): DecisionProposal | Promise<DecisionProposal>;
   /** EXECUTE: draft the asset for a top decision. */
-  draftAsset(decision: Decision): AssetDraft;
+  draftAsset(decision: Decision): AssetDraft | Promise<AssetDraft>;
 }
 
 /** Lanes that imply building something substantial cost more effort. */
@@ -66,7 +72,8 @@ export const deterministicReasoner: Reasoner = {
     const body = [
       `**What changed:** ${n} signal${n === 1 ? "" : "s"} clustered around "${cluster}".`,
       `**Why it matters:** sustained activity (avg score ${avgScore.toFixed(2)}) suggests rising interest worth a response.`,
-      `**Recommended action:** review the ${cluster} cluster and decide whether to act.`,
+      `**Monetizable angle:** package the "${cluster}" trend into a paid digital product — a research brief, a premium newsletter section, or a tracked dashboard.`,
+      `**Recommended action:** review the ${cluster} cluster and ship a sellable asset before the interest peaks.`,
       "",
       "Top signals:",
       ...top.map((s) => `- ${s.title}`),
@@ -84,7 +91,13 @@ export const deterministicReasoner: Reasoner = {
       strategic: `Form a ${cluster} strategy`,
     };
     const effort: Effort = HIGH_EFFORT_LANES.has(lane) ? "high" : "low";
-    const rationale = `Derived from insight "${insight.trend}" (importance: ${insight.importance}).`;
+    const monetizeByLane: Record<Lane, string> = {
+      product: `Charge for a ${cluster} tool or template.`,
+      content: `Sell a ${cluster} brief or paid newsletter issue.`,
+      marketing: `Run a ${cluster} campaign that drives paid signups.`,
+      strategic: `Offer a ${cluster} strategy brief as a paid consult deliverable.`,
+    };
+    const rationale = `Derived from insight "${insight.trend}" (importance: ${insight.importance}).\n\nMonetization: ${monetizeByLane[lane]}`;
     return { title: titleByLane[lane], effort, rationale };
   },
 

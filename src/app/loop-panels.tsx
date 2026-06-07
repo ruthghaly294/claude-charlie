@@ -16,6 +16,7 @@ type Decision = {
   impact: string;
   effort: string;
   priority: number;
+  rationale: string;
   status: string;
 };
 type Execution = {
@@ -150,6 +151,11 @@ export default function LoopPanels() {
                   <Chip tone={importanceTone(i.importance)}>{i.importance}</Chip>
                 </div>
                 <div className="mt-1 text-xs text-neutral-500">{i.cluster}</div>
+                {i.body && (
+                  <p className="mt-2 whitespace-pre-wrap text-xs text-neutral-400">
+                    {i.body}
+                  </p>
+                )}
               </li>
             ))}
             {insights.length === 0 && (
@@ -184,6 +190,11 @@ export default function LoopPanels() {
                   <span>· effort {d.effort}</span>
                   {d.status === "done" && <span>· ✓ drafted</span>}
                 </div>
+                {d.rationale && (
+                  <p className="mt-2 whitespace-pre-wrap text-xs text-neutral-400">
+                    {d.rationale}
+                  </p>
+                )}
               </li>
             ))}
             {decisions.length === 0 && (

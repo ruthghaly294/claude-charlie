@@ -28,11 +28,11 @@ export function computePriority(impact: Impact, effort: Effort): number {
  * the optional `clusterLanes` config, else round-robins across the four lanes
  * for spread. Idempotent: decision ids are stable (`decision:<insightId>`).
  */
-export function runDecide(
+export async function runDecide(
   db: DB,
   config: DecodeConfig,
   opts: DecideOptions = {},
-): DecideSummary {
+): Promise<DecideSummary> {
   const { reasoner = deterministicReasoner, now = () => new Date().toISOString() } =
     opts;
 
@@ -45,12 +45,16 @@ export function runDecide(
   const createdAt = now();
   let decisionsWritten = 0;
 
-  rows.forEach((insight, i) => {
+  for (let i = 0; i < rows.length; i++) {
+    const insight = rows[i]!;
     const lane: Lane =
       config.clusterLanes[insight.cluster] ??
       LANES[i % LANES.length] ??
       "content";
-    const { title, effort, rationale } = reasoner.proposeDecision(insight, lane);
+    const { title, effort, rationale } = await reasoner.proposeDecision(
+      insight,
+      lane,
+    );
     const impact: Impact = insight.importance;
 
     const decision: NewDecision = {
@@ -81,7 +85,7 @@ export function runDecide(
       })
       .run();
     decisionsWritten++;
-  });
+  }
 
   return { decisionsWritten };
 }

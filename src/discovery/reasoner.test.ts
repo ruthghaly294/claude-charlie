@@ -52,8 +52,8 @@ function decision(over: Partial<Decision> = {}): Decision {
 }
 
 describe("deterministicReasoner.summarizeCluster", () => {
-  it("rates a large, high-scoring cluster as high importance", () => {
-    const out = deterministicReasoner.summarizeCluster("radiology", [
+  it("rates a large, high-scoring cluster as high importance", async () => {
+    const out = await deterministicReasoner.summarizeCluster("radiology", [
       sig({ id: "a", score: 0.8 }),
       sig({ id: "b", score: 0.9 }),
       sig({ id: "c", score: 0.7 }),
@@ -64,15 +64,15 @@ describe("deterministicReasoner.summarizeCluster", () => {
     expect(out.body).toContain("Recommended action");
   });
 
-  it("rates a single weak signal as low importance", () => {
-    const out = deterministicReasoner.summarizeCluster("misc", [
+  it("rates a single weak signal as low importance", async () => {
+    const out = await deterministicReasoner.summarizeCluster("misc", [
       sig({ id: "a", cluster: "misc", score: 0.1 }),
     ]);
     expect(out.importance).toBe("low");
   });
 
-  it("rates a moderate cluster as medium importance", () => {
-    const out = deterministicReasoner.summarizeCluster("frcr", [
+  it("rates a moderate cluster as medium importance", async () => {
+    const out = await deterministicReasoner.summarizeCluster("frcr", [
       sig({ id: "a", cluster: "frcr", score: 0.5 }),
       sig({ id: "b", cluster: "frcr", score: 0.5 }),
     ]);
@@ -81,8 +81,8 @@ describe("deterministicReasoner.summarizeCluster", () => {
 });
 
 describe("deterministicReasoner.proposeDecision", () => {
-  it("produces a lane-appropriate imperative title and rationale citing the insight", () => {
-    const out = deterministicReasoner.proposeDecision(
+  it("produces a lane-appropriate imperative title and rationale citing the insight", async () => {
+    const out = await deterministicReasoner.proposeDecision(
       insight({ trend: "rising radiology interest" }),
       "product",
     );
@@ -91,21 +91,23 @@ describe("deterministicReasoner.proposeDecision", () => {
     expect(out.effort).toBe("high"); // product is a high-effort lane
   });
 
-  it("treats content as a low-effort lane", () => {
-    const out = deterministicReasoner.proposeDecision(insight(), "content");
+  it("treats content as a low-effort lane", async () => {
+    const out = await deterministicReasoner.proposeDecision(insight(), "content");
     expect(out.effort).toBe("low");
   });
 });
 
 describe("deterministicReasoner.draftAsset", () => {
-  it("drafts a content outline for the content lane", () => {
-    const out = deterministicReasoner.draftAsset(decision({ lane: "content" }));
+  it("drafts a content outline for the content lane", async () => {
+    const out = await deterministicReasoner.draftAsset(
+      decision({ lane: "content" }),
+    );
     expect(out.title).toBe("Publish content on radiology");
     expect(out.body).toContain("Outline");
   });
 
-  it("drafts a spec for the product lane", () => {
-    const out = deterministicReasoner.draftAsset(
+  it("drafts a spec for the product lane", async () => {
+    const out = await deterministicReasoner.draftAsset(
       decision({ lane: "product", title: "Build a radiology feature" }),
     );
     expect(out.body.toLowerCase()).toContain("user stories");

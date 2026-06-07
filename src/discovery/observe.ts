@@ -21,11 +21,11 @@ export type ObserveOptions = {
  * re-runs don't reprocess them. Idempotent: insight ids are stable per cluster
  * (`insight:<cluster>`), so a cluster that grows is updated, not duplicated.
  */
-export function runObserve(
+export async function runObserve(
   db: DB,
   config: DecodeConfig,
   opts: ObserveOptions = {},
-): ObserveSummary {
+): Promise<ObserveSummary> {
   const { reasoner = deterministicReasoner, now = () => new Date().toISOString() } =
     opts;
 
@@ -51,7 +51,7 @@ export function runObserve(
   for (const [cluster, clusterSignals] of byCluster) {
     if (clusterSignals.length < config.minClusterSize) continue;
 
-    const { trend, body, importance } = reasoner.summarizeCluster(
+    const { trend, body, importance } = await reasoner.summarizeCluster(
       cluster,
       clusterSignals,
     );
