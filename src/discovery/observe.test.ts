@@ -90,7 +90,13 @@ describe("runObserve", () => {
           body: "b",
           importance: "high",
         }),
-        proposeDecision: () => ({ title: "", effort: "low", rationale: "" }),
+        proposeDecision: () => ({
+          title: "",
+          effort: "low",
+          confidence: "low",
+          valuePerMonth: 0,
+          rationale: "",
+        }),
         draftAsset: () => ({ title: "", body: "" }),
       },
     });

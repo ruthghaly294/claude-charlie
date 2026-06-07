@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { Signal, Insight, Decision } from "@/db/schema";
-import type { Lane } from "./config";
+import type { Lane, OperatorProfile } from "./config";
 import {
   deterministicReasoner,
   type Reasoner,
@@ -10,6 +10,7 @@ import {
   type DecisionProposal,
   type AssetDraft,
 } from "./reasoner";
+import { UsageMeter } from "./usage";
 
 /**
  * Minimal structural view of the Anthropic client we depend on. Keeping it tiny
@@ -17,7 +18,10 @@ import {
  */
 export interface ReasonerClient {
   messages: {
-    parse: (body: Record<string, unknown>) => Promise<{ parsed_output: unknown }>;
+    parse: (body: Record<string, unknown>) => Promise<{
+      parsed_output: unknown;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    }>;
   };
 }
 
@@ -26,6 +30,9 @@ export type ClaudeReasonerOptions = {
   model?: string;
   businessName?: string;
   businessDescription?: string;
+  profile?: OperatorProfile;
+  /** records token usage + cost across calls (for the run's cost ledger) */
+  meter?: UsageMeter;
 };
 
 const importance = z.enum(["high", "medium", "low"]);
@@ -41,6 +48,8 @@ const insightSchema = z.object({
 const decisionSchema = z.object({
   title: z.string(),
   effort: z.enum(["high", "medium", "low"]),
+  confidence: z.enum(["high", "medium", "low"]),
+  valuePerMonth: z.number(),
   rationale: z.string(),
   monetization: z.string(),
 });
@@ -53,10 +62,22 @@ const assetSchema = z.object({
 const SYSTEM = `You are a market-intelligence analyst for a solo operator who monetizes insight by selling digital products — premium newsletters, research briefs, dashboards, and short courses. Every output must be concrete, specific, and immediately actionable toward a sellable digital product. No filler, no hedging, no generic advice.`;
 
 function biz(opts: ClaudeReasonerOptions): string {
+  const parts: string[] = [];
   const name = opts.businessName?.trim();
   const desc = opts.businessDescription?.trim();
-  if (!name && !desc) return "";
-  return `\n\nOperator context: ${[name, desc].filter(Boolean).join(" — ")}.`;
+  if (name || desc) parts.push([name, desc].filter(Boolean).join(" — "));
+
+  const p = opts.profile;
+  if (p) {
+    if (p.goals.length) parts.push(`Goals: ${p.goals.join("; ")}.`);
+    if (p.weeklyHours) parts.push(`Available: ~${p.weeklyHours} hrs/week.`);
+    if (p.skills.length) parts.push(`Skills: ${p.skills.join(", ")}.`);
+    if (p.risk) parts.push(`Risk appetite: ${p.risk}.`);
+    if (p.monetizationTarget) parts.push(`Revenue target: ${p.monetizationTarget}.`);
+    if (p.audience) parts.push(`Audience: ${p.audience}.`);
+  }
+  if (parts.length === 0) return "";
+  return `\n\nOperator context — tailor everything to this person:\n${parts.join("\n")}`;
 }
 
 /**
@@ -81,6 +102,12 @@ export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
       system: SYSTEM + biz(opts),
       messages: [{ role: "user", content: instruction }],
     });
+    if (opts.meter && res.usage) {
+      opts.meter.record(model, {
+        inputTokens: res.usage.input_tokens ?? 0,
+        outputTokens: res.usage.output_tokens ?? 0,
+      });
+    }
     return schema.parse(res.parsed_output);
   }
 
@@ -112,12 +139,14 @@ export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
     ): Promise<DecisionProposal> {
       const out = await ask(
         decisionSchema,
-        `Insight: "${insight.trend}" (importance: ${insight.importance}).\n${insight.body}\n\nLane: ${lane}. Propose ONE concrete, monetizable digital-product decision for this lane: an imperative title, the effort (high/medium/low), the rationale, and exactly how it makes money.`,
+        `Insight: "${insight.trend}" (importance: ${insight.importance}).\n${insight.body}\n\nLane: ${lane}. Propose ONE concrete, monetizable digital-product decision for this lane: an imperative title, the effort (high/medium/low), your confidence it will sell (high/medium/low), a realistic expected revenue per month in dollars (valuePerMonth), the rationale, and exactly how it makes money.`,
         2000,
       );
       return {
         title: out.title,
         effort: out.effort,
+        confidence: out.confidence,
+        valuePerMonth: out.valuePerMonth,
         rationale: `${out.rationale}\n\nMonetization: ${out.monetization}`,
       };
     },
@@ -139,8 +168,13 @@ export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
  * Set DECODE_REASONER=deterministic to force the fallback even with a key.
  */
 export function getReasoner(
-  config: { businessName?: string; businessDescription?: string } = {},
+  config: {
+    businessName?: string;
+    businessDescription?: string;
+    profile?: OperatorProfile;
+  } = {},
   env: Record<string, string | undefined> = process.env,
+  meter?: UsageMeter,
 ): Reasoner {
   if (!env.ANTHROPIC_API_KEY || env.DECODE_REASONER === "deterministic") {
     return deterministicReasoner;
@@ -150,5 +184,7 @@ export function getReasoner(
     model: env.DECODE_MODEL,
     businessName: config.businessName,
     businessDescription: config.businessDescription,
+    profile: config.profile,
+    meter,
   });
 }

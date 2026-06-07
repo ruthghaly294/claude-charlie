@@ -81,6 +81,7 @@ export default function LoopPanels() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "decode failed");
       setDigest(body as Digest);
+      window.dispatchEvent(new Event("decode:ran"));
       await loadAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : "decode failed");

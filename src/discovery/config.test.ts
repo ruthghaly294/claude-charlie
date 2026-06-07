@@ -29,6 +29,34 @@ describe("parseConfig", () => {
     expect(c.clusterLanes).toEqual({ radiology: "product" });
   });
 
+  it("defaults the operator profile and monetization", () => {
+    const c = parseConfig({});
+    expect(c.profile.weeklyHours).toBe(10);
+    expect(c.profile.risk).toBe("medium");
+    expect(c.monetization).toEqual(["newsletter", "thread", "file"]);
+    expect(c.qualityThreshold).toBe(3.5);
+  });
+
+  it("reads the profile block", () => {
+    const c = parseConfig({
+      profile: {
+        goals: ["replace income"],
+        weekly_hours: 20,
+        skills: ["radiology", "writing"],
+        risk: "high",
+        monetization_target: "$5k/mo",
+        audience: "radiology trainees",
+      },
+      monetization: ["download"],
+      quality: { threshold: 4 },
+    });
+    expect(c.profile.weeklyHours).toBe(20);
+    expect(c.profile.goals).toEqual(["replace income"]);
+    expect(c.profile.risk).toBe("high");
+    expect(c.monetization).toEqual(["download"]);
+    expect(c.qualityThreshold).toBe(4);
+  });
+
   it("expands ~ in the vault path", () => {
     const c = parseConfig({ vault: "~/second-brain" });
     expect(c.vault).toBe(join(homedir(), "second-brain"));

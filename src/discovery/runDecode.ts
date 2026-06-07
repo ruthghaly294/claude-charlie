@@ -1,8 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { count, desc, eq, ne, type SQL } from "drizzle-orm";
 import type { DB } from "@/db/client";
-import { signals, insights, decisions, executions } from "@/db/schema";
+import {
+  signals,
+  insights,
+  decisions,
+  executions,
+  decodeRuns,
+  type StageResult,
+} from "@/db/schema";
 import type { DecodeConfig } from "./config";
 import type { Reasoner } from "./reasoner";
+import type { UsageMeter } from "./usage";
 import { runFeedback, type Metric } from "./feedback";
 import { runCurate } from "./curate";
 import { runObserve } from "./observe";
@@ -24,10 +33,22 @@ export type RunDecodeOptions = {
   /** if present, FEEDBACK runs first so CURATE uses the fresh multipliers */
   metrics?: Metric[];
   now?: () => string;
+  /** token/cost ledger shared with the reasoner; folded into the run row */
+  meter?: UsageMeter;
 };
 
 function countSignals(db: DB, where: SQL): number {
   return db.select({ n: count() }).from(signals).where(where).get()?.n ?? 0;
+}
+
+async function timed<T>(
+  stages: StageResult[],
+  stage: string,
+  fn: () => Promise<{ count: number }> | { count: number },
+): Promise<void> {
+  const start = Date.now();
+  const out = await fn();
+  stages.push({ stage, durationMs: Date.now() - start, count: out.count });
 }
 
 /**
@@ -41,14 +62,45 @@ export async function runDecode(
   config: DecodeConfig,
   opts: RunDecodeOptions = {},
 ): Promise<DecodeDigest> {
-  const { reasoner, metrics, now } = opts;
+  const { reasoner, metrics, now = () => new Date().toISOString(), meter } = opts;
   const stageOpts = { reasoner, now };
 
-  if (metrics && metrics.length > 0) runFeedback(db, metrics);
-  runCurate(db, config);
-  await runObserve(db, config, stageOpts);
-  await runDecide(db, config, stageOpts);
-  await runExecute(db, config, stageOpts);
+  const runId = randomUUID();
+  db.insert(decodeRuns)
+    .values({ id: runId, startedAt: now(), status: "running" })
+    .run();
+
+  const stages: StageResult[] = [];
+  try {
+    if (metrics && metrics.length > 0) runFeedback(db, metrics);
+    await timed(stages, "curate", () => {
+      const s = runCurate(db, config);
+      return { count: s.kept };
+    });
+    await timed(stages, "observe", async () => {
+      const s = await runObserve(db, config, stageOpts);
+      return { count: s.insightsWritten };
+    });
+    await timed(stages, "decide", async () => {
+      const s = await runDecide(db, config, stageOpts);
+      return { count: s.decisionsWritten };
+    });
+    await timed(stages, "execute", async () => {
+      const s = await runExecute(db, config, stageOpts);
+      return { count: s.executionsWritten };
+    });
+  } catch (err) {
+    db.update(decodeRuns)
+      .set({
+        finishedAt: now(),
+        status: "error",
+        stages,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      .where(eq(decodeRuns.id, runId))
+      .run();
+    throw err;
+  }
 
   const kept = countSignals(db, ne(signals.status, "archived"));
   const archived = countSignals(db, eq(signals.status, "archived"));
@@ -69,7 +121,7 @@ export async function runDecode(
     .orderBy(desc(executions.createdAt))
     .all();
 
-  return {
+  const digest: DecodeDigest = {
     signals: { kept, archived },
     insights: {
       count: insightRows.length,
@@ -90,4 +142,20 @@ export async function runDecode(
         .map((r) => ({ title: r.title, lane: r.lane })),
     },
   };
+
+  const totals = meter?.totals ?? { tokensIn: 0, tokensOut: 0, costUsd: 0 };
+  db.update(decodeRuns)
+    .set({
+      finishedAt: now(),
+      status: "ok",
+      stages,
+      digest,
+      tokensIn: totals.tokensIn,
+      tokensOut: totals.tokensOut,
+      costUsd: totals.costUsd,
+    })
+    .where(eq(decodeRuns.id, runId))
+    .run();
+
+  return digest;
 }

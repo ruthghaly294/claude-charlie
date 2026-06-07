@@ -14,6 +14,9 @@ export type ClusterSummary = {
 export type DecisionProposal = {
   title: string;
   effort: Effort;
+  confidence: Importance;
+  /** expected revenue per month from acting on this, in dollars */
+  valuePerMonth: number;
   rationale: string;
 };
 
@@ -97,8 +100,20 @@ export const deterministicReasoner: Reasoner = {
       marketing: `Run a ${cluster} campaign that drives paid signups.`,
       strategic: `Offer a ${cluster} strategy brief as a paid consult deliverable.`,
     };
+    const valueByLane: Record<Lane, number> = {
+      product: 800,
+      content: 300,
+      marketing: 500,
+      strategic: 1000,
+    };
     const rationale = `Derived from insight "${insight.trend}" (importance: ${insight.importance}).\n\nMonetization: ${monetizeByLane[lane]}`;
-    return { title: titleByLane[lane], effort, rationale };
+    return {
+      title: titleByLane[lane],
+      effort,
+      confidence: insight.importance,
+      valuePerMonth: valueByLane[lane],
+      rationale,
+    };
   },
 
   draftAsset(decision) {

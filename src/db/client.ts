@@ -13,7 +13,7 @@ export type DB = BetterSQLite3Database<typeof schema>;
  * Idempotent schema creation. We use CREATE TABLE IF NOT EXISTS (rather than a
  * migration step) so the app and tests are always runnable with zero setup.
  * Kept in sync with schema.ts by hand across all tables (signals,
- * discovery_runs, insights, decisions, executions, rankings).
+ * discovery_runs, insights, decisions, executions, rankings, decode_runs).
  */
 export function ensureSchema(sqlite: Database.Database): void {
   sqlite.pragma("journal_mode = WAL");
@@ -67,6 +67,8 @@ export function ensureSchema(sqlite: Database.Database): void {
       title TEXT NOT NULL,
       impact TEXT NOT NULL DEFAULT 'medium',
       effort TEXT NOT NULL DEFAULT 'medium',
+      confidence TEXT NOT NULL DEFAULT 'medium',
+      value REAL NOT NULL DEFAULT 0,
       priority REAL NOT NULL DEFAULT 0,
       rationale TEXT NOT NULL DEFAULT '',
       from_insights TEXT NOT NULL DEFAULT '[]',
@@ -83,6 +85,19 @@ export function ensureSchema(sqlite: Database.Database): void {
       body TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'draft',
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS decode_runs (
+      id TEXT PRIMARY KEY,
+      started_at TEXT NOT NULL,
+      finished_at TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      stages TEXT NOT NULL DEFAULT '[]',
+      digest TEXT,
+      tokens_in INTEGER NOT NULL DEFAULT 0,
+      tokens_out INTEGER NOT NULL DEFAULT 0,
+      cost_usd REAL NOT NULL DEFAULT 0,
+      error TEXT
     );
 
     CREATE TABLE IF NOT EXISTS rankings (

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createDb, type DB } from "@/db/client";
-import { signals, decisions } from "@/db/schema";
+import { signals, decisions, decodeRuns } from "@/db/schema";
 import { parseConfig, type DecodeConfig } from "./config";
 import { runDecode } from "./runDecode";
 
@@ -83,6 +83,25 @@ describe("runDecode", () => {
       .map((s) => s.cluster)
       .sort();
     expect(clusters).toEqual(["github_trending", "reddit"]);
+  });
+
+  it("records a decode_runs row with stage telemetry", async () => {
+    const db = createDb(":memory:");
+    seed(db, [
+      { id: "a", title: "Radiology FRCR", raw: "" },
+      { id: "b", title: "Radiology imaging", raw: "" },
+    ]);
+    await runDecode(db, cfg());
+    const run = db.select().from(decodeRuns).get();
+    expect(run?.status).toBe("ok");
+    expect(run?.finishedAt).toBeTruthy();
+    expect(run?.stages.map((s) => s.stage)).toEqual([
+      "curate",
+      "observe",
+      "decide",
+      "execute",
+    ]);
+    expect(run?.costUsd).toBe(0); // deterministic reasoner = no spend
   });
 
   it("is idempotent end-to-end", async () => {

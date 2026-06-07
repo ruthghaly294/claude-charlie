@@ -8,6 +8,25 @@ import { z } from "zod";
 export const LANES = ["product", "content", "marketing", "strategic"] as const;
 export type Lane = (typeof LANES)[number];
 
+/** Sellable formats the Package stage can produce from a ready execution. */
+export const MONETIZATION_FORMATS = [
+  "newsletter",
+  "download",
+  "thread",
+  "file",
+] as const;
+export type MonetizationFormat = (typeof MONETIZATION_FORMATS)[number];
+
+/** Who the operator is — threaded into reasoning + scoring so output fits them. */
+export type OperatorProfile = {
+  goals: string[];
+  weeklyHours: number;
+  skills: string[];
+  risk: "low" | "medium" | "high";
+  monetizationTarget: string;
+  audience: string;
+};
+
 export type DecodeConfig = {
   vault: string;
   businessName: string;
@@ -20,6 +39,12 @@ export type DecodeConfig = {
   minClusterSize: number;
   /** Optional cluster→lane overrides used by Decide; otherwise lanes round-robin. */
   clusterLanes: Record<string, Lane>;
+  /** The operator this OS works for. */
+  profile: OperatorProfile;
+  /** Which sellable formats the Package stage emits. */
+  monetization: MonetizationFormat[];
+  /** Minimum critic score (1–5) for an execution draft to be marked "ready". */
+  qualityThreshold: number;
   sources: Record<string, unknown>;
 };
 
@@ -40,6 +65,18 @@ const rawConfigSchema = z
       .object({ cluster_lanes: z.record(z.string(), z.enum(LANES)).optional() })
       .optional(),
     execute: z.object({ top_n: z.number().optional() }).optional(),
+    profile: z
+      .object({
+        goals: z.array(z.string()).optional(),
+        weekly_hours: z.number().optional(),
+        skills: z.array(z.string()).optional(),
+        risk: z.enum(["low", "medium", "high"]).optional(),
+        monetization_target: z.string().optional(),
+        audience: z.string().optional(),
+      })
+      .optional(),
+    monetization: z.array(z.enum(MONETIZATION_FORMATS)).optional(),
+    quality: z.object({ threshold: z.number().optional() }).optional(),
     sources: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough();
@@ -75,6 +112,16 @@ export function parseConfig(input: unknown): DecodeConfig {
     topN: raw.execute?.top_n ?? 3,
     minClusterSize: raw.observe?.min_cluster_size ?? 1,
     clusterLanes: raw.decide?.cluster_lanes ?? {},
+    profile: {
+      goals: raw.profile?.goals ?? [],
+      weeklyHours: raw.profile?.weekly_hours ?? 10,
+      skills: raw.profile?.skills ?? [],
+      risk: raw.profile?.risk ?? "medium",
+      monetizationTarget: raw.profile?.monetization_target ?? "",
+      audience: raw.profile?.audience ?? "",
+    },
+    monetization: raw.monetization ?? ["newsletter", "thread", "file"],
+    qualityThreshold: raw.quality?.threshold ?? 3.5,
     sources:
       raw.sources && Object.keys(raw.sources).length > 0
         ? raw.sources

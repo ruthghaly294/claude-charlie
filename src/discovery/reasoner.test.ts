@@ -42,6 +42,8 @@ function decision(over: Partial<Decision> = {}): Decision {
     title: "Publish content on radiology",
     impact: "high",
     effort: "low",
+    confidence: "high",
+    value: 300,
     priority: 10,
     rationale: "",
     fromInsights: ["insight:radiology"],

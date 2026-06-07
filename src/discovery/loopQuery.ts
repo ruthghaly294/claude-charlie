@@ -4,9 +4,11 @@ import {
   insights,
   decisions,
   executions,
+  decodeRuns,
   type Insight,
   type Decision,
   type Execution,
+  type DecodeRun,
 } from "@/db/schema";
 
 const DEFAULT_LIMIT = 50;
@@ -42,4 +44,40 @@ export function queryExecutions(db: DB, limit = DEFAULT_LIMIT): Execution[] {
     .orderBy(desc(executions.createdAt))
     .limit(limit)
     .all();
+}
+
+/** DECODE loop runs, most recent first (history + cost ledger). */
+export function queryRuns(db: DB, limit = DEFAULT_LIMIT): DecodeRun[] {
+  return db
+    .select()
+    .from(decodeRuns)
+    .orderBy(desc(decodeRuns.startedAt))
+    .limit(limit)
+    .all();
+}
+
+/** Latest run (for the Command Center / pipeline health). */
+export function latestRun(db: DB): DecodeRun | undefined {
+  return queryRuns(db, 1)[0];
+}
+
+/** Total spend across all recorded runs. */
+export function totalSpend(db: DB): {
+  costUsd: number;
+  tokensIn: number;
+  tokensOut: number;
+} {
+  const row = db
+    .select({
+      costUsd: sql<number>`coalesce(sum(${decodeRuns.costUsd}), 0)`,
+      tokensIn: sql<number>`coalesce(sum(${decodeRuns.tokensIn}), 0)`,
+      tokensOut: sql<number>`coalesce(sum(${decodeRuns.tokensOut}), 0)`,
+    })
+    .from(decodeRuns)
+    .get();
+  return {
+    costUsd: row?.costUsd ?? 0,
+    tokensIn: row?.tokensIn ?? 0,
+    tokensOut: row?.tokensOut ?? 0,
+  };
 }

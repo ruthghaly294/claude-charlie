@@ -16,6 +16,8 @@ const PARSED = {
   monetizableAngle: "a paid weekly 'smart-money tracker' newsletter",
   title: "Launch a Smart-Money Tracker newsletter",
   effort: "medium",
+  confidence: "high",
+  valuePerMonth: 1200,
   rationale: "demand is proven",
   monetization: "$15/mo subscription",
   body: "# Smart-Money Tracker\n\n## This week...",
@@ -72,6 +74,8 @@ describe("makeClaudeReasoner", () => {
     );
     expect(out.title).toContain("Smart-Money Tracker");
     expect(out.effort).toBe("medium");
+    expect(out.confidence).toBe("high");
+    expect(out.valuePerMonth).toBe(1200);
     expect(out.rationale).toContain("Monetization:");
   });
 

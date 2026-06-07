@@ -68,6 +68,31 @@ export type SourceRunResult = {
   error?: string;
 };
 
+export type StageResult = {
+  stage: string;
+  durationMs: number;
+  count: number;
+};
+
+/** One full DECODE loop run — telemetry, token spend, and cost for observability. */
+export const decodeRuns = sqliteTable("decode_runs", {
+  id: text("id").primaryKey(),
+  startedAt: text("started_at").notNull(),
+  finishedAt: text("finished_at"),
+  status: text("status", { enum: ["running", "ok", "error"] })
+    .notNull()
+    .default("running"),
+  stages: text("stages", { mode: "json" })
+    .$type<StageResult[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  digest: text("digest", { mode: "json" }).$type<unknown>(),
+  tokensIn: integer("tokens_in").notNull().default(0),
+  tokensOut: integer("tokens_out").notNull().default(0),
+  costUsd: real("cost_usd").notNull().default(0),
+  error: text("error"),
+});
+
 /** Observe: a distilled insight over a cluster of signals. */
 export const insights = sqliteTable(
   "insights",
@@ -105,6 +130,10 @@ export const decisions = sqliteTable(
     effort: text("effort", { enum: ["high", "medium", "low"] })
       .notNull()
       .default("medium"),
+    confidence: text("confidence", { enum: ["high", "medium", "low"] })
+      .notNull()
+      .default("medium"),
+    value: real("value").notNull().default(0),
     priority: real("priority").notNull().default(0),
     rationale: text("rationale").notNull().default(""),
     fromInsights: text("from_insights", { mode: "json" })
@@ -144,6 +173,8 @@ export type Signal = typeof signals.$inferSelect;
 export type NewSignal = typeof signals.$inferInsert;
 export type DiscoveryRun = typeof discoveryRuns.$inferSelect;
 export type NewDiscoveryRun = typeof discoveryRuns.$inferInsert;
+export type DecodeRun = typeof decodeRuns.$inferSelect;
+export type NewDecodeRun = typeof decodeRuns.$inferInsert;
 export type Insight = typeof insights.$inferSelect;
 export type NewInsight = typeof insights.$inferInsert;
 export type Decision = typeof decisions.$inferSelect;

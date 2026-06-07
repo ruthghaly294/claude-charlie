@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createDb, type DB } from "@/db/client";
 import { insights, decisions } from "@/db/schema";
 import { parseConfig, type DecodeConfig } from "./config";
-import { runDecide, computePriority } from "./decide";
+import { runDecide } from "./decide";
 
 function cfg(over: Partial<DecodeConfig> = {}): DecodeConfig {
   return { ...parseConfig({}), ...over };
@@ -23,17 +23,6 @@ function seedInsight(db: DB, over: Partial<typeof insights.$inferInsert> = {}) {
     .run();
 }
 
-describe("computePriority", () => {
-  it("scores high-impact / low-effort at the top of the 1–10 range", () => {
-    expect(computePriority("high", "low")).toBe(10);
-  });
-  it("scores high-impact / high-effort lower", () => {
-    expect(computePriority("high", "high")).toBeLessThan(
-      computePriority("high", "low"),
-    );
-  });
-});
-
 describe("runDecide", () => {
   it("writes one decision per insight with priority and provenance", async () => {
     const db = createDb(":memory:");
@@ -43,6 +32,8 @@ describe("runDecide", () => {
 
     const d = db.select().from(decisions).get();
     expect(d?.impact).toBe("high");
+    expect(d?.confidence).toBe("high"); // from insight importance
+    expect(d?.value).toBeGreaterThan(0); // $/mo estimate
     expect(d?.fromInsights).toEqual(["insight:radiology"]);
     expect(d?.priority).toBeGreaterThan(0);
     expect(d?.title.toLowerCase()).toContain("radiology");
