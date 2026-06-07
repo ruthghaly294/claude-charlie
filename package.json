@@ -11,6 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "decode": "tsx scripts/decode.ts",
+    "decode:watch": "tsx scripts/scheduler.ts",
+    "eval:live": "tsx scripts/eval-live.ts",
+    "verify": "tsc --noEmit && vitest run && next build",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -32,6 +36,7 @@
     "@types/react-dom": "^19.2.0",
     "drizzle-kit": "^0.30.0",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.0",
     "vitest": "^4.1.8"
   }

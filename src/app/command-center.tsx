@@ -42,12 +42,25 @@ function money(n: number): string {
   return `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
+type Run = {
+  id: string;
+  status: string;
+  finishedAt: string | null;
+  costUsd: number;
+  stages: { stage: string; durationMs: number; count: number }[];
+};
+
 export default function CommandCenter() {
   const [cc, setCc] = useState<CommandCenter | null>(null);
+  const [runs, setRuns] = useState<Run[]>([]);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/command-center", { cache: "no-store" });
-    if (res.ok) setCc(await res.json());
+    const [c, r] = await Promise.all([
+      fetch("/api/command-center", { cache: "no-store" }),
+      fetch("/api/runs", { cache: "no-store" }),
+    ]);
+    if (c.ok) setCc(await c.json());
+    if (r.ok) setRuns((await r.json()).rows);
   }, []);
 
   useEffect(() => {
@@ -149,6 +162,26 @@ export default function CommandCenter() {
                 ? `last run: ${cc.lastRun.status} · ${money(cc.lastRun.costUsd)}`
                 : "no runs yet"}
             </div>
+          </div>
+
+          <div className="rounded-lg bg-neutral-900 px-4 py-3 ring-1 ring-neutral-800">
+            <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              Recent runs
+            </div>
+            <ul className="mt-2 space-y-1 text-[11px] text-neutral-400">
+              {runs.slice(0, 5).map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-2">
+                  <span className={r.status === "ok" ? "text-emerald-400" : "text-red-400"}>
+                    {r.status}
+                  </span>
+                  <span className="text-neutral-500">
+                    {r.stages.reduce((a, s) => a + s.durationMs, 0)}ms ·{" "}
+                    {money(r.costUsd)}
+                  </span>
+                </li>
+              ))}
+              {runs.length === 0 && <li className="text-neutral-600">no runs yet</li>}
+            </ul>
           </div>
         </section>
       </div>
