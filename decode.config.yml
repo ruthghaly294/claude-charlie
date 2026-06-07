@@ -6,9 +6,9 @@ vault: ~/second-brain
 business:
   name: "Signal Desk"
   description: "Finance, congressional/insider trades, trading & risk analysis, web scraping, SaaS/marketing growth, trending GitHub, and radiology."
-  # Keywords drive relevance scoring + clustering. NOTE: score = matched/total,
-  # so a long list means each signal matches a small fraction — keep_threshold
-  # is set low below to compensate. Empty [] = keep & cluster everything by source.
+  # Keywords drive relevance scoring + clustering. Score saturates at 2 matches
+  # and is independent of list length, so adding keywords broadens coverage
+  # without lowering scores. Empty [] = keep & cluster everything by source.
   keywords:
     - macro
     - 13F
@@ -29,8 +29,9 @@ business:
   competitors: []
 
 scoring:
-  # Low threshold so matching even ONE keyword (of many) keeps the signal.
-  keep_threshold: 0.05
+  # Scoring saturates at 2 matches (1 match ≈ 0.5), independent of list length,
+  # so this threshold is stable: 0.3 keeps anything matching ≥1 keyword.
+  keep_threshold: 0.3
 
 observe:
   min_cluster_size: 1   # form insights as soon as a topic appears
