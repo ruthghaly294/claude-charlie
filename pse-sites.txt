@@ -1,0 +1,63 @@
+# DECODE — sites to add to your Google Programmable Search Engine.
+# One URL pattern per line. "/*" includes the whole site.
+# Paste into PSE → your engine → "Sites to search", or use pse-sites.xml to bulk-import.
+
+# --- Financial news / macro / institutional / 13F ---
+wsj.com/*
+bloomberg.com/*
+cnbc.com/*
+reuters.com/*
+marketwatch.com/*
+ft.com/*
+seekingalpha.com/*
+sec.gov/*
+federalreserve.gov/*
+finance.yahoo.com/*
+whalewisdom.com/*
+hedgefollow.com/*
+
+# --- Congress / politician trades ---
+capitoltrades.com/*
+unusualwhales.com/*
+quiverquant.com/*
+housestockwatcher.com/*
+senatestockwatcher.com/*
+
+# --- Trump / political posts ---
+truthsocial.com/*
+x.com/realDonaldTrump/*
+
+# --- Technical analysis / trading / risk ---
+tradingview.com/*
+investopedia.com/*
+stockcharts.com/*
+babypips.com/*
+
+# --- Scraping / dev tech ---
+scrapingbee.com/blog/*
+zyte.com/blog/*
+github.com/*
+stackoverflow.com/*
+dev.to/*
+
+# --- SaaS / monetization ---
+indiehackers.com/*
+saastr.com/*
+producthunt.com/*
+news.ycombinator.com/*
+microconf.com/*
+
+# --- Marketing / SEO / trends ---
+ahrefs.com/blog/*
+semrush.com/blog/*
+moz.com/blog/*
+explodingtopics.com/*
+backlinko.com/*
+trends.google.com/*
+
+# --- Radiology ---
+radiopaedia.org/*
+auntminnie.com/*
+rsna.org/*
+pubs.rsna.org/*
+radiologyassistant.nl/*
