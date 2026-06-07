@@ -11,6 +11,7 @@ type Action = {
   effort: string;
   effortHours: number;
   confidence: string;
+  status: string;
   rationale: string;
 };
 
@@ -99,8 +100,15 @@ export default function CommandCenter() {
                   <span className="text-sm font-medium">
                     <span className="text-neutral-500">{i + 1}.</span> {a.title}
                   </span>
-                  <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
-                    P{a.priority}
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {a.status === "drafted" && (
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-300 ring-1 ring-amber-500/30">
+                        draft ready
+                      </span>
+                    )}
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                      P{a.priority}
+                    </span>
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-400">

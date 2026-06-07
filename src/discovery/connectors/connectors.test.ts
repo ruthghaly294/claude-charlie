@@ -133,31 +133,22 @@ describe("github", () => {
 });
 
 describe("reddit", () => {
-  it("maps hot posts", async () => {
+  it("parses the .rss feed and tags the subreddit", async () => {
+    const atom = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+<entry><title>FRCR study tips</title><link href="https://www.reddit.com/r/Radiology/comments/abc/frcr"/><updated>2026-06-01</updated><author><name>/u/jane</name></author><content>good stuff</content></entry>
+</feed>`;
     const out = await redditConnector.fetch(
       ctx({
         config: { subreddits: ["Radiology"] },
-        fetchImpl: jsonFetch({
-          data: {
-            children: [
-              {
-                data: {
-                  title: "T",
-                  permalink: "/r/x/1",
-                  author: "u",
-                  selftext: "s",
-                },
-              },
-            ],
-          },
-        }),
+        fetchImpl: textFetch(atom),
       }),
     );
     expect(out[0]).toMatchObject({
       source: "reddit",
-      title: "T",
-      url: "https://www.reddit.com/r/x/1",
+      title: "FRCR study tips",
+      url: "https://www.reddit.com/r/Radiology/comments/abc/frcr",
     });
+    expect(out[0]?.tags).toContain("Radiology");
   });
 });
 

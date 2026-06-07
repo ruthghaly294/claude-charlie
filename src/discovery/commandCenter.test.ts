@@ -49,9 +49,11 @@ describe("getCommandCenter", () => {
       .run();
 
     const cc = getCommandCenter(db, { DECODE_BUDGET_USD: "10" });
+    // ranked by priority across all decisions; "done" surfaces as "drafted"
     expect(cc.focusToday[0]?.title).toBe("high prio");
-    expect(cc.focusToday.every((a) => a.status === "open")).toBe(true);
-    expect(cc.focusToday.find((a) => a.title === "done one")).toBeUndefined();
+    expect(cc.focusToday.find((a) => a.title === "done one")?.status).toBe(
+      "drafted",
+    );
     expect(cc.focusToday[0]?.effortHours).toBeGreaterThan(0);
     expect(cc.counts.decisions).toBe(3);
   });

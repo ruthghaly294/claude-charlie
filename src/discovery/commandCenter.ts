@@ -64,19 +64,19 @@ export function getCommandCenter(
       effort: d.effort,
       effortHours: effortHours(d.effort as Level),
       confidence: d.confidence,
-      status: d.status,
+      // "done" = a draft exists for it (ready to ship), not "completed"
+      status: d.status === "done" ? "drafted" : d.status,
       rationale: d.rationale,
     }),
   );
-  const open = ranked.filter((a) => a.status === "open");
 
   const spend = totalSpend(db);
   const budgetUsd = Number(env.DECODE_BUDGET_USD ?? 20);
   const run = latestRun(db);
 
   return {
-    focusToday: open.slice(0, 3),
-    topActions: open.slice(0, 8),
+    focusToday: ranked.slice(0, 3),
+    topActions: ranked.slice(0, 8),
     spend: {
       ...spend,
       budgetUsd,

@@ -45,15 +45,13 @@ execute:
 sources:
   # --- no API key required ---
   rss:
-    - https://hnrss.org/frontpage
+    # Topic-focused feeds (generic HN frontpage removed to cut noise).
+    - https://hnrss.org/newest?q=web+scraping                     # HN: scraping
+    - https://hnrss.org/newest?q=SaaS                             # HN: SaaS
     - https://www.cnbc.com/id/20910258/device/rss/rss.html        # CNBC markets
     - http://feeds.marketwatch.com/marketwatch/topstories/        # MarketWatch
     - https://seekingalpha.com/feed.xml                           # Seeking Alpha
     - https://www.federalreserve.gov/feeds/press_all.xml          # Fed press
-    # SEC 13F current filings (Atom). NOTE: SEC requires a User-Agent header;
-    # if this 403s, the connector needs a UA set — tell me and I'll add it.
-    - "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=13F&output=atom"
-    - https://www.reddit.com/r/algotrading/.rss
   github_trending:
     topics: [web-scraping, trading, quant, saas, marketing, frontend, backend]
     window: daily
@@ -81,7 +79,7 @@ sources:
       - saas marketing growth
       - radiology cases
   twitter:
-    enabled: true        # uses TWITTER_BEARER
+    enabled: false       # bearer token returned 401 — re-add a valid TWITTER_BEARER to enable
     # Follow specific handles (all recent tweets), in addition to the keyword
     # search below. Edit freely. (Pelosi has no official trade feed; trackers
     # like unusual_whales / PelosiTracker_ surface congressional trades.)

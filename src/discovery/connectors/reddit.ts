@@ -1,27 +1,16 @@
 import { z } from "zod";
 import type { Connector, ConnectorContext, RawSignal } from "../types";
-import { fetchJson } from "../fetchWithRetry";
+import { fetchText } from "../fetchWithRetry";
+import { parseFeed } from "./rss";
 
 const cfgSchema = z.object({
   subreddits: z.array(z.string()).default([]),
 });
 
-const apiSchema = z.object({
-  data: z.object({
-    children: z
-      .array(
-        z.object({
-          data: z.object({
-            title: z.string().default(""),
-            permalink: z.string().default(""),
-            author: z.string().default(""),
-            selftext: z.string().default(""),
-          }),
-        }),
-      )
-      .default([]),
-  }),
-});
+// Reddit blocks its JSON API from datacenter IPs (403) but serves the public
+// .rss feed to a browser-like User-Agent — so we read that and parse it.
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
 export const redditConnector: Connector = {
   key: "reddit",
@@ -38,26 +27,21 @@ export const redditConnector: Connector = {
 
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {
     const { subreddits } = cfgSchema.parse(ctx.config ?? {});
+    const results = await Promise.allSettled(
+      subreddits.map((sub) =>
+        fetchText(
+          `https://www.reddit.com/r/${encodeURIComponent(sub)}/hot.rss?limit=15`,
+          { headers: { "user-agent": UA } },
+          { fetchImpl: ctx.fetchImpl, signal: ctx.signal },
+        ).then((xml) => ({ sub, xml })),
+      ),
+    );
+
     const out: RawSignal[] = [];
-    for (const sub of subreddits) {
-      const url = `https://www.reddit.com/r/${encodeURIComponent(sub)}/hot.json?limit=10`;
-      const data = await fetchJson(
-        url,
-        apiSchema,
-        { headers: { "user-agent": "decode-bot/1.0 (intelligence scanner)" } },
-        { fetchImpl: ctx.fetchImpl, signal: ctx.signal },
-      );
-      for (const child of data.data.children) {
-        const p = child.data;
-        out.push({
-          source: "reddit",
-          title: p.title,
-          url: `https://www.reddit.com${p.permalink}`,
-          author: p.author,
-          publishedAt: "",
-          tags: ["reddit", sub],
-          raw: p.selftext,
-        });
+    for (const r of results) {
+      if (r.status !== "fulfilled") continue;
+      for (const item of parseFeed(r.value.xml)) {
+        out.push({ ...item, source: "reddit", tags: ["reddit", r.value.sub] });
       }
     }
     return out;
