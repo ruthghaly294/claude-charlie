@@ -100,6 +100,7 @@ describe("runDecode", () => {
       "observe",
       "decide",
       "execute",
+      "package",
     ]);
     expect(run?.costUsd).toBe(0); // deterministic reasoner = no spend
   });

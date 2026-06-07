@@ -11,12 +11,14 @@ import {
 } from "@/db/schema";
 import type { DecodeConfig } from "./config";
 import type { Reasoner } from "./reasoner";
+import type { Critic } from "./critic";
 import type { UsageMeter } from "./usage";
 import { runFeedback, type Metric } from "./feedback";
 import { runCurate } from "./curate";
 import { runObserve } from "./observe";
 import { runDecide } from "./decide";
 import { runExecute } from "./execute";
+import { runPackage } from "./package";
 
 export type DecodeDigest = {
   signals: { kept: number; archived: number };
@@ -30,6 +32,7 @@ export type DecodeDigest = {
 
 export type RunDecodeOptions = {
   reasoner?: Reasoner;
+  critic?: Critic;
   /** if present, FEEDBACK runs first so CURATE uses the fresh multipliers */
   metrics?: Metric[];
   now?: () => string;
@@ -62,7 +65,13 @@ export async function runDecode(
   config: DecodeConfig,
   opts: RunDecodeOptions = {},
 ): Promise<DecodeDigest> {
-  const { reasoner, metrics, now = () => new Date().toISOString(), meter } = opts;
+  const {
+    reasoner,
+    critic,
+    metrics,
+    now = () => new Date().toISOString(),
+    meter,
+  } = opts;
   const stageOpts = { reasoner, now };
 
   const runId = randomUUID();
@@ -86,8 +95,12 @@ export async function runDecode(
       return { count: s.decisionsWritten };
     });
     await timed(stages, "execute", async () => {
-      const s = await runExecute(db, config, stageOpts);
+      const s = await runExecute(db, config, { ...stageOpts, critic });
       return { count: s.executionsWritten };
+    });
+    await timed(stages, "package", () => {
+      const s = runPackage(db, config, { now });
+      return { count: s.productsWritten };
     });
   } catch (err) {
     db.update(decodeRuns)

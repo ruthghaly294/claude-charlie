@@ -41,7 +41,10 @@ describe("runExecute", () => {
 
     const drafts = db.select().from(executions).all();
     expect(drafts).toHaveLength(2);
-    expect(drafts.every((e) => e.status === "draft")).toBe(true);
+    // neutral critic scores 4 ≥ default threshold 3.5 → ready
+    expect(drafts.every((e) => e.status === "ready")).toBe(true);
+    expect(drafts.every((e) => e.qualityScore === 4)).toBe(true);
+    expect(sum.readyCount).toBe(2);
     expect(drafts.map((e) => e.title).sort()).toEqual(["high", "mid"]);
 
     const done = db
@@ -57,6 +60,14 @@ describe("runExecute", () => {
       .all()
       .find((d) => d.id === "decision:3");
     expect(low?.status).toBe("open");
+  });
+
+  it("keeps drafts below the quality threshold as 'draft'", async () => {
+    const db = createDb(":memory:");
+    seedDecision(db, { id: "decision:1" });
+    const sum = await runExecute(db, cfg({ qualityThreshold: 5 }));
+    expect(sum.readyCount).toBe(0);
+    expect(db.select().from(executions).get()?.status).toBe("draft");
   });
 
   it("links each execution back to its decision and lane", async () => {

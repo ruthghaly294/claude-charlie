@@ -27,6 +27,14 @@ type Execution = {
   status: string;
 };
 
+type Product = {
+  id: string;
+  format: string;
+  title: string;
+  body: string;
+  price: number;
+};
+
 type Digest = {
   signals: { kept: number; archived: number };
   insights: { count: number };
@@ -54,19 +62,39 @@ export default function LoopPanels() {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [executions, setExecutions] = useState<Execution[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [running, setRunning] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState<string | null>(null);
   const [digest, setDigest] = useState<Digest | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
-    const [i, d, e] = await Promise.all([
+    const [i, d, e, p] = await Promise.all([
       fetch("/api/insights", { cache: "no-store" }),
       fetch("/api/decisions", { cache: "no-store" }),
       fetch("/api/executions", { cache: "no-store" }),
+      fetch("/api/products", { cache: "no-store" }),
     ]);
     if (i.ok) setInsights((await i.json()).rows);
     if (d.ok) setDecisions((await d.json()).rows);
     if (e.ok) setExecutions((await e.json()).rows);
+    if (p.ok) setProducts((await p.json()).rows);
+  }, []);
+
+  const exportProducts = useCallback(async () => {
+    setExporting(true);
+    setExported(null);
+    try {
+      const res = await fetch("/api/export", { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "export failed");
+      setExported(`Exported ${body.exported} file(s) to ${body.dir}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "export failed");
+    } finally {
+      setExporting(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -231,6 +259,51 @@ export default function LoopPanels() {
               <li className="text-sm text-neutral-500">No drafts yet.</li>
             )}
           </ul>
+        </div>
+      </div>
+
+      {/* Products — sellable, exportable */}
+      <div className="mt-10">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            Products <span className="text-neutral-600">({products.length})</span>
+          </h3>
+          <button
+            onClick={exportProducts}
+            disabled={exporting || products.length === 0}
+            className="ml-auto rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-black shadow hover:bg-amber-400 disabled:opacity-50"
+          >
+            {exporting ? "Exporting…" : "Export to files"}
+          </button>
+        </div>
+        {exported && (
+          <div className="mb-3 rounded-lg bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 ring-1 ring-emerald-500/30">
+            {exported}
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((p) => (
+            <div
+              key={p.id}
+              className="rounded-lg bg-neutral-900 px-3 py-2.5 ring-1 ring-neutral-800"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{p.title}</span>
+                <Chip tone="bg-amber-500/15 text-amber-300 ring-amber-500/30">
+                  {p.format}
+                  {p.price > 0 ? ` · $${p.price}` : ""}
+                </Chip>
+              </div>
+              <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap text-xs text-neutral-400">
+                {p.body}
+              </pre>
+            </div>
+          ))}
+          {products.length === 0 && (
+            <div className="text-sm text-neutral-500">
+              No products yet — run the loop.
+            </div>
+          )}
         </div>
       </div>
     </section>

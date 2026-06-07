@@ -5,10 +5,12 @@ import {
   decisions,
   executions,
   decodeRuns,
+  products,
   type Insight,
   type Decision,
   type Execution,
   type DecodeRun,
+  type Product,
 } from "@/db/schema";
 
 const DEFAULT_LIMIT = 50;
@@ -42,6 +44,16 @@ export function queryExecutions(db: DB, limit = DEFAULT_LIMIT): Execution[] {
     .select()
     .from(executions)
     .orderBy(desc(executions.createdAt))
+    .limit(limit)
+    .all();
+}
+
+/** Sellable products, most recent first. */
+export function queryProducts(db: DB, limit = DEFAULT_LIMIT): Product[] {
+  return db
+    .select()
+    .from(products)
+    .orderBy(desc(products.createdAt))
     .limit(limit)
     .all();
 }

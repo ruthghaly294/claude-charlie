@@ -104,6 +104,6 @@ describe("loop read routes", () => {
   it("GET /api/executions lists drafted assets", async () => {
     const body = await (await executionsGET()).json();
     expect(body.rows.length).toBeGreaterThanOrEqual(1);
-    expect(body.rows[0].status).toBe("draft");
+    expect(body.rows[0].status).toBe("ready"); // neutral critic passes the gate
   });
 });

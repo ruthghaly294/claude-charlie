@@ -155,6 +155,24 @@ export const executions = sqliteTable("executions", {
   lane: text("lane").notNull().default("content"),
   title: text("title").notNull(),
   body: text("body").notNull().default(""),
+  status: text("status", { enum: ["draft", "ready", "published"] })
+    .notNull()
+    .default("draft"),
+  qualityScore: real("quality_score").notNull().default(0),
+  qualityNotes: text("quality_notes").notNull().default(""),
+  createdAt: text("created_at").notNull(),
+});
+
+/** Package: a sellable product derived from a "ready" execution, per format. */
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey(),
+  executionId: text("execution_id"),
+  format: text("format", {
+    enum: ["newsletter", "download", "thread", "file"],
+  }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull().default(""),
+  price: real("price").notNull().default(0),
   status: text("status", { enum: ["draft", "published"] })
     .notNull()
     .default("draft"),
@@ -181,4 +199,6 @@ export type Decision = typeof decisions.$inferSelect;
 export type NewDecision = typeof decisions.$inferInsert;
 export type Execution = typeof executions.$inferSelect;
 export type NewExecution = typeof executions.$inferInsert;
+export type Product = typeof products.$inferSelect;
+export type NewProduct = typeof products.$inferInsert;
 export type Ranking = typeof rankings.$inferSelect;

@@ -29,6 +29,9 @@ tsconfig.tsbuildinfo
 *.db-wal
 data/
 
+# Exported sellable products
+products/
+
 # IDE
 .vscode/
 .idea/

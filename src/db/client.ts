@@ -84,6 +84,8 @@ export function ensureSchema(sqlite: Database.Database): void {
       title TEXT NOT NULL,
       body TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'draft',
+      quality_score REAL NOT NULL DEFAULT 0,
+      quality_notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL
     );
 
@@ -98,6 +100,17 @@ export function ensureSchema(sqlite: Database.Database): void {
       tokens_out INTEGER NOT NULL DEFAULT 0,
       cost_usd REAL NOT NULL DEFAULT 0,
       error TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      execution_id TEXT,
+      format TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      price REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft',
+      created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS rankings (

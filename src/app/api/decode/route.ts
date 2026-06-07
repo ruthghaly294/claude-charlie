@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { loadConfig } from "@/discovery/config";
 import { runDecode } from "@/discovery/runDecode";
 import { getReasoner } from "@/discovery/claudeReasoner";
+import { getCritic } from "@/discovery/critic";
 import { UsageMeter } from "@/discovery/usage";
 
 export const runtime = "nodejs";
@@ -25,6 +26,7 @@ export async function POST(): Promise<NextResponse> {
         process.env,
         meter,
       ),
+      critic: getCritic(process.env, meter),
       meter,
     });
     return NextResponse.json(digest);
