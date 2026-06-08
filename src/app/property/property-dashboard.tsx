@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+const PropertyMap = dynamic(() => import("./property-map"), { ssr: false });
 
 type Listing = {
   id: string;
@@ -16,6 +19,8 @@ type Listing = {
   fairValue: number | null;
   dealPct: number | null;
   dealScore: number;
+  lat: number | null;
+  lng: number | null;
 };
 
 const AREAS = [
@@ -53,6 +58,7 @@ export default function PropertyDashboard() {
   const [refCount, setRefCount] = useState(0);
   const [area, setArea] = useState("");
   const [form, setForm] = useState({ ...EMPTY });
+  const [emailHtml, setEmailHtml] = useState("");
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +122,29 @@ export default function PropertyDashboard() {
     [form, load],
   );
 
+  const importEmail = useCallback(async () => {
+    setBusy("email");
+    setError(null);
+    try {
+      const res = await fetch("/api/property/import-email", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ html: emailHtml }),
+      });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.error ?? "email import failed");
+      setMsg(
+        `Parsed ${b.parsed} listing(s) from email, imported ${b.imported} (${b.withValue} valued).`,
+      );
+      setEmailHtml("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "email import failed");
+    } finally {
+      setBusy("");
+    }
+  }, [emailHtml, load]);
+
   const set = (k: keyof typeof EMPTY, v: string | boolean) =>
     setForm((f) => ({ ...f, [k]: v }));
 
@@ -173,6 +202,38 @@ export default function PropertyDashboard() {
           {busy === "import" ? "Valuing…" : "Add & value listing"}
         </button>
       </form>
+
+      {/* Import from a forwarded PropertyPal alert email */}
+      <div className="mt-4 rounded-lg bg-neutral-900 p-4 ring-1 ring-neutral-800">
+        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Import from PropertyPal alert email
+        </label>
+        <p className="mt-1 text-xs text-neutral-600">
+          Paste the full HTML of a saved-search alert email — it extracts every
+          priced listing (postcode/size filled in when present).
+        </p>
+        <textarea
+          value={emailHtml}
+          onChange={(e) => setEmailHtml(e.target.value)}
+          placeholder="Paste alert email HTML here…"
+          className="mt-2 h-24 w-full rounded-md bg-neutral-950 px-3 py-2 text-xs ring-1 ring-neutral-800"
+        />
+        <button
+          onClick={importEmail}
+          disabled={busy === "email" || !emailHtml.trim()}
+          className="mt-2 rounded-md bg-sky-500 px-3 py-1.5 text-sm font-medium text-black hover:bg-sky-400 disabled:opacity-50"
+        >
+          {busy === "email" ? "Parsing…" : "Import from email"}
+        </button>
+      </div>
+
+      {/* Map of opportunities */}
+      <div className="mt-8">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Opportunity map
+        </h2>
+        <PropertyMap listings={rows} />
+      </div>
 
       {/* Filter + table */}
       <div className="mt-8 mb-3 flex items-center gap-3">

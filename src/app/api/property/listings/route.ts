@@ -13,8 +13,26 @@ export async function GET(req: Request): Promise<NextResponse> {
     const area = new URL(req.url).searchParams.get("area") ?? undefined;
     const refPostcodes =
       db.select({ n: count() }).from(postcodeValues).get()?.n ?? 0;
+
+    // attach coordinates from the postcode reference data (for the map)
+    const geo = new Map(
+      db
+        .select({
+          postcode: postcodeValues.postcode,
+          lat: postcodeValues.latitude,
+          lng: postcodeValues.longitude,
+        })
+        .from(postcodeValues)
+        .all()
+        .map((g) => [g.postcode, g]),
+    );
+    const rows = rankedListings(db, area || undefined).map((r) => {
+      const g = geo.get(r.postcode);
+      return { ...r, lat: g?.lat ?? null, lng: g?.lng ?? null };
+    });
+
     return NextResponse.json({
-      rows: rankedListings(db, area || undefined),
+      rows,
       reference: { postcodes: refPostcodes },
     });
   } catch (err) {
