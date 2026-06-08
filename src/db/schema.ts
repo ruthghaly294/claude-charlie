@@ -179,6 +179,72 @@ export const products = sqliteTable("products", {
   createdAt: text("created_at").notNull(),
 });
 
+/* ─────────────────────────  Property intelligence  ───────────────────────── */
+
+/** LPS-modelled value per postcode (from nihousepricemap.com), the fair-value baseline. */
+export const postcodeValues = sqliteTable("postcode_values", {
+  postcode: text("postcode").primaryKey(),
+  longitude: real("longitude"),
+  latitude: real("latitude"),
+  nProperties: integer("n_properties").notNull().default(0),
+  meanVal: real("mean_val").notNull().default(0),
+  meanSize: real("mean_size").notNull().default(0),
+  meanPpsqm: real("mean_ppsqm").notNull().default(0),
+  ppsqmDelta: real("ppsqm_delta").notNull().default(0),
+  quarter: text("quarter").notNull().default(""),
+  updatedAt: text("updated_at").notNull(),
+});
+
+/** Calculator coefficients: per-postcode base £/m² + global feature adjustments. */
+export const valuationCoefs = sqliteTable("valuation_coefs", {
+  coef: text("coef").primaryKey(),
+  valueMean: real("value_mean").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});
+
+/** A property listing tracked over time (manually/assisted-imported from PropertyPal). */
+export const listings = sqliteTable(
+  "listings",
+  {
+    id: text("id").primaryKey(),
+    source: text("source").notNull().default("propertypal"),
+    area: text("area").notNull().default("unknown"),
+    address: text("address").notNull().default(""),
+    street: text("street").notNull().default(""),
+    postcode: text("postcode").notNull().default(""),
+    propertyType: text("property_type").notNull().default(""),
+    beds: integer("beds"),
+    sizeSqm: real("size_sqm"),
+    askingPrice: real("asking_price").notNull().default(0),
+    url: text("url").notNull().default(""),
+    status: text("status", { enum: ["active", "sstc", "sold", "gone"] })
+      .notNull()
+      .default("active"),
+    fairValue: real("fair_value"),
+    dealPct: real("deal_pct"),
+    dealScore: real("deal_score").notNull().default(0),
+    firstSeen: text("first_seen").notNull(),
+    lastSeen: text("last_seen").notNull(),
+  },
+  (t) => [
+    index("listings_area_idx").on(t.area),
+    index("listings_deal_idx").on(t.dealScore),
+  ],
+);
+
+/** Asking-price/status history per listing — the longitudinal record. */
+export const listingSnapshots = sqliteTable(
+  "listing_snapshots",
+  {
+    id: text("id").primaryKey(),
+    listingId: text("listing_id").notNull(),
+    askingPrice: real("asking_price").notNull().default(0),
+    status: text("status").notNull().default("active"),
+    seenAt: text("seen_at").notNull(),
+  },
+  (t) => [index("snapshots_listing_idx").on(t.listingId)],
+);
+
 /** Feedback: per-keyword performance multiplier consumed by curate/scoring. */
 export const rankings = sqliteTable("rankings", {
   keyword: text("keyword").primaryKey(),
@@ -201,4 +267,10 @@ export type Execution = typeof executions.$inferSelect;
 export type NewExecution = typeof executions.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+export type PostcodeValue = typeof postcodeValues.$inferSelect;
+export type NewPostcodeValue = typeof postcodeValues.$inferInsert;
+export type ValuationCoef = typeof valuationCoefs.$inferSelect;
+export type Listing = typeof listings.$inferSelect;
+export type NewListing = typeof listings.$inferInsert;
+export type ListingSnapshot = typeof listingSnapshots.$inferSelect;
 export type Ranking = typeof rankings.$inferSelect;

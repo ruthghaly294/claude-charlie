@@ -113,6 +113,56 @@ export function ensureSchema(sqlite: Database.Database): void {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS postcode_values (
+      postcode TEXT PRIMARY KEY,
+      longitude REAL,
+      latitude REAL,
+      n_properties INTEGER NOT NULL DEFAULT 0,
+      mean_val REAL NOT NULL DEFAULT 0,
+      mean_size REAL NOT NULL DEFAULT 0,
+      mean_ppsqm REAL NOT NULL DEFAULT 0,
+      ppsqm_delta REAL NOT NULL DEFAULT 0,
+      quarter TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS valuation_coefs (
+      coef TEXT PRIMARY KEY,
+      value_mean REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS listings (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL DEFAULT 'propertypal',
+      area TEXT NOT NULL DEFAULT 'unknown',
+      address TEXT NOT NULL DEFAULT '',
+      street TEXT NOT NULL DEFAULT '',
+      postcode TEXT NOT NULL DEFAULT '',
+      property_type TEXT NOT NULL DEFAULT '',
+      beds INTEGER,
+      size_sqm REAL,
+      asking_price REAL NOT NULL DEFAULT 0,
+      url TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      fair_value REAL,
+      deal_pct REAL,
+      deal_score REAL NOT NULL DEFAULT 0,
+      first_seen TEXT NOT NULL,
+      last_seen TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS listings_area_idx ON listings(area);
+    CREATE INDEX IF NOT EXISTS listings_deal_idx ON listings(deal_score);
+
+    CREATE TABLE IF NOT EXISTS listing_snapshots (
+      id TEXT PRIMARY KEY,
+      listing_id TEXT NOT NULL,
+      asking_price REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',
+      seen_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS snapshots_listing_idx ON listing_snapshots(listing_id);
+
     CREATE TABLE IF NOT EXISTS rankings (
       keyword TEXT PRIMARY KEY,
       multiplier REAL NOT NULL DEFAULT 1,
