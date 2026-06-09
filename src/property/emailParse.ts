@@ -3,7 +3,6 @@ import { normalisePostcode } from "./postcodes";
 
 const ANCHOR_RE = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 const POSTCODE_RE = /\bBT\d{1,2}\s*\d[A-Z]{2}\b/i;
-const PRICE_RE = /£\s*([\d,]{4,})/;
 const BEDS_RE = /(\d+)\s*(?:bed|bedroom)/i;
 const SIZE_RE = /([\d,]+(?:\.\d+)?)\s*(?:sq\.?\s*m|m²|sqm)/i;
 
@@ -36,46 +35,90 @@ function isListingHref(href: string): boolean {
   return /propertypal\.com/i.test(href) && !/\/(unsubscribe|account|login|help|contact|privacy|saved-search|email-preferences)/i.test(href);
 }
 
-/**
- * Parse a forwarded PropertyPal saved-search alert email (HTML) into listings.
- * For each listing link, reads the card region up to the next link for the
- * price / beds / postcode / size. Listings without a price are skipped (we
- * can't value or rank them). Postcode/size are best-effort — emails often omit
- * them, in which case the listing is still tracked and you can fill those in.
- */
-export function parsePropertyPalEmail(html: string): ListingInput[] {
-  const anchors: { href: string; text: string; index: number }[] = [];
-  for (const m of html.matchAll(ANCHOR_RE)) {
-    anchors.push({ href: m[1]!, text: m[2]!, index: m.index ?? 0 });
+const BARE_URL_RE = /https?:\/\/(?:www\.|email\.)?propertypal\.com\/[^\s"'<>)\]]+/gi;
+const PRICE_G = /£\s*([\d,]{4,})/g;
+
+type Candidate = { url: string; text: string; index: number };
+
+/** First (or last) £ amount in a chunk of text. */
+function priceIn(text: string, last: boolean): number | null {
+  const ms = [...text.matchAll(PRICE_G)];
+  if (ms.length === 0) return null;
+  const m = last ? ms[ms.length - 1]! : ms[0]!;
+  const n = Number(m[1]!.replace(/,/g, ""));
+  return n || null;
+}
+
+/** Best-effort address from the URL slug, e.g. /12-cregagh-road/84500 → "12 cregagh road". */
+function addressFromUrl(url: string): string {
+  try {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    const slug = [...parts].reverse().find((p) => !/^\d+$/.test(p)) ?? "";
+    return slug.replace(/[-_]+/g, " ").trim();
+  } catch {
+    return "";
   }
+}
+
+/**
+ * Parse a PropertyPal saved-search alert into listings — accepts the email's
+ * HTML *or* the plain text you copied out of it. Collects every listing link
+ * (anchored or bare), then reads each card for price / postcode / beds / size:
+ * forward from the link first (HTML layout), falling back to the text just
+ * before it (plain-text layout, where the price precedes the URL). Listings
+ * with no price are skipped; postcode/size are best-effort (emails often omit
+ * them — those still import for tracking and value once you add a postcode).
+ */
+export function parsePropertyPalEmail(input: string): ListingInput[] {
+  const cands: Candidate[] = [];
+  let anchored = false;
+  for (const m of input.matchAll(ANCHOR_RE)) {
+    if (isListingHref(m[1]!)) {
+      cands.push({ url: unwrapUrl(m[1]!), text: stripTags(m[2]!), index: m.index ?? 0 });
+      anchored = true;
+    }
+  }
+  for (const m of input.matchAll(BARE_URL_RE)) {
+    const url = unwrapUrl(m[0]!.replace(/[.,);]+$/, ""));
+    if (isListingHref(url)) cands.push({ url, text: "", index: m.index ?? 0 });
+  }
+  cands.sort((a, b) => a.index - b.index);
+
+  const seen = new Set<string>();
+  const uniq = cands.filter((c) => {
+    if (seen.has(c.url)) return false;
+    seen.add(c.url);
+    return true;
+  });
 
   const out: ListingInput[] = [];
-  const seen = new Set<string>();
+  uniq.forEach((c, i) => {
+    const prevEnd = i > 0 ? uniq[i - 1]!.index : 0;
+    const nextStart = uniq[i + 1]?.index ?? input.length;
+    // HTML emails put the price *after* the link (read forward); plain-text
+    // layout puts price/details *before* the URL (read the text between the
+    // previous listing and this one). Mixing them would steal a neighbour's price.
+    let price: number | null;
+    let region: string;
+    if (anchored) {
+      region = stripTags(input.slice(c.index, nextStart));
+      price = priceIn(region, false);
+    } else {
+      const back = stripTags(input.slice(prevEnd, c.index));
+      region = `${back} ${stripTags(input.slice(c.index, nextStart))}`;
+      price = priceIn(back, true);
+    }
+    if (price === null) return;
 
-  anchors.forEach((a, i) => {
-    if (!isListingHref(a.href)) return;
-    const url = unwrapUrl(a.href);
-    if (seen.has(url)) return;
-
-    const regionEnd = anchors[i + 1]?.index ?? Math.min(html.length, a.index + 2000);
-    const region = stripTags(html.slice(a.index, regionEnd));
-    const priceM = region.match(PRICE_RE);
-    if (!priceM) return; // no price → can't value/rank
-    const askingPrice = Number(priceM[1]!.replace(/,/g, ""));
-    if (!askingPrice) return;
-
-    seen.add(url);
     const pcM = region.match(POSTCODE_RE);
     const bedsM = region.match(BEDS_RE);
     const sizeM = region.match(SIZE_RE);
-    const address = stripTags(a.text) || region.slice(0, 80);
-
     out.push({
       source: "propertypal",
-      url,
-      address,
+      url: c.url,
+      address: c.text || addressFromUrl(c.url) || region.slice(0, 80),
       postcode: pcM ? normalisePostcode(pcM[0]) : "",
-      askingPrice,
+      askingPrice: price,
       beds: bedsM ? Number(bedsM[1]) : undefined,
       sizeSqm: sizeM ? Number(sizeM[1]!.replace(/,/g, "")) : undefined,
     });

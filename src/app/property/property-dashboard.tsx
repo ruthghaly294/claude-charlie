@@ -122,6 +122,28 @@ export default function PropertyDashboard() {
     [form, load],
   );
 
+  const scrapeAgents = useCallback(async () => {
+    setBusy("scrape");
+    setError(null);
+    try {
+      const res = await fetch("/api/property/scrape", { method: "POST" });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.error ?? "scrape failed");
+      const total = (b.agents ?? []).reduce(
+        (n: number, a: { imported: number }) => n + a.imported,
+        0,
+      );
+      setMsg(
+        `Scraped ${total} listing(s): ${(b.agents ?? []).map((a: { agent: string; imported: number }) => `${a.agent} ${a.imported}`).join(", ")}`,
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "scrape failed");
+    } finally {
+      setBusy("");
+    }
+  }, [load]);
+
   const importEmail = useCallback(async () => {
     setBusy("email");
     setError(null);
@@ -160,13 +182,22 @@ export default function PropertyDashboard() {
             Asking price vs LPS-modelled fair value — find what&apos;s underpriced.
           </p>
         </div>
-        <button
-          onClick={refreshReference}
-          disabled={busy === "reference"}
-          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-50"
-        >
-          {busy === "reference" ? "Loading LPS…" : `Refresh LPS data (${refCount} postcodes)`}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={scrapeAgents}
+            disabled={busy === "scrape"}
+            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:opacity-50"
+          >
+            {busy === "scrape" ? "Scraping agents…" : "Scrape agents now"}
+          </button>
+          <button
+            onClick={refreshReference}
+            disabled={busy === "reference"}
+            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-50"
+          >
+            {busy === "reference" ? "Loading LPS…" : `Refresh LPS data (${refCount})`}
+          </button>
+        </div>
       </header>
 
       {error && (

@@ -223,6 +223,7 @@ export const listings = sqliteTable(
     fairValue: real("fair_value"),
     dealPct: real("deal_pct"),
     dealScore: real("deal_score").notNull().default(0),
+    valuationBasis: text("valuation_basis").notNull().default(""),
     firstSeen: text("first_seen").notNull(),
     lastSeen: text("last_seen").notNull(),
   },

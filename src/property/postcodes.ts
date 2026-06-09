@@ -27,3 +27,27 @@ export function classifyArea(pc: string): BelfastArea {
 export function isTrackedArea(pc: string): boolean {
   return classifyArea(pc) !== "other";
 }
+
+/** Belfast neighbourhood slugs estate agents use in listing URLs → area. */
+const EAST_SLUGS = [
+  "east-belfast", "stormont", "belmont", "knock", "ballyhackamore",
+  "strandtown", "sydenham", "gilnahirk", "dundonald", "cherryvalley",
+  "kings-road", "castlereagh", "cregagh", "gilnahirk", "comber-road",
+];
+const SOUTH_SLUGS = [
+  "south-belfast", "malone", "upper-malone", "lisburn-road", "lisburn-road-area",
+  "stranmillis", "ormeau", "finaghy", "balmoral", "rosetta", "four-winds",
+  "galwally", "annadale", "belvoir", "newforge",
+];
+
+/**
+ * Classify an estate-agent URL/slug into a tracked area when there's no
+ * postcode (agent pages often omit it). Matches explicit area tokens first,
+ * then known East/South Belfast neighbourhood names.
+ */
+export function areaFromSlug(text: string): BelfastArea {
+  const t = text.toLowerCase();
+  if (EAST_SLUGS.some((s) => t.includes(s))) return "east-belfast";
+  if (SOUTH_SLUGS.some((s) => t.includes(s))) return "south-belfast";
+  return "other";
+}

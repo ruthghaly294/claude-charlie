@@ -49,4 +49,26 @@ describe("parsePropertyPalEmail", () => {
     expect(urls.some((u) => u?.includes("unsubscribe"))).toBe(false);
     expect(urls.some((u) => u?.includes("no-price-listing"))).toBe(false);
   });
+
+  it("parses plain-text paste where the price precedes the URL", () => {
+    const text = `New listings for East Belfast:
+
+15 Kensington Road, Belfast, BT5 6NW
+Offers Around £224,950 — 3 bed semi-detached, 96 sq. m
+https://www.propertypal.com/15-kensington-road/845010
+
+22 Deramore Park, BT9 5JU
+£675,000 — 5 bed detached
+https://www.propertypal.com/22-deramore-park/845011`;
+    const out = parsePropertyPalEmail(text);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      askingPrice: 224950,
+      postcode: "BT5 6NW",
+      beds: 3,
+      sizeSqm: 96,
+    });
+    expect(out[0]!.address).toContain("kensington");
+    expect(out[1]).toMatchObject({ askingPrice: 675000, postcode: "BT9 5JU" });
+  });
 });

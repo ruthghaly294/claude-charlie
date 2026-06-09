@@ -148,6 +148,7 @@ export function ensureSchema(sqlite: Database.Database): void {
       fair_value REAL,
       deal_pct REAL,
       deal_score REAL NOT NULL DEFAULT 0,
+      valuation_basis TEXT NOT NULL DEFAULT '',
       first_seen TEXT NOT NULL,
       last_seen TEXT NOT NULL
     );
@@ -170,6 +171,36 @@ export function ensureSchema(sqlite: Database.Database): void {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Lightweight migrations: add columns that older DBs (created before a column
+  // existed) are missing. CREATE TABLE IF NOT EXISTS won't add them, so we do.
+  ensureColumns(sqlite, "decisions", [
+    "confidence TEXT NOT NULL DEFAULT 'medium'",
+    "value REAL NOT NULL DEFAULT 0",
+  ]);
+  ensureColumns(sqlite, "executions", [
+    "quality_score REAL NOT NULL DEFAULT 0",
+    "quality_notes TEXT NOT NULL DEFAULT ''",
+  ]);
+  ensureColumns(sqlite, "listings", ["valuation_basis TEXT NOT NULL DEFAULT ''"]);
+}
+
+/** Add any of `defs` (column DDL) that the table doesn't already have. */
+function ensureColumns(
+  sqlite: Database.Database,
+  table: string,
+  defs: string[],
+): void {
+  const cols = new Set(
+    sqlite
+      .prepare(`PRAGMA table_info(${table})`)
+      .all()
+      .map((r) => (r as { name: string }).name),
+  );
+  for (const def of defs) {
+    const name = def.split(/\s+/)[0]!;
+    if (!cols.has(name)) sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${def}`);
+  }
 }
 
 /** Create a fresh drizzle DB over a sqlite file (or :memory: for tests). */

@@ -14,6 +14,7 @@
     "decode": "tsx scripts/decode.ts",
     "decode:watch": "tsx scripts/scheduler.ts",
     "eval:live": "tsx scripts/eval-live.ts",
+    "scrape:property": "tsx scripts/scrape-property.ts",
     "verify": "tsc --noEmit && vitest run && next build",
     "db:push": "drizzle-kit push"
   },

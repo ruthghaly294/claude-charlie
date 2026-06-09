@@ -1,0 +1,45 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { getDb } from "../src/db/client";
+import { ingestReference } from "../src/property/referenceIngest";
+import { scrapeAllAgents } from "../src/property/agentScrape";
+import { postcodeValues } from "../src/db/schema";
+import { count } from "drizzle-orm";
+
+function loadEnv(file = ".env.local"): void {
+  const path = join(process.cwd(), file);
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (!m || process.env[m[1]!] !== undefined) continue;
+    let v = m[2]!.trim();
+    if (/^(".*"|'.*')$/.test(v)) v = v.slice(1, -1);
+    process.env[m[1]!] = v;
+  }
+}
+
+/**
+ * Hands-off property update: ensure the LPS reference data exists, then scrape
+ * every registered estate agent for East/South Belfast listings, valuing and
+ * de-duplicating them. Point cron at `npm run scrape:property`.
+ */
+async function main(): Promise<void> {
+  loadEnv();
+  const db = getDb();
+  const haveRef = (db.select({ n: count() }).from(postcodeValues).get()?.n ?? 0) > 0;
+  if (!haveRef) {
+    console.log("Loading LPS reference data…");
+    const r = await ingestReference(db);
+    console.log(`  ${r.postcodes} postcodes, ${r.coefs} coefficients (${r.quarter})`);
+  }
+  const max = Number(process.env.PROPERTY_MAX ?? 25);
+  console.log(`Scraping agents (max ${max}/agent)…`);
+  for (const s of await scrapeAllAgents(db, { max })) {
+    console.log(`  ${s.agent}: ${s.imported} listings`);
+  }
+}
+
+main().catch((err) => {
+  console.error("scrape failed:", err instanceof Error ? err.message : err);
+  process.exit(1);
+});

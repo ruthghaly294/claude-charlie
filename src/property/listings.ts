@@ -8,14 +8,21 @@ import {
   estimateFromPpsqm,
   dealMetrics,
 } from "./valuation";
-import { loadCoefMap, meanPpsqmFor } from "./referenceIngest";
+import {
+  loadCoefMap,
+  meanPpsqmFor,
+  meanValFor,
+  areaMeanVal,
+} from "./referenceIngest";
 
 export type ListingInput = {
   id?: string;
   source?: string;
   address: string;
   street?: string;
-  postcode: string;
+  postcode?: string;
+  /** explicit area when there's no postcode (e.g. from an agent URL slug) */
+  area?: string;
   propertyType?: string;
   beds?: number;
   sizeSqm?: number;
@@ -27,26 +34,54 @@ export type ListingInput = {
 };
 
 function deriveId(input: ListingInput): string {
-  const basis = input.url?.trim() || `${normalisePostcode(input.postcode)}|${input.address}`;
+  const basis =
+    input.url?.trim() ||
+    `${input.postcode ? normalisePostcode(input.postcode) : ""}|${input.address}`;
   return `listing:${createHash("sha1").update(basis).digest("hex").slice(0, 16)}`;
 }
 
-/** Compute a fair value: calculator model first, postcode-mean £/m² as fallback. */
+export type Valuation = { value: number | null; basis: string };
+
+/**
+ * Best fair value from what we know, with a transparent basis:
+ *  1. postcode + size  → calculator model (most precise)
+ *  2. postcode + size  → postcode £/m² × size
+ *  3. postcode only     → postcode mean property value
+ *  4. area only (slug)  → area mean property value (coarsest — scraped listings)
+ */
 export function fairValueFor(
   db: DB,
-  input: { postcode: string; sizeSqm?: number; hasGarage?: boolean; hasGarden?: boolean },
-): number | null {
-  if (!input.sizeSqm || input.sizeSqm <= 0) return null;
-  const coefs = loadCoefMap(db);
-  const modelled = estimatePrice(coefs, {
-    postcode: input.postcode,
-    sizeSqm: input.sizeSqm,
-    hasGarage: input.hasGarage,
-    hasGarden: input.hasGarden,
-  });
-  if (modelled !== null) return modelled;
-  const mean = meanPpsqmFor(db, normalisePostcode(input.postcode));
-  return mean ? estimateFromPpsqm(mean, input.sizeSqm) : null;
+  input: {
+    postcode?: string;
+    sizeSqm?: number;
+    area?: string;
+    hasGarage?: boolean;
+    hasGarden?: boolean;
+  },
+): Valuation {
+  const pc = input.postcode ? normalisePostcode(input.postcode) : "";
+  if (pc && input.sizeSqm && input.sizeSqm > 0) {
+    const modelled = estimatePrice(loadCoefMap(db), {
+      postcode: pc,
+      sizeSqm: input.sizeSqm,
+      hasGarage: input.hasGarage,
+      hasGarden: input.hasGarden,
+    });
+    if (modelled !== null) return { value: modelled, basis: "postcode model" };
+    const mean = meanPpsqmFor(db, pc);
+    if (mean)
+      return { value: estimateFromPpsqm(mean, input.sizeSqm), basis: "postcode £/m²" };
+  }
+  if (pc) {
+    const mv = meanValFor(db, pc);
+    if (mv) return { value: mv, basis: "postcode average" };
+  }
+  const area = input.area ?? (pc ? classifyArea(pc) : "other");
+  if (area === "east-belfast" || area === "south-belfast") {
+    const av = areaMeanVal(db, area);
+    if (av) return { value: av, basis: "area average" };
+  }
+  return { value: null, basis: "none" };
 }
 
 /**
@@ -62,11 +97,18 @@ export function importListing(
 ): Listing {
   const now = opts.now ?? (() => new Date().toISOString());
   const at = now();
-  const postcode = normalisePostcode(input.postcode);
+  const postcode = input.postcode ? normalisePostcode(input.postcode) : "";
+  const area = input.area ?? (postcode ? classifyArea(postcode) : "other");
   const status = input.status ?? "active";
-  const fairValue = fairValueFor(db, { ...input, postcode });
-  const { dealPct, dealScore } = fairValue
-    ? dealMetrics(input.askingPrice, fairValue)
+  const val = fairValueFor(db, {
+    postcode,
+    sizeSqm: input.sizeSqm,
+    area,
+    hasGarage: input.hasGarage,
+    hasGarden: input.hasGarden,
+  });
+  const { dealPct, dealScore } = val.value
+    ? dealMetrics(input.askingPrice, val.value)
     : { dealPct: 0, dealScore: 0 };
 
   const id = input.id ?? deriveId(input);
@@ -75,7 +117,7 @@ export function importListing(
   const row = {
     id,
     source: input.source ?? "propertypal",
-    area: classifyArea(postcode),
+    area,
     address: input.address,
     street: input.street ?? "",
     postcode,
@@ -85,9 +127,10 @@ export function importListing(
     askingPrice: input.askingPrice,
     url: input.url ?? "",
     status,
-    fairValue,
+    fairValue: val.value,
     dealPct,
     dealScore,
+    valuationBasis: val.basis,
     firstSeen: existing?.firstSeen ?? at,
     lastSeen: at,
   };

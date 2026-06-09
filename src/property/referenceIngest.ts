@@ -3,7 +3,7 @@ import type { DB } from "@/db/client";
 import { postcodeValues, valuationCoefs } from "@/db/schema";
 import { fetchText } from "@/discovery/fetchWithRetry";
 import { parsePpsqmCsv, parseCoefsCsv } from "./valuation";
-import { isTrackedArea } from "./postcodes";
+import { isTrackedArea, classifyArea } from "./postcodes";
 
 const BASE = "https://www.nihousepricemap.com/static";
 const UA =
@@ -98,4 +98,26 @@ export function meanPpsqmFor(db: DB, postcode: string): number | undefined {
     .where(eq(postcodeValues.postcode, postcode))
     .get();
   return row?.meanPpsqm;
+}
+
+/** Mean property value for a postcode (size-free baseline), or undefined. */
+export function meanValFor(db: DB, postcode: string): number | undefined {
+  const row = db
+    .select()
+    .from(postcodeValues)
+    .where(eq(postcodeValues.postcode, postcode))
+    .get();
+  return row?.meanVal;
+}
+
+/** Average mean property value across a tracked area (coarsest baseline). */
+export function areaMeanVal(db: DB, area: string): number | undefined {
+  const vals = db
+    .select()
+    .from(postcodeValues)
+    .all()
+    .filter((r) => classifyArea(r.postcode) === area && r.meanVal > 0)
+    .map((r) => r.meanVal);
+  if (vals.length === 0) return undefined;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
