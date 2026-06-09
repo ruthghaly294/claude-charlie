@@ -149,6 +149,8 @@ export function ensureSchema(sqlite: Database.Database): void {
       deal_pct REAL,
       deal_score REAL NOT NULL DEFAULT 0,
       valuation_basis TEXT NOT NULL DEFAULT '',
+      latitude REAL,
+      longitude REAL,
       first_seen TEXT NOT NULL,
       last_seen TEXT NOT NULL
     );
@@ -163,6 +165,14 @@ export function ensureSchema(sqlite: Database.Database): void {
       seen_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS snapshots_listing_idx ON listing_snapshots(listing_id);
+
+    CREATE TABLE IF NOT EXISTS geocode_cache (
+      query TEXT PRIMARY KEY,
+      postcode TEXT NOT NULL DEFAULT '',
+      latitude REAL,
+      longitude REAL,
+      fetched_at TEXT NOT NULL
+    );
 
     CREATE TABLE IF NOT EXISTS rankings (
       keyword TEXT PRIMARY KEY,
@@ -182,7 +192,11 @@ export function ensureSchema(sqlite: Database.Database): void {
     "quality_score REAL NOT NULL DEFAULT 0",
     "quality_notes TEXT NOT NULL DEFAULT ''",
   ]);
-  ensureColumns(sqlite, "listings", ["valuation_basis TEXT NOT NULL DEFAULT ''"]);
+  ensureColumns(sqlite, "listings", [
+    "valuation_basis TEXT NOT NULL DEFAULT ''",
+    "latitude REAL",
+    "longitude REAL",
+  ]);
 }
 
 /** Add any of `defs` (column DDL) that the table doesn't already have. */

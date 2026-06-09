@@ -28,6 +28,8 @@ export type ListingInput = {
   sizeSqm?: number;
   askingPrice: number;
   url?: string;
+  lat?: number;
+  lng?: number;
   hasGarage?: boolean;
   hasGarden?: boolean;
   status?: "active" | "sstc" | "sold" | "gone";
@@ -98,7 +100,8 @@ export function importListing(
   const now = opts.now ?? (() => new Date().toISOString());
   const at = now();
   const postcode = input.postcode ? normalisePostcode(input.postcode) : "";
-  const area = input.area ?? (postcode ? classifyArea(postcode) : "other");
+  // a real postcode is authoritative for area; else fall back to the slug-derived area
+  const area = postcode ? classifyArea(postcode) : (input.area ?? "other");
   const status = input.status ?? "active";
   const val = fairValueFor(db, {
     postcode,
@@ -131,6 +134,8 @@ export function importListing(
     dealPct,
     dealScore,
     valuationBasis: val.basis,
+    latitude: input.lat ?? existing?.latitude ?? null,
+    longitude: input.lng ?? existing?.longitude ?? null,
     firstSeen: existing?.firstSeen ?? at,
     lastSeen: at,
   };

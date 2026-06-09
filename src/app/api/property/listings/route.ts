@@ -28,7 +28,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     );
     const rows = rankedListings(db, area || undefined).map((r) => {
       const g = geo.get(r.postcode);
-      return { ...r, lat: g?.lat ?? null, lng: g?.lng ?? null };
+      return {
+        ...r,
+        lat: r.latitude ?? g?.lat ?? null,
+        lng: r.longitude ?? g?.lng ?? null,
+      };
     });
 
     return NextResponse.json({

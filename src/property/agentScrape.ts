@@ -2,6 +2,7 @@ import type { DB } from "@/db/client";
 import { fetchText } from "@/discovery/fetchWithRetry";
 import { areaFromSlug, normalisePostcode } from "./postcodes";
 import { importListing, type ListingInput } from "./listings";
+import { geocodeWithCache } from "./geocode";
 
 const UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
@@ -29,6 +30,22 @@ function titleCase(slug: string): string {
     .replace(/[-_]+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const ROAD_RE = /\b(road|avenue|park|gardens|drive|crescent|mews|square|lane|street|grove|terrace|close|heights|manor|view|walk|court|place|hill|way)\b/i;
+
+/** A fuller, geocodable address from og:title, handling the two common formats. */
+function addressFromTitle(title: string): string {
+  const t = title.replace(/\s+/g, " ").trim();
+  // pipe-delimited (e.g. Simon Brien): pick the segment that looks like an address
+  const segs = t.split("|").map((s) => s.trim());
+  const seg = segs.find(
+    (s) => (/\d/.test(s) || ROAD_RE.test(s)) && !/for sale|for rent|to let/i.test(s),
+  );
+  if (seg && segs.length > 1) return seg.replace(/,\s*$/, "");
+  // no pipes (e.g. Templeton Robinson): cut the "… Property for sale at X" suffix
+  const cut = t.split(/\b(?:property )?(?:for sale|for rent|to let)\b/i)[0]!;
+  return cut.replace(/\bProperty\b\s*$/i, "").replace(/[,\s]+$/, "").trim();
 }
 
 /** Address from the last meaningful URL segment (the listing slug). */
@@ -72,14 +89,15 @@ export function extractListing(
   if (price === null) return null;
 
   const title = html.match(TITLE_RE)?.[1]?.trim();
-  const pcM = (title ?? "").match(POSTCODE_RE) ?? text.match(POSTCODE_RE);
+  const pcM = (title ?? "").match(POSTCODE_RE);
   const bedsM = text.match(BEDS_RE);
   const typeM = (title ?? text).match(TYPE_RE);
+  const address = (title && addressFromTitle(title)) || addressFromUrl(url);
 
   return {
     source,
     url,
-    address: addressFromUrl(url),
+    address: address || addressFromUrl(url),
     postcode: pcM ? normalisePostcode(pcM[0]) : "",
     area: areaFromSlug(url),
     askingPrice: price,
@@ -168,21 +186,65 @@ export async function scrapeAgent(
   return out;
 }
 
-export type ScrapeSummary = { agent: string; found: number; imported: number };
+export type ScrapeSummary = {
+  agent: string;
+  found: number;
+  imported: number;
+  geocoded: number;
+};
 
-/** Scrape every registered agent and import (value + dedupe + track) the results. */
+export type ScrapeAllOptions = ScrapeOptions & {
+  /** override the agent set (tests) */
+  agents?: AgentConfig[];
+  /** geocode address → postcode/coords for precise valuation (default true) */
+  geocode?: boolean;
+  /** delay between live geocoder hits (Nominatim ≤1/sec) */
+  geocodeDelayMs?: number;
+};
+
+/**
+ * Scrape every registered agent, geocode each listing's address to a full
+ * postcode (→ precise LPS valuation + accurate map position), then import
+ * (value + dedupe + track). Geocoding is cached, so repeat runs are cheap.
+ */
 export async function scrapeAllAgents(
   db: DB,
-  opts: ScrapeOptions = {},
+  opts: ScrapeAllOptions = {},
 ): Promise<ScrapeSummary[]> {
+  const {
+    agents = AGENTS,
+    geocode = true,
+    geocodeDelayMs = 1100,
+    sleep = defaultSleep,
+    fetchImpl,
+  } = opts;
+
   const summaries: ScrapeSummary[] = [];
-  for (const agent of AGENTS) {
+  for (const agent of agents) {
     const listings = await scrapeAgent(agent, opts);
-    for (const l of listings) importListing(db, l);
+    let geocoded = 0;
+    for (const l of listings) {
+      if (geocode && !l.postcode && l.address) {
+        const geo = await geocodeWithCache(
+          db,
+          `${l.address}, Belfast, Northern Ireland`,
+          { fetchImpl },
+        );
+        if (geo?.postcode) {
+          l.postcode = geo.postcode;
+          l.lat = geo.lat ?? undefined;
+          l.lng = geo.lng ?? undefined;
+          geocoded++;
+        }
+        if (geocodeDelayMs > 0) await sleep(geocodeDelayMs);
+      }
+      importListing(db, l);
+    }
     summaries.push({
       agent: agent.key,
       found: listings.length,
       imported: listings.length,
+      geocoded,
     });
   }
   return summaries;

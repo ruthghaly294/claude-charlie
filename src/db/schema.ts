@@ -224,6 +224,8 @@ export const listings = sqliteTable(
     dealPct: real("deal_pct"),
     dealScore: real("deal_score").notNull().default(0),
     valuationBasis: text("valuation_basis").notNull().default(""),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
     firstSeen: text("first_seen").notNull(),
     lastSeen: text("last_seen").notNull(),
   },
@@ -245,6 +247,15 @@ export const listingSnapshots = sqliteTable(
   },
   (t) => [index("snapshots_listing_idx").on(t.listingId)],
 );
+
+/** Cache of address → postcode/coords lookups (avoids re-hitting the geocoder). */
+export const geocodeCache = sqliteTable("geocode_cache", {
+  query: text("query").primaryKey(),
+  postcode: text("postcode").notNull().default(""),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  fetchedAt: text("fetched_at").notNull(),
+});
 
 /** Feedback: per-keyword performance multiplier consumed by curate/scoring. */
 export const rankings = sqliteTable("rankings", {
@@ -274,4 +285,5 @@ export type ValuationCoef = typeof valuationCoefs.$inferSelect;
 export type Listing = typeof listings.$inferSelect;
 export type NewListing = typeof listings.$inferInsert;
 export type ListingSnapshot = typeof listingSnapshots.$inferSelect;
+export type GeocodeCacheRow = typeof geocodeCache.$inferSelect;
 export type Ranking = typeof rankings.$inferSelect;
