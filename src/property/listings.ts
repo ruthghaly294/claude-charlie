@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import { listings, listingSnapshots, type Listing } from "@/db/schema";
-import { classifyArea, normalisePostcode } from "./postcodes";
+import { classifyArea, normalisePostcode, outwardCode } from "./postcodes";
 import {
   estimatePrice,
   estimateFromPpsqm,
@@ -14,6 +14,7 @@ import {
   meanPpsqmFor,
   meanValFor,
   areaMeanVal,
+  districtPpsqm,
 } from "./referenceIngest";
 
 export type ListingInput = {
@@ -46,12 +47,12 @@ function deriveId(input: ListingInput): string {
 export type Valuation = { value: number | null; basis: string };
 
 /**
- * Best fair value from what we know, with a transparent basis:
- *  1. postcode + real size      → calculator model (most precise)
- *  2. postcode + real size      → postcode £/m² × size
- *  3. postcode + beds/type      → estimated size → £/m² model (like-for-like)
- *  4. postcode only             → postcode mean property value
- *  5. area only (slug)          → area mean property value (coarsest)
+ * Fair value, £/m²-first (the LPS-derived square-metre value is the engine):
+ * fair = £/m² × floor area, where £/m² is, in order, the postcode calculator
+ * model → postcode mean → postcode-district mean; and floor area is the real
+ * size if known, else estimated from beds + type. Only when there's no usable
+ * £/m² (no postcode in the LPS set) does it fall back to a mean-value figure.
+ * `basis` records exactly which was used (and whether size was estimated).
  */
 export function fairValueFor(
   db: DB,
@@ -66,32 +67,24 @@ export function fairValueFor(
   },
 ): Valuation {
   const pc = input.postcode ? normalisePostcode(input.postcode) : "";
-  const model = (size: number) =>
-    estimatePrice(loadCoefMap(db), {
+  const realSize = input.sizeSqm && input.sizeSqm > 0 ? input.sizeSqm : null;
+  const size = realSize ?? estimateSizeSqm(input.propertyType ?? "", input.beds);
+  const note = realSize ? "" : " · est. size";
+
+  if (pc && size) {
+    const modelled = estimatePrice(loadCoefMap(db), {
       postcode: pc,
       sizeSqm: size,
       hasGarage: input.hasGarage,
       hasGarden: input.hasGarden,
     });
+    if (modelled !== null) return { value: modelled, basis: `postcode model${note}` };
 
-  if (pc && input.sizeSqm && input.sizeSqm > 0) {
-    const m = model(input.sizeSqm);
-    if (m !== null) return { value: m, basis: "postcode model" };
     const mean = meanPpsqmFor(db, pc);
-    if (mean)
-      return { value: estimateFromPpsqm(mean, input.sizeSqm), basis: "postcode £/m²" };
-  }
+    if (mean) return { value: estimateFromPpsqm(mean, size), basis: `postcode £/m²${note}` };
 
-  // no real size: estimate it from beds + type for a like-for-like valuation
-  if (pc && !input.sizeSqm) {
-    const est = estimateSizeSqm(input.propertyType ?? "", input.beds);
-    if (est) {
-      const m = model(est);
-      if (m !== null) return { value: m, basis: "postcode model · est. size" };
-      const mean = meanPpsqmFor(db, pc);
-      if (mean)
-        return { value: estimateFromPpsqm(mean, est), basis: "postcode £/m² · est. size" };
-    }
+    const dist = districtPpsqm(db, outwardCode(pc));
+    if (dist) return { value: estimateFromPpsqm(dist, size), basis: `district £/m²${note}` };
   }
 
   if (pc) {

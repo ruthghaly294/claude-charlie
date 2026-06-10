@@ -110,6 +110,19 @@ export function meanValFor(db: DB, postcode: string): number | undefined {
   return row?.meanVal;
 }
 
+/** Average £/m² across a postcode district (outward code, e.g. "BT5"). */
+export function districtPpsqm(db: DB, outward: string): number | undefined {
+  if (!outward) return undefined;
+  const vals = db
+    .select()
+    .from(postcodeValues)
+    .all()
+    .filter((r) => r.postcode.startsWith(outward + " ") && r.meanPpsqm > 0)
+    .map((r) => r.meanPpsqm);
+  if (vals.length === 0) return undefined;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
 /** Average mean property value across a tracked area (coarsest baseline). */
 export function areaMeanVal(db: DB, area: string): number | undefined {
   const vals = db
