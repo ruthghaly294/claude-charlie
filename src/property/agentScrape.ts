@@ -84,11 +84,14 @@ export function extractListing(
   url: string,
   source: string,
 ): ListingInput | null {
+  const title = html.match(TITLE_RE)?.[1]?.trim();
+  // skip lettings — we only value sales
+  if (/\bfor rent\b|\bto let\b|\bper month\b|\bp(?:c|)m\b/i.test(title ?? "")) {
+    return null;
+  }
   const text = stripTags(html);
   const price = pickPrice(text);
   if (price === null) return null;
-
-  const title = html.match(TITLE_RE)?.[1]?.trim();
   const pcM = (title ?? "").match(POSTCODE_RE);
   const bedsM = text.match(BEDS_RE);
   const typeM = (title ?? text).match(TYPE_RE);
@@ -131,6 +134,18 @@ export const AGENTS: AgentConfig[] = [
     name: "Simon Brien",
     sitemapUrl: "https://www.simonbrien.com/sbr/sitemap.xml",
     listingRe: /\/buy\/[^/]+\/[^/]+\/[^/]+/i,
+  },
+  {
+    key: "john-minnis",
+    name: "John Minnis",
+    sitemapUrl: "https://www.johnminnis.co.uk/site_map_xml.asp",
+    listingRe: /\/property\/[^/]+\/[^/]+\/[^/]+\/?$/i,
+  },
+  {
+    key: "ulster-property-sales",
+    name: "Ulster Property Sales",
+    sitemapUrl: "https://www.ulsterpropertysales.co.uk/site_map_xml.asp",
+    listingRe: /\/property\/[^/]+\/[^/]+\/[^/]+\/?$/i,
   },
 ];
 

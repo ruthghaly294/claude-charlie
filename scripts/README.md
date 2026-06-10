@@ -34,6 +34,29 @@ DECODE_INTERVAL_MIN=30 npm run decode:watch
 Runs immediately, then every `DECODE_INTERVAL_MIN` minutes (default 30) until
 stopped. Good for a dev box or a `tmux`/`pm2`-managed process.
 
+## Belfast property scrape (automatic)
+
+One-shot (loads LPS reference if needed, scrapes every registered agent for
+East/South Belfast, geocodes + values + dedupes):
+
+```sh
+npm run scrape:property          # PROPERTY_MAX=25 per agent by default
+```
+
+Daily, hands-off — two options:
+
+```sh
+# A) cron (survives reboots; best on a persistent box)
+0 7 * * * cd /workspaces/Search/my-new-project && /usr/bin/npm run scrape:property >> /tmp/property.log 2>&1
+
+# B) always-on watcher (dev box / tmux / pm2)
+PROPERTY_INTERVAL_HOURS=24 npm run property:watch
+```
+
+Agents covered: Templeton Robinson, Simon Brien, John Minnis, Ulster Property
+Sales (all robots-permitted, no anti-bot wall). Add more in
+`src/property/agentScrape.ts` → `AGENTS`.
+
 ## Verify gate
 
 ```sh

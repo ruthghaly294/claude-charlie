@@ -5,6 +5,7 @@ import {
   parseCoefsCsv,
   estimatePrice,
   estimateFromPpsqm,
+  estimateSizeSqm,
   dealMetrics,
 } from "./valuation";
 
@@ -65,6 +66,19 @@ describe("estimatePrice", () => {
 describe("estimateFromPpsqm", () => {
   it("multiplies mean £/m² by size", () => {
     expect(estimateFromPpsqm(2210, 100)).toBe(221000);
+  });
+});
+
+describe("estimateSizeSqm", () => {
+  it("scales with beds and property type", () => {
+    expect(estimateSizeSqm("apartment", 2)).toBe(66); // 30 + 18*2
+    expect(estimateSizeSqm("detached house", 4)).toBe(154); // 30 + 31*4
+    const semi3 = estimateSizeSqm("semi-detached", 3)!;
+    const det3 = estimateSizeSqm("detached", 3)!;
+    expect(det3).toBeGreaterThan(semi3); // detached bigger than semi at same beds
+  });
+  it("returns null without beds", () => {
+    expect(estimateSizeSqm("house", undefined)).toBeNull();
   });
 });
 

@@ -36,6 +36,15 @@ describe("extractListing", () => {
       extractListing("<html><body>POA</body></html>", "https://x/property/a/b/c", "x"),
     ).toBeNull();
   });
+
+  it("skips lettings (for rent / to let)", () => {
+    const rent = `<html><head>
+<meta property="og:title" content="30 Shaw Street, Belmont, Belfast, BT4 1PT for rent with John Minnis" />
+</head><body><div class="price-amount">&pound;895pm</div></body></html>`;
+    expect(
+      extractListing(rent, "https://x/property/belmont/id/30-shaw-street/", "jm"),
+    ).toBeNull();
+  });
 });
 
 const SITEMAP = `<urlset>

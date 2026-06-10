@@ -23,7 +23,7 @@ function loadEnv(file = ".env.local"): void {
  * every registered estate agent for East/South Belfast listings, valuing and
  * de-duplicating them. Point cron at `npm run scrape:property`.
  */
-async function main(): Promise<void> {
+export async function runScrape(): Promise<void> {
   loadEnv();
   const db = getDb();
   const haveRef = (db.select({ n: count() }).from(postcodeValues).get()?.n ?? 0) > 0;
@@ -33,13 +33,16 @@ async function main(): Promise<void> {
     console.log(`  ${r.postcodes} postcodes, ${r.coefs} coefficients (${r.quarter})`);
   }
   const max = Number(process.env.PROPERTY_MAX ?? 25);
-  console.log(`Scraping agents (max ${max}/agent)…`);
+  console.log(`[${new Date().toISOString()}] Scraping agents (max ${max}/agent)…`);
   for (const s of await scrapeAllAgents(db, { max })) {
-    console.log(`  ${s.agent}: ${s.imported} listings`);
+    console.log(`  ${s.agent}: ${s.imported} listings (${s.geocoded} geocoded)`);
   }
 }
 
-main().catch((err) => {
-  console.error("scrape failed:", err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  runScrape().catch((err) => {
+    console.error("scrape failed:", err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

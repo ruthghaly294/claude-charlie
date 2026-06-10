@@ -116,6 +116,37 @@ export function estimateFromPpsqm(meanPpsqm: number, sizeSqm: number): number | 
   return Math.round(meanPpsqm * sizeSqm);
 }
 
+/** Rough floor-area (m²) by property type — base + per-bedroom. NI listings
+ * almost never publish size, so this lets us value like-for-like (a 2-bed flat
+ * as a 2-bed flat) instead of against the postcode average. Approximate. */
+const SIZE_MODEL: Record<string, { base: number; perBed: number }> = {
+  apartment: { base: 30, perBed: 18 },
+  flat: { base: 30, perBed: 18 },
+  terrace: { base: 40, perBed: 15 },
+  townhouse: { base: 40, perBed: 18 },
+  semi: { base: 35, perBed: 20 },
+  detached: { base: 30, perBed: 31 },
+  bungalow: { base: 25, perBed: 25 },
+  house: { base: 35, perBed: 20 },
+};
+
+function typeKey(propertyType: string): string {
+  const t = propertyType.toLowerCase();
+  for (const k of Object.keys(SIZE_MODEL)) if (t.includes(k)) return k;
+  if (t.includes("maisonette") || t.includes("duplex")) return "apartment";
+  return "house";
+}
+
+/** Estimate floor area from property type + bedroom count (null if no beds). */
+export function estimateSizeSqm(
+  propertyType: string,
+  beds: number | undefined,
+): number | null {
+  if (!beds || beds <= 0) return null;
+  const { base, perBed } = SIZE_MODEL[typeKey(propertyType)]!;
+  return Math.min(400, Math.max(35, Math.round(base + perBed * beds)));
+}
+
 export type DealMetrics = { dealPct: number; dealScore: number };
 
 /**

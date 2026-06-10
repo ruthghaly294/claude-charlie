@@ -6,6 +6,7 @@ import { classifyArea, normalisePostcode } from "./postcodes";
 import {
   estimatePrice,
   estimateFromPpsqm,
+  estimateSizeSqm,
   dealMetrics,
 } from "./valuation";
 import {
@@ -46,34 +47,53 @@ export type Valuation = { value: number | null; basis: string };
 
 /**
  * Best fair value from what we know, with a transparent basis:
- *  1. postcode + size  → calculator model (most precise)
- *  2. postcode + size  → postcode £/m² × size
- *  3. postcode only     → postcode mean property value
- *  4. area only (slug)  → area mean property value (coarsest — scraped listings)
+ *  1. postcode + real size      → calculator model (most precise)
+ *  2. postcode + real size      → postcode £/m² × size
+ *  3. postcode + beds/type      → estimated size → £/m² model (like-for-like)
+ *  4. postcode only             → postcode mean property value
+ *  5. area only (slug)          → area mean property value (coarsest)
  */
 export function fairValueFor(
   db: DB,
   input: {
     postcode?: string;
     sizeSqm?: number;
+    beds?: number;
+    propertyType?: string;
     area?: string;
     hasGarage?: boolean;
     hasGarden?: boolean;
   },
 ): Valuation {
   const pc = input.postcode ? normalisePostcode(input.postcode) : "";
-  if (pc && input.sizeSqm && input.sizeSqm > 0) {
-    const modelled = estimatePrice(loadCoefMap(db), {
+  const model = (size: number) =>
+    estimatePrice(loadCoefMap(db), {
       postcode: pc,
-      sizeSqm: input.sizeSqm,
+      sizeSqm: size,
       hasGarage: input.hasGarage,
       hasGarden: input.hasGarden,
     });
-    if (modelled !== null) return { value: modelled, basis: "postcode model" };
+
+  if (pc && input.sizeSqm && input.sizeSqm > 0) {
+    const m = model(input.sizeSqm);
+    if (m !== null) return { value: m, basis: "postcode model" };
     const mean = meanPpsqmFor(db, pc);
     if (mean)
       return { value: estimateFromPpsqm(mean, input.sizeSqm), basis: "postcode £/m²" };
   }
+
+  // no real size: estimate it from beds + type for a like-for-like valuation
+  if (pc && !input.sizeSqm) {
+    const est = estimateSizeSqm(input.propertyType ?? "", input.beds);
+    if (est) {
+      const m = model(est);
+      if (m !== null) return { value: m, basis: "postcode model · est. size" };
+      const mean = meanPpsqmFor(db, pc);
+      if (mean)
+        return { value: estimateFromPpsqm(mean, est), basis: "postcode £/m² · est. size" };
+    }
+  }
+
   if (pc) {
     const mv = meanValFor(db, pc);
     if (mv) return { value: mv, basis: "postcode average" };
@@ -106,6 +126,8 @@ export function importListing(
   const val = fairValueFor(db, {
     postcode,
     sizeSqm: input.sizeSqm,
+    beds: input.beds,
+    propertyType: input.propertyType,
     area,
     hasGarage: input.hasGarage,
     hasGarden: input.hasGarden,
