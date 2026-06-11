@@ -202,6 +202,26 @@ export const valuationCoefs = sqliteTable("valuation_coefs", {
   updatedAt: text("updated_at").notNull(),
 });
 
+/**
+ * Per-address facts from the public LPS valuation list (real floor area,
+ * garage/garden, 2005 capital value). A lookup cache — one row per LPS record.
+ */
+export const lpsProperties = sqliteTable(
+  "lps_properties",
+  {
+    propertyId: text("property_id").primaryKey(),
+    postcode: text("postcode").notNull().default(""),
+    fullAddress: text("full_address").notNull().default(""),
+    capitalValue: real("capital_value"),
+    sizeSqm: real("size_sqm"),
+    hasGarage: integer("has_garage").notNull().default(0),
+    hasGarden: integer("has_garden").notNull().default(0),
+    description: text("description").notNull().default(""),
+    fetchedAt: text("fetched_at").notNull(),
+  },
+  (t) => [index("lps_postcode_idx").on(t.postcode)],
+);
+
 /** A property listing tracked over time (manually/assisted-imported from PropertyPal). */
 export const listings = sqliteTable(
   "listings",
@@ -224,6 +244,9 @@ export const listings = sqliteTable(
     dealPct: real("deal_pct"),
     dealScore: real("deal_score").notNull().default(0),
     valuationBasis: text("valuation_basis").notNull().default(""),
+    sizeSource: text("size_source").notNull().default(""),
+    lpsPropertyId: text("lps_property_id"),
+    lpsCapitalValue: real("lps_capital_value"),
     latitude: real("latitude"),
     longitude: real("longitude"),
     firstSeen: text("first_seen").notNull(),
@@ -285,5 +308,6 @@ export type ValuationCoef = typeof valuationCoefs.$inferSelect;
 export type Listing = typeof listings.$inferSelect;
 export type NewListing = typeof listings.$inferInsert;
 export type ListingSnapshot = typeof listingSnapshots.$inferSelect;
+export type LpsProperty = typeof lpsProperties.$inferSelect;
 export type GeocodeCacheRow = typeof geocodeCache.$inferSelect;
 export type Ranking = typeof rankings.$inferSelect;

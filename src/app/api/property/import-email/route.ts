@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { importListing } from "@/property/listings";
+import { importListingEnriched } from "@/property/listings";
 import { parsePropertyPalEmail } from "@/property/emailParse";
 
 export const runtime = "nodejs";
@@ -17,7 +17,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     const db = getDb();
     const listings = parsePropertyPalEmail(parsed.data.html);
-    const saved = listings.map((l) => importListing(db, l));
+    const saved = [];
+    for (const l of listings) saved.push(await importListingEnriched(db, l));
     return NextResponse.json({
       parsed: listings.length,
       imported: saved.length,

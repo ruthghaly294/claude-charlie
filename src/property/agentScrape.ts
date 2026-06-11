@@ -1,7 +1,7 @@
 import type { DB } from "@/db/client";
 import { fetchText } from "@/discovery/fetchWithRetry";
 import { areaFromSlug, normalisePostcode } from "./postcodes";
-import { importListing, type ListingInput } from "./listings";
+import { importListingEnriched, type ListingInput } from "./listings";
 import { geocodeWithCache } from "./geocode";
 
 const UA =
@@ -253,7 +253,7 @@ export async function scrapeAllAgents(
         }
         if (geocodeDelayMs > 0) await sleep(geocodeDelayMs);
       }
-      importListing(db, l);
+      await importListingEnriched(db, l, { fetchImpl });
     }
     summaries.push({
       agent: agent.key,

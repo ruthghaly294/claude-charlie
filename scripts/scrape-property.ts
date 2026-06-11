@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { getDb } from "../src/db/client";
 import { ingestReference } from "../src/property/referenceIngest";
 import { scrapeAllAgents } from "../src/property/agentScrape";
+import { enrichAllListings } from "../src/property/listings";
 import { postcodeValues } from "../src/db/schema";
-import { count } from "drizzle-orm";
+import { count, sql } from "drizzle-orm";
 
 function loadEnv(file = ".env.local"): void {
   const path = join(process.cwd(), file);
@@ -27,7 +28,7 @@ export async function runScrape(): Promise<void> {
   loadEnv();
   const db = getDb();
   const haveRef = (db.select({ n: count() }).from(postcodeValues).get()?.n ?? 0) > 0;
-  if (!haveRef) {
+  if (!haveRef || process.env.REFRESH_REFERENCE) {
     console.log("Loading LPS reference data…");
     const r = await ingestReference(db);
     console.log(`  ${r.postcodes} postcodes, ${r.coefs} coefficients (${r.quarter})`);
@@ -37,6 +38,13 @@ export async function runScrape(): Promise<void> {
   for (const s of await scrapeAllAgents(db, { max })) {
     console.log(`  ${s.agent}: ${s.imported} listings (${s.geocoded} geocoded)`);
   }
+  console.log("Backfilling LPS facts (real floor areas) + revaluing…");
+  const e = await enrichAllListings(db);
+  console.log(
+    `  ${e.withLpsSize} of ${e.scanned} listings on real LPS size (${e.revalued} revalued)`,
+  );
+  // fold the WAL into the .db file so it's complete on its own (CI commits it)
+  db.run(sql`PRAGMA wal_checkpoint(TRUNCATE)`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { importListing } from "@/property/listings";
+import { importListingEnriched } from "@/property/listings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +33,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     const db = getDb();
     const inputs = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
-    const saved = inputs.map((i) => importListing(db, i));
+    const saved = [];
+    for (const i of inputs) saved.push(await importListingEnriched(db, i));
     return NextResponse.json({ imported: saved.length, listings: saved });
   } catch (err) {
     return NextResponse.json(

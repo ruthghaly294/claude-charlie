@@ -1,0 +1,45 @@
+name: Property refresh
+
+# Daily scrape of estate-agent listings + LPS enrichment + revaluation.
+# The SQLite DB (gitignored for local dev) is force-committed so each run
+# builds on the last — the accumulating price history lives in git for now.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: property-refresh
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Scrape agents, enrich with LPS facts, revalue
+        run: npm run scrape:property
+        env:
+          DECODE_DB_PATH: data/cc.db
+          REFRESH_REFERENCE: "1" # pick up new nihousepricemap quarters
+
+      - name: Commit updated property data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/cc.db
+          if git diff --cached --quiet; then
+            echo "No property changes today."
+          else
+            git commit -m "chore(property): scheduled scrape + revalue"
+            git push
+          fi

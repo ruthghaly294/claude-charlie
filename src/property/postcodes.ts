@@ -4,8 +4,11 @@ export type BelfastArea = "east-belfast" | "south-belfast" | "other";
 const EAST = new Set(["BT4", "BT5", "BT6", "BT16"]);
 const SOUTH = new Set(["BT7", "BT8", "BT9", "BT10"]);
 
-/** Uppercase, collapse internal whitespace to one space: "bt5  6ab" → "BT5 6AB". */
+/** Uppercase, one internal space (inserted if missing): "bt57dl" → "BT5 7DL". */
 export function normalisePostcode(pc: string): string {
+  const compact = pc.toUpperCase().replace(/\s+/g, "");
+  const m = compact.match(/^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/);
+  if (m) return `${m[1]} ${m[2]}`;
   return pc.toUpperCase().replace(/\s+/g, " ").trim();
 }
 

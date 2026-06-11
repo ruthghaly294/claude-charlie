@@ -1,7 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createDb, type DB } from "@/db/client";
 import { listings, listingSnapshots, valuationCoefs, postcodeValues } from "@/db/schema";
-import { importListing, rankedListings, listingHistory } from "./listings";
+import {
+  importListing,
+  importListingEnriched,
+  rankedListings,
+  listingHistory,
+} from "./listings";
 
 function seedReference(db: DB) {
   const now = new Date().toISOString();
@@ -73,6 +78,38 @@ describe("importListing", () => {
     expect(db.select().from(listings).all()).toHaveLength(1);
     const hist = listingHistory(db, db.select().from(listings).get()!.id);
     expect(hist.map((h) => h.askingPrice)).toEqual([200000, 185000]);
+  });
+
+  it("values on real LPS floor area and records the size source", async () => {
+    const db = createDb(":memory:");
+    seedReference(db);
+    const search = JSON.stringify([
+      {
+        propertyId: "9",
+        fullAddress: "3 Test St, Belfast BT5 6AB",
+        capitalValue: "£150,000",
+      },
+    ]);
+    const detail = `<th>Description</th><td>house garden</td>
+      <th>Capital Value (non‑exempt)</th><td>&#xA3;150,000.00</td>
+      <th>Property size</th><td>100m&#xB2;</td>
+      <th>Garage</th><td>No</td>`;
+    const fetchImpl = vi.fn((url: unknown) =>
+      Promise.resolve(
+        new Response(String(url).includes("Details") ? detail : search),
+      ),
+    ) as unknown as typeof fetch;
+
+    const l = await importListingEnriched(
+      db,
+      { address: "3 Test St", postcode: "BT5 6AB", askingPrice: 180000 },
+      { fetchImpl },
+    );
+    expect(l.sizeSqm).toBe(100); // real LPS size, not a beds estimate
+    expect(l.sizeSource).toBe("lps");
+    expect(l.lpsCapitalValue).toBe(150000);
+    expect(l.fairValue).toBe(206207); // garden picked up from LPS description
+    expect(l.valuationBasis).toBe("postcode model · LPS size");
   });
 
   it("ranks best deals first", () => {

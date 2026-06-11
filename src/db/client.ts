@@ -166,6 +166,19 @@ export function ensureSchema(sqlite: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS snapshots_listing_idx ON listing_snapshots(listing_id);
 
+    CREATE TABLE IF NOT EXISTS lps_properties (
+      property_id TEXT PRIMARY KEY,
+      postcode TEXT NOT NULL DEFAULT '',
+      full_address TEXT NOT NULL DEFAULT '',
+      capital_value REAL,
+      size_sqm REAL,
+      has_garage INTEGER NOT NULL DEFAULT 0,
+      has_garden INTEGER NOT NULL DEFAULT 0,
+      description TEXT NOT NULL DEFAULT '',
+      fetched_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS lps_postcode_idx ON lps_properties(postcode);
+
     CREATE TABLE IF NOT EXISTS geocode_cache (
       query TEXT PRIMARY KEY,
       postcode TEXT NOT NULL DEFAULT '',
@@ -196,6 +209,9 @@ export function ensureSchema(sqlite: Database.Database): void {
     "valuation_basis TEXT NOT NULL DEFAULT ''",
     "latitude REAL",
     "longitude REAL",
+    "size_source TEXT NOT NULL DEFAULT ''",
+    "lps_property_id TEXT",
+    "lps_capital_value REAL",
   ]);
 }
 

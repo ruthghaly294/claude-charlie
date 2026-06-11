@@ -11,6 +11,9 @@ export type MapListing = {
   askingPrice: number;
   fairValue: number | null;
   dealPct: number | null;
+  sizeSqm: number | null;
+  sizeSource: string;
+  valuationBasis: string;
   lat: number | null;
   lng: number | null;
 };
@@ -77,7 +80,13 @@ export default function PropertyMap({ listings }: { listings: MapListing[] }) {
           weight: 1,
         })
         .bindPopup(
-          `<b>${l.address}</b><br/>${l.postcode}<br/>Asking ${gbp(l.askingPrice)}<br/>Fair ${gbp(l.fairValue)}<br/><b>${l.dealPct == null ? "—" : (l.dealPct > 0 ? "+" : "") + l.dealPct + "%"}</b>`,
+          `<b>${l.address}</b><br/>${l.postcode}${
+            l.sizeSqm
+              ? ` · ${l.sizeSqm}m²${l.sizeSource === "lps" ? " (LPS)" : ""}`
+              : ""
+          }<br/>Asking ${gbp(l.askingPrice)}<br/>Fair ${gbp(l.fairValue)}${
+            l.valuationBasis ? ` <i>(${l.valuationBasis})</i>` : ""
+          }<br/><b>${l.dealPct == null ? "—" : (l.dealPct > 0 ? "+" : "") + l.dealPct + "%"}</b>`,
         )
         .addTo(layer);
     }

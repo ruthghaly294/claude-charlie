@@ -19,6 +19,9 @@ type Listing = {
   fairValue: number | null;
   dealPct: number | null;
   dealScore: number;
+  valuationBasis: string;
+  sizeSource: string;
+  lpsCapitalValue: number | null;
   lat: number | null;
   lng: number | null;
 };
@@ -122,6 +125,24 @@ export default function PropertyDashboard() {
     [form, load],
   );
 
+  const enrichLps = useCallback(async () => {
+    setBusy("enrich");
+    setError(null);
+    try {
+      const res = await fetch("/api/property/enrich", { method: "POST" });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.error ?? "enrich failed");
+      setMsg(
+        `LPS enrichment: ${b.withLpsSize} of ${b.scanned} listings now valued on real floor area (${b.revalued} revalued).`,
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "enrich failed");
+    } finally {
+      setBusy("");
+    }
+  }, [load]);
+
   const scrapeAgents = useCallback(async () => {
     setBusy("scrape");
     setError(null);
@@ -189,6 +210,13 @@ export default function PropertyDashboard() {
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:opacity-50"
           >
             {busy === "scrape" ? "Scraping agents…" : "Scrape agents now"}
+          </button>
+          <button
+            onClick={enrichLps}
+            disabled={busy === "enrich"}
+            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400 disabled:opacity-50"
+          >
+            {busy === "enrich" ? "Fetching LPS facts…" : "Fetch real sizes (LPS)"}
           </button>
           <button
             onClick={refreshReference}
@@ -305,10 +333,17 @@ export default function PropertyDashboard() {
                 </td>
                 <td className="px-3 py-2 text-neutral-400">{r.postcode}</td>
                 <td className="px-3 py-2 text-neutral-400">
-                  {r.beds ?? "—"}{r.sizeSqm ? ` · ${r.sizeSqm}m²` : ""}
+                  {r.beds ?? "—"}
+                  {r.sizeSqm ? ` · ${r.sizeSqm}m²` : ""}
+                  {r.sizeSqm && r.sizeSource === "lps" && (
+                    <span className="ml-1 rounded bg-emerald-500/15 px-1 text-[10px] font-medium text-emerald-300">LPS</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{gbp(r.askingPrice)}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-neutral-400">{gbp(r.fairValue)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-neutral-400">
+                  {gbp(r.fairValue)}
+                  <div className="text-[10px] text-neutral-600">{r.valuationBasis}</div>
+                </td>
                 <td className={`px-3 py-2 text-right tabular-nums font-medium ${dealTone(r.dealPct)}`}>
                   {r.dealPct == null ? "—" : `${r.dealPct > 0 ? "+" : ""}${r.dealPct}%`}
                 </td>
