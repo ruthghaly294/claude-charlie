@@ -68,6 +68,27 @@ export type SourceRunResult = {
   error?: string;
 };
 
+/**
+ * Per-connector health/circuit-breaker state, persisted across runs so a
+ * source that's been failing stays skipped ("breaker open") until its
+ * cooldown elapses, instead of being retried (and timing out) every run.
+ */
+export const sourceHealth = sqliteTable("source_health", {
+  source: text("source").primaryKey(),
+  state: text("state", { enum: ["closed", "open", "half-open"] })
+    .notNull()
+    .default("closed"),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  openUntil: text("open_until"),
+  lastSuccessAt: text("last_success_at"),
+  lastErrorAt: text("last_error_at"),
+  lastError: text("last_error"),
+  avgLatencyMs: real("avg_latency_ms").notNull().default(0),
+  totalRuns: integer("total_runs").notNull().default(0),
+  totalFailures: integer("total_failures").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export type StageResult = {
   stage: string;
   durationMs: number;
@@ -311,3 +332,5 @@ export type ListingSnapshot = typeof listingSnapshots.$inferSelect;
 export type LpsProperty = typeof lpsProperties.$inferSelect;
 export type GeocodeCacheRow = typeof geocodeCache.$inferSelect;
 export type Ranking = typeof rankings.$inferSelect;
+export type SourceHealthRow = typeof sourceHealth.$inferSelect;
+export type NewSourceHealthRow = typeof sourceHealth.$inferInsert;

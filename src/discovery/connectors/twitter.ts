@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Connector, ConnectorContext, RawSignal } from "../types";
+import type { Connector, ConnectorContext, ConnectorState, RawSignal } from "../types";
 import { fetchJson } from "../fetchWithRetry";
 
 const cfgSchema = z.object({
@@ -83,6 +83,31 @@ export const twitterConnector: Connector = {
       return { configured: false, reason: "no accounts/query/keywords" };
     }
     return { configured: true };
+  },
+
+  /**
+   * Cheap pre-flight probe: the bearer token returning 401 (e.g. revoked or
+   * never valid) is a config problem, not a transient failure — report it as
+   * "not configured" so the source runner skips this run without tripping
+   * the circuit breaker.
+   */
+  async healthCheck(ctx: ConnectorContext): Promise<ConnectorState> {
+    const bearer = ctx.env.TWITTER_BEARER as string;
+    try {
+      const res = await ctx.fetchImpl(
+        "https://api.twitter.com/2/tweets/search/recent?max_results=10&query=test",
+        { headers: { authorization: `Bearer ${bearer}` }, signal: ctx.signal },
+      );
+      if (res.status === 401) {
+        return { configured: false, reason: "TWITTER_BEARER unauthorized (401)" };
+      }
+      return { configured: true };
+    } catch (err) {
+      return {
+        configured: false,
+        reason: `health check failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
   },
 
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {

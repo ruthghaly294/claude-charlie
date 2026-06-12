@@ -193,6 +193,20 @@ export function ensureSchema(sqlite: Database.Database): void {
       value REAL NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS source_health (
+      source TEXT PRIMARY KEY,
+      state TEXT NOT NULL DEFAULT 'closed',
+      consecutive_failures INTEGER NOT NULL DEFAULT 0,
+      open_until TEXT,
+      last_success_at TEXT,
+      last_error_at TEXT,
+      last_error TEXT,
+      avg_latency_ms REAL NOT NULL DEFAULT 0,
+      total_runs INTEGER NOT NULL DEFAULT 0,
+      total_failures INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   // Lightweight migrations: add columns that older DBs (created before a column

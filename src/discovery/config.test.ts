@@ -109,6 +109,44 @@ describe("loadConfig", () => {
   });
 });
 
+describe("robustness", () => {
+  it("defaults per_source_timeout_ms, max_parallel_sources, breaker, and rate limits", () => {
+    const c = parseConfig({});
+    expect(c.robustness.perSourceTimeoutMs).toBe(20_000);
+    expect(c.robustness.maxParallelSources).toBe(6);
+    expect(c.robustness.breaker).toEqual({ failureThreshold: 3, cooldownMs: 60 * 60_000 });
+    expect(c.robustness.rateLimits.default).toEqual({ rps: 1, concurrency: 2 });
+    expect(c.robustness.rateLimits["api.github.com"]).toEqual({ rps: 2, concurrency: 4 });
+    expect(c.robustness.rateLimits["nominatim.openstreetmap.org"]).toEqual({
+      rps: 1,
+      concurrency: 1,
+    });
+  });
+
+  it("reads overrides from the robustness block", () => {
+    const c = parseConfig({
+      robustness: {
+        per_source_timeout_ms: 5000,
+        max_parallel_sources: 2,
+        breaker: { failure_threshold: 5, cooldown_minutes: 10 },
+        rate_limits: {
+          "api.github.com": { rps: 10 },
+          "example.com": { rps: 3, concurrency: 9 },
+        },
+      },
+    });
+    expect(c.robustness.perSourceTimeoutMs).toBe(5000);
+    expect(c.robustness.maxParallelSources).toBe(2);
+    expect(c.robustness.breaker).toEqual({ failureThreshold: 5, cooldownMs: 10 * 60_000 });
+    // partial override keeps the existing concurrency for that domain
+    expect(c.robustness.rateLimits["api.github.com"]).toEqual({ rps: 10, concurrency: 4 });
+    // new domain not in defaults
+    expect(c.robustness.rateLimits["example.com"]).toEqual({ rps: 3, concurrency: 9 });
+    // untouched defaults survive
+    expect(c.robustness.rateLimits.default).toEqual({ rps: 1, concurrency: 2 });
+  });
+});
+
 describe("sourceConfig", () => {
   it("returns the block for object sources", () => {
     const c = parseConfig({ sources: { reddit: { subreddits: ["x"] } } });

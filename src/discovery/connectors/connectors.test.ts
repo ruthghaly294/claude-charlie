@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { ConnectorContext } from "../types";
 import { parseFeed, rssConnector } from "./rss";
-import { githubConnector } from "./github";
+import { githubConnector, parseNextLink } from "./github";
 import { redditConnector } from "./reddit";
 import { hackernewsConnector } from "./hackernews";
 import { youtubeConnector } from "./youtube";
@@ -129,6 +129,83 @@ describe("github", () => {
       author: "a",
     });
     expect(out[0]?.raw).toContain("★9");
+  });
+
+  it("follows the Link: rel=\"next\" header up to max_pages", async () => {
+    const page = (name: string, next?: string) =>
+      new Response(
+        JSON.stringify({
+          items: [{ full_name: name, html_url: `https://gh/${name}`, stargazers_count: 1 }],
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            ...(next ? { link: `<${next}>; rel="next", <https://gh/last>; rel="last"` } : {}),
+          },
+        },
+      );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page("a/1", "https://gh/page2"))
+      .mockResolvedValueOnce(page("a/2", "https://gh/page3"))
+      .mockResolvedValueOnce(page("a/3")); // no next link -> stop
+
+    const out = await githubConnector.fetch(
+      ctx({ config: { topics: ["ai"], max_pages: 3 }, fetchImpl }),
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(out.map((s) => s.title)).toEqual(["a/1", "a/2", "a/3"]);
+  });
+
+  it("stops at max_pages even if more pages are available", async () => {
+    const page = () =>
+      new Response(
+        JSON.stringify({ items: [{ full_name: "a/x", html_url: "https://gh/x", stargazers_count: 1 }] }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            link: `<https://gh/next>; rel="next"`,
+          },
+        },
+      );
+    const fetchImpl = vi.fn().mockImplementation(async () => page());
+    const out = await githubConnector.fetch(
+      ctx({ config: { topics: ["ai"], max_pages: 2 }, fetchImpl }),
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(out).toHaveLength(2);
+  });
+
+  it("defaults max_pages to 3 when unset", async () => {
+    const page = () =>
+      new Response(
+        JSON.stringify({ items: [{ full_name: "a/x", html_url: "https://gh/x", stargazers_count: 1 }] }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            link: `<https://gh/next>; rel="next"`,
+          },
+        },
+      );
+    const fetchImpl = vi.fn().mockImplementation(async () => page());
+    const out = await githubConnector.fetch(ctx({ config: { topics: ["ai"] }, fetchImpl }));
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(out).toHaveLength(3);
+  });
+});
+
+describe("parseNextLink", () => {
+  it("extracts the rel=\"next\" url from a Link header", () => {
+    const header = `<https://api.github.com/search?page=2>; rel="next", <https://api.github.com/search?page=5>; rel="last"`;
+    expect(parseNextLink(header)).toBe("https://api.github.com/search?page=2");
+  });
+
+  it("returns undefined when there is no next link", () => {
+    expect(parseNextLink(`<https://api.github.com/search?page=1>; rel="last"`)).toBeUndefined();
+    expect(parseNextLink(null)).toBeUndefined();
   });
 });
 
@@ -335,6 +412,33 @@ describe("twitter (key-gated)", () => {
       ctx({ config: { enabled: true, query: "from:foo lang:en" }, keywords: ["x"] }),
     );
     expect(qs).toEqual(["from:foo lang:en"]);
+  });
+
+  it("healthCheck reports not-configured on a 401 (stale bearer token)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("", { status: 401 }));
+    const result = await twitterConnector.healthCheck!(
+      ctx({ config: { enabled: true }, env: { TWITTER_BEARER: "bad" }, fetchImpl }),
+    );
+    expect(result).toEqual({
+      configured: false,
+      reason: "TWITTER_BEARER unauthorized (401)",
+    });
+  });
+
+  it("healthCheck reports configured when the bearer token is valid", async () => {
+    const fetchImpl = jsonFetch({ data: [] });
+    const result = await twitterConnector.healthCheck!(
+      ctx({ config: { enabled: true }, env: { TWITTER_BEARER: "good" }, fetchImpl }),
+    );
+    expect(result).toEqual({ configured: true });
+  });
+
+  it("healthCheck reports not-configured (without throwing) on a network error", async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
+    const result = await twitterConnector.healthCheck!(
+      ctx({ config: { enabled: true }, env: { TWITTER_BEARER: "good" }, fetchImpl }),
+    );
+    expect(result.configured).toBe(false);
   });
 });
 

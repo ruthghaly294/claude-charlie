@@ -17,6 +17,20 @@ export const MONETIZATION_FORMATS = [
 ] as const;
 export type MonetizationFormat = (typeof MONETIZATION_FORMATS)[number];
 
+/** Per-domain requests/second + max concurrent in-flight requests. */
+export type RateLimitConfig = {
+  rps: number;
+  concurrency: number;
+};
+
+/** Discovery-run robustness: per-source timeouts, fan-out cap, breaker, rate limits. */
+export type RobustnessConfig = {
+  perSourceTimeoutMs: number;
+  maxParallelSources: number;
+  breaker: { failureThreshold: number; cooldownMs: number };
+  rateLimits: Record<string, RateLimitConfig>;
+};
+
 /** Who the operator is — threaded into reasoning + scoring so output fits them. */
 export type OperatorProfile = {
   goals: string[];
@@ -46,6 +60,8 @@ export type DecodeConfig = {
   /** Minimum critic score (1–5) for an execution draft to be marked "ready". */
   qualityThreshold: number;
   sources: Record<string, unknown>;
+  /** Discovery-run fan-out/timeout/breaker/rate-limit tuning. */
+  robustness: RobustnessConfig;
 };
 
 const rawConfigSchema = z
@@ -78,6 +94,27 @@ const rawConfigSchema = z
     monetization: z.array(z.enum(MONETIZATION_FORMATS)).optional(),
     quality: z.object({ threshold: z.number().optional() }).optional(),
     sources: z.record(z.string(), z.unknown()).optional(),
+    robustness: z
+      .object({
+        per_source_timeout_ms: z.number().optional(),
+        max_parallel_sources: z.number().optional(),
+        breaker: z
+          .object({
+            failure_threshold: z.number().optional(),
+            cooldown_minutes: z.number().optional(),
+          })
+          .optional(),
+        rate_limits: z
+          .record(
+            z.string(),
+            z.object({
+              rps: z.number().optional(),
+              concurrency: z.number().optional(),
+            }),
+          )
+          .optional(),
+      })
+      .optional(),
   })
   .passthrough();
 
@@ -86,6 +123,13 @@ function expandHome(p: string): string {
   if (p.startsWith("~/")) return join(homedir(), p.slice(2));
   return p;
 }
+
+/** Default per-domain rate limits; "default" applies to any domain without its own entry. */
+export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
+  default: { rps: 1, concurrency: 2 },
+  "api.github.com": { rps: 2, concurrency: 4 },
+  "nominatim.openstreetmap.org": { rps: 1, concurrency: 1 },
+};
 
 export const DEFAULT_SOURCES: Record<string, unknown> = {
   rss: ["https://hnrss.org/frontpage"],
@@ -126,7 +170,36 @@ export function parseConfig(input: unknown): DecodeConfig {
       raw.sources && Object.keys(raw.sources).length > 0
         ? raw.sources
         : DEFAULT_SOURCES,
+    robustness: {
+      perSourceTimeoutMs: raw.robustness?.per_source_timeout_ms ?? 20_000,
+      maxParallelSources: raw.robustness?.max_parallel_sources ?? 6,
+      breaker: {
+        failureThreshold: raw.robustness?.breaker?.failure_threshold ?? 3,
+        cooldownMs: (raw.robustness?.breaker?.cooldown_minutes ?? 60) * 60_000,
+      },
+      rateLimits: mergeRateLimits(raw.robustness?.rate_limits),
+    },
   };
+}
+
+/** Merge configured per-domain rate limits over DEFAULT_RATE_LIMITS, filling
+ * missing rps/concurrency from that domain's (or "default"'s) values. */
+function mergeRateLimits(
+  overrides?: Record<string, { rps?: number; concurrency?: number }>,
+): Record<string, RateLimitConfig> {
+  const merged: Record<string, RateLimitConfig> = {
+    ...Object.fromEntries(
+      Object.entries(DEFAULT_RATE_LIMITS).map(([k, v]) => [k, { ...v }]),
+    ),
+  };
+  for (const [domain, lim] of Object.entries(overrides ?? {})) {
+    const base = merged[domain] ?? merged.default!;
+    merged[domain] = {
+      rps: lim.rps ?? base.rps,
+      concurrency: lim.concurrency ?? base.concurrency,
+    };
+  }
+  return merged;
 }
 
 /** Resolve the config file path: DECODE_CONFIG, else <vault>/decode.config.yml. */

@@ -42,6 +42,26 @@ decide:
 execute:
   top_n: 5
 
+# Discovery-run hardening: parallel fan-out, per-source timeout, circuit
+# breaker, and per-domain rate limits. All optional — omit to use the
+# defaults shown here.
+robustness:
+  per_source_timeout_ms: 20000
+  max_parallel_sources: 6
+  breaker:
+    failure_threshold: 3   # consecutive failures before a source is skipped
+    cooldown_minutes: 60   # how long a tripped source stays skipped
+  rate_limits:
+    default:
+      rps: 1
+      concurrency: 2
+    "api.github.com":
+      rps: 2
+      concurrency: 4
+    "nominatim.openstreetmap.org":
+      rps: 1
+      concurrency: 1
+
 sources:
   # --- no API key required ---
   rss:

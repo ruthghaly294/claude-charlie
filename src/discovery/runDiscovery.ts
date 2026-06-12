@@ -9,11 +9,11 @@ import {
   type SourceRunResult,
   type NewSignal,
 } from "@/db/schema";
-import type { Connector, ConnectorContext, RawSignal } from "./types";
-import { parseRawSignals } from "./types";
+import type { Connector, RawSignal } from "./types";
 import { CONNECTORS } from "./connectors";
 import { hashKey, scoreSignal, slugify } from "./scoring";
 import type { DecodeConfig } from "./config";
+import { runSources } from "./sourceRunner";
 
 export type RunOptions = {
   fetchImpl?: typeof fetch;
@@ -102,53 +102,11 @@ export async function runDiscovery(
     .values({ id: runId, startedAt, status: "running" })
     .run();
 
-  const perSource: SourceRunResult[] = [];
-  const collected: RawSignal[] = [];
-
-  for (const connector of connectors) {
-    const ctx: ConnectorContext = {
-      keywords: config.keywords,
-      businessName: config.businessName,
-      config: config.sources[connector.key],
-      env,
-      fetchImpl,
-      signal,
-    };
-    const started = Date.now();
-    const st = connector.state(ctx);
-    if (!st.configured) {
-      perSource.push({
-        source: connector.key,
-        status: "skipped",
-        found: 0,
-        added: 0,
-        durationMs: 0,
-        error: st.reason,
-      });
-      continue;
-    }
-    try {
-      const raw = await connector.fetch(ctx);
-      const valid = parseRawSignals(connector.key, raw as unknown[]);
-      collected.push(...valid);
-      perSource.push({
-        source: connector.key,
-        status: "ok",
-        found: valid.length,
-        added: 0,
-        durationMs: Date.now() - started,
-      });
-    } catch (err) {
-      perSource.push({
-        source: connector.key,
-        status: "error",
-        found: 0,
-        added: 0,
-        durationMs: Date.now() - started,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+  const { perSource, collected } = await runSources(db, config, connectors, {
+    fetchImpl,
+    env,
+    signal,
+  });
 
   // dedup within this batch by hash key
   const byHash = new Map<string, RawSignal>();

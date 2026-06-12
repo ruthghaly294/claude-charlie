@@ -13,6 +13,10 @@ export const rawSignalSchema = z.object({
   publishedAt: z.string().default(""),
   tags: z.array(z.string()).default([]),
   raw: z.string().default(""),
+  /** engagement metrics, where the source provides them (used by Phase 3 social scoring) */
+  points: z.number().optional(),
+  comments: z.number().optional(),
+  views: z.number().optional(),
 });
 
 export type RawSignal = z.infer<typeof rawSignalSchema>;
@@ -47,6 +51,13 @@ export interface Connector {
   state(ctx: ConnectorContext): ConnectorState;
   /** fetch and return validated raw signals; may throw on hard failure */
   fetch(ctx: ConnectorContext): Promise<RawSignal[]>;
+  /**
+   * Optional cheap pre-flight check (e.g. probing for a 401 from a stale
+   * token). When present and it reports `configured: false`, the source
+   * runner records the connector as "skipped" for this run without it
+   * counting against the circuit breaker.
+   */
+  healthCheck?(ctx: ConnectorContext): Promise<ConnectorState>;
 }
 
 /** Parse an array of unknown records into RawSignals, dropping invalid ones. */
