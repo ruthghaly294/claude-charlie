@@ -1,11 +1,12 @@
 export type Usage = { inputTokens: number; outputTokens: number };
 
-/** Per-1M-token pricing (USD). Source: Anthropic pricing, input/output. */
+/** Per-1M-token pricing (USD). Source: Anthropic + OpenRouter pricing, input/output. */
 const PRICING: Record<string, { in: number; out: number }> = {
   "claude-opus-4-8": { in: 5, out: 25 },
   "claude-opus-4-7": { in: 5, out: 25 },
   "claude-sonnet-4-6": { in: 3, out: 15 },
   "claude-haiku-4-5": { in: 1, out: 5 },
+  "deepseek/deepseek-v4-pro": { in: 0.5, out: 1.5 },
 };
 
 const DEFAULT_PRICE = { in: 5, out: 25 };

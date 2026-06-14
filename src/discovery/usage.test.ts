@@ -6,6 +6,16 @@ describe("priceUsd", () => {
     expect(priceUsd("claude-opus-4-8", { inputTokens: 1_000_000, outputTokens: 0 })).toBe(5);
     expect(priceUsd("claude-opus-4-8", { inputTokens: 0, outputTokens: 1_000_000 })).toBe(25);
   });
+  it("prices DeepSeek V4 Pro from its own (cheaper) entry, not the default", () => {
+    const inPrice = priceUsd("deepseek/deepseek-v4-pro", {
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
+    expect(inPrice).toBe(0.5);
+    expect(inPrice).toBeLessThan(
+      priceUsd("claude-opus-4-8", { inputTokens: 1_000_000, outputTokens: 0 }),
+    );
+  });
   it("falls back to a default price for unknown models", () => {
     expect(
       priceUsd("mystery", { inputTokens: 1_000_000, outputTokens: 0 }),
