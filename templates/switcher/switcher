@@ -1,0 +1,339 @@
+#!/usr/bin/env bash
+#
+# switcher — launch Claude Code against different AI providers.
+#
+# Claude Code is locked to Anthropic's API by default, but several providers
+# expose Anthropic-compatible endpoints (Moonshot, MiniMax, ZhipuAI, OpenRouter,
+# DeepSeek, ...). switcher sets ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN for the
+# provider you pick and execs `claude`, so you can hop between them with one word.
+#
+#   switcher deepseek claude
+#   switcher moonshot claude --dangerously-skip-permissions
+#   switcher openrouter claude -p "explain this function"
+#   switcher list
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGURATION  —  this is the part you edit.
+#
+#   Your providers live in a plain, commented shell file:
+#       ~/.config/switcher/config.sh   (override with $SWITCHER_CONFIG)
+#
+#   It is created automatically on first run from the DEFAULT_CONFIG block at the
+#   bottom of THIS file. Re-running setup.sh never overwrites it.
+#
+#   To change the model a provider uses:  open the config and edit one line —
+#       model="deepseek/deepseek-v4-pro"      ← change this, save, done.
+#
+#   To set an API key: export it in your shell (recommended, keeps secrets out of
+#   the file) or paste it into key="..." in the config.
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+VERSION="1.0.0"
+CONFIG_FILE="${SWITCHER_CONFIG:-$HOME/.config/switcher/config.sh}"
+
+# ── provider registry (populated by sourcing the config) ─────────────────────
+# We avoid bash-4 associative arrays so this runs on macOS's default bash 3.2.
+# The config calls provider() once per provider; depending on SW_ACTION we either
+# record the match into SW_* globals, or print it for `list`.
+
+SW_ACTION=""        # launch | run | list | model | resolve
+SW_TARGET=""        # provider name we're looking for
+SW_FOUND=0
+SW_BASE_URL=""
+SW_KEY=""
+SW_MODEL=""
+SW_ENV=""           # space-separated KEY=VALUE pairs
+SW_NAMES=""         # accumulated names (for error messages / list)
+
+# provider <name> base_url=<url> [model=<m>] [key=<k>] [env="K=V K=V ..."]
+provider() {
+  local name="$1"; shift
+  local base_url="" model="" key="" env=""
+  local arg field val
+  for arg in "$@"; do
+    field="${arg%%=*}"
+    val="${arg#*=}"
+    case "$field" in
+      base_url) base_url="$val" ;;
+      model)    model="$val" ;;
+      key)      key="$val" ;;
+      env)      env="$val" ;;
+      *) echo "switcher: config: unknown field '$field' for provider '$name'" >&2 ;;
+    esac
+  done
+
+  SW_NAMES="$SW_NAMES $name"
+
+  if [ "$SW_ACTION" = "list" ]; then
+    local status="  (no api key)"
+    [ -n "$key" ] && status=""
+    local m=""
+    [ -n "$model" ] && m=" [$model]"
+    printf '  %-16s%s%s\n' "$name" "$m" "$status"
+    return 0
+  fi
+
+  if [ "$name" = "$SW_TARGET" ]; then
+    SW_FOUND=1
+    SW_BASE_URL="$base_url"
+    SW_MODEL="$model"
+    SW_KEY="$key"
+    SW_ENV="$env"
+  fi
+}
+
+load_config() {
+  if [ ! -f "$CONFIG_FILE" ]; then
+    init_config
+  fi
+  # shellcheck source=/dev/null
+  source "$CONFIG_FILE"
+}
+
+init_config() {
+  mkdir -p "$(dirname "$CONFIG_FILE")"
+  write_default_config > "$CONFIG_FILE"
+  chmod 600 "$CONFIG_FILE"
+  echo "switcher: created $CONFIG_FILE" >&2
+  echo "switcher: set your API keys (export them or edit the file) then run 'switcher list'." >&2
+}
+
+# ── command: launch claude with a provider ───────────────────────────────────
+do_launch() {
+  local name="$1"; shift || true
+  # tolerate the literal word "claude" as the second arg, like the original tool
+  if [ "${1:-}" = "claude" ]; then shift; fi
+
+  SW_ACTION="launch"; SW_TARGET="$name"
+  load_config
+  require_found "$name"
+  require_key "$name"
+
+  local claude_bin
+  claude_bin="$(command -v claude || true)"
+  if [ -z "$claude_bin" ]; then
+    echo "switcher: 'claude' not found in PATH. Install it: npm i -g @anthropic-ai/claude-code" >&2
+    exit 1
+  fi
+
+  print_launch_info "$name"
+  apply_env
+
+  set -- "$@"
+  if [ -n "$SW_MODEL" ]; then
+    exec "$claude_bin" --model "$SW_MODEL" "$@"
+  else
+    exec "$claude_bin" "$@"
+  fi
+}
+
+# ── command: run an arbitrary command with a provider's env ───────────────────
+do_run() {
+  # usage: switcher run <provider> -- <cmd> [args...]
+  local name="${1:-}"; shift || true
+  if [ -z "$name" ]; then
+    echo "switcher: usage: switcher run <provider> -- <command> [args...]" >&2
+    exit 1
+  fi
+  if [ "${1:-}" != "--" ]; then
+    echo "switcher: missing '--' separator. usage: switcher run <provider> -- <command>" >&2
+    exit 1
+  fi
+  shift
+  if [ "$#" -eq 0 ]; then
+    echo "switcher: no command after '--'." >&2
+    exit 1
+  fi
+
+  SW_ACTION="run"; SW_TARGET="$name"
+  load_config
+  require_found "$name"
+  require_key "$name"
+
+  print_launch_info "$name"
+  apply_env
+  exec "$@"
+}
+
+do_list() {
+  SW_ACTION="list"; SW_TARGET=""
+  echo "Configured providers (from $CONFIG_FILE):"
+  echo ""
+  load_config
+  echo ""
+  echo "Edit models/keys: switcher edit   (or open the file above)"
+}
+
+do_model() {
+  local name="${1:-}"
+  [ -z "$name" ] && { echo "switcher: usage: switcher model <provider>" >&2; exit 1; }
+  SW_ACTION="resolve"; SW_TARGET="$name"
+  load_config
+  require_found "$name"
+  [ -z "$SW_MODEL" ] && { echo "switcher: provider '$name' has no model configured" >&2; exit 1; }
+  echo "$SW_MODEL"
+}
+
+do_edit() {
+  load_config  # ensure it exists
+  local editor="${VISUAL:-${EDITOR:-}}"
+  if [ -z "$editor" ]; then
+    if   command -v nano >/dev/null 2>&1; then editor="nano"
+    elif command -v vim  >/dev/null 2>&1; then editor="vim"
+    else editor="vi"; fi
+  fi
+  exec $editor "$CONFIG_FILE"
+}
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+require_found() {
+  if [ "$SW_FOUND" -ne 1 ]; then
+    echo "switcher: unknown provider '$1'." >&2
+    echo "  available:$SW_NAMES" >&2
+    echo "  run 'switcher list' or add it in $CONFIG_FILE" >&2
+    exit 1
+  fi
+}
+
+require_key() {
+  if [ -z "$SW_KEY" ]; then
+    echo "switcher: provider '$1' has no API key." >&2
+    echo "  export its key in your shell, or set key=\"...\" in $CONFIG_FILE, then retry." >&2
+    exit 1
+  fi
+}
+
+apply_env() {
+  export ANTHROPIC_BASE_URL="$SW_BASE_URL"
+  export ANTHROPIC_AUTH_TOKEN="$SW_KEY"
+  unset ANTHROPIC_API_KEY 2>/dev/null || true
+  # extra per-provider env vars (e.g. routing opus/sonnet/haiku to one model)
+  local pair k v
+  for pair in $SW_ENV; do
+    k="${pair%%=*}"; v="${pair#*=}"
+    export "$k=$v"
+  done
+  # let the child process know it is a fresh Claude session, not a nested one
+  unset CLAUDECODE 2>/dev/null || true
+  unset CLAUDE_CODE 2>/dev/null || true
+}
+
+print_launch_info() {
+  echo "Launching $1..." >&2
+  [ -n "$SW_MODEL" ] && echo "  Model:   $SW_MODEL" >&2
+  local pair k v
+  for pair in $SW_ENV; do
+    k="${pair%%=*}"; v="${pair#*=}"
+    case "$k" in
+      ANTHROPIC_DEFAULT_OPUS_MODEL)   printf '  %-8s → %s\n' "Opus"   "$v" >&2 ;;
+      ANTHROPIC_DEFAULT_SONNET_MODEL) printf '  %-8s → %s\n' "Sonnet" "$v" >&2 ;;
+      ANTHROPIC_DEFAULT_HAIKU_MODEL)  printf '  %-8s → %s\n' "Haiku"  "$v" >&2 ;;
+    esac
+  done
+  echo "" >&2
+}
+
+usage() {
+  cat <<'EOF'
+switcher - launch Claude Code with different AI providers
+
+Usage:
+  switcher <provider> claude [args...]   Launch Claude with a provider
+  switcher run <provider> -- <cmd>       Run a command with the provider's env vars
+  switcher list                          List configured providers
+  switcher model <provider>              Print the model configured for a provider
+  switcher edit                          Open the config file in $EDITOR
+  switcher init                          Create the config file (if missing)
+  switcher version                       Print version
+
+Examples:
+  switcher deepseek claude
+  switcher moonshot claude --dangerously-skip-permissions
+  switcher openrouter claude -p "hello"
+  switcher run deepseek -- env | grep ANTHROPIC
+
+Config: ~/.config/switcher/config.sh  (change a provider's model by editing one line)
+EOF
+}
+
+# ── default config (written to ~/.config/switcher/config.sh on first run) ─────
+write_default_config() {
+  cat <<'EOF'
+# switcher config — your AI providers.
+#
+# HOW TO USE THIS FILE
+#   • Change a model:  edit the model="..." line for that provider and save.
+#   • Set an API key:  either export it in your shell (recommended) e.g.
+#                          export OPENROUTER_API_KEY="sk-or-..."
+#                      or paste it directly into key="..." below.
+#   • Add a provider:  copy any block, rename it, point base_url/model at it.
+#
+# Each provider is one call:
+#   provider <name> base_url=<url> [model=<m>] [key=<k>] [env="K=V K=V ..."]
+#
+# Anything in env="" is exported before launching Claude. Providers that aren't
+# real Anthropic backends route every Claude model tier (opus/sonnet/haiku) to a
+# single underlying model via the ANTHROPIC_DEFAULT_*_MODEL vars.
+
+# ── OpenRouter: DeepSeek V4 Pro ──────────────────────────────────────────────
+# Gateway to 400+ models. Browse slugs at https://openrouter.ai/models
+provider deepseek \
+  base_url="https://openrouter.ai/api/v1" \
+  model="deepseek/deepseek-v4-pro" \
+  key="${OPENROUTER_API_KEY:-}" \
+  env="ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek/deepseek-v4-pro ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek/deepseek-v4-pro ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek/deepseek-v4-flash"
+
+# ── OpenRouter: DeepSeek V4 Flash (cheaper/faster) ───────────────────────────
+provider deepseek-flash \
+  base_url="https://openrouter.ai/api/v1" \
+  model="deepseek/deepseek-v4-flash" \
+  key="${OPENROUTER_API_KEY:-}" \
+  env="ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek/deepseek-v4-flash ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek/deepseek-v4-flash ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek/deepseek-v4-flash"
+
+# ── OpenRouter: generic (pick any model with --model or by editing model=) ───
+provider openrouter \
+  base_url="https://openrouter.ai/api/v1" \
+  model="" \
+  key="${OPENROUTER_API_KEY:-}"
+
+# ── Moonshot AI (Kimi) — Anthropic-compatible ────────────────────────────────
+provider moonshot \
+  base_url="https://api.moonshot.ai/anthropic" \
+  model="kimi-k2.5" \
+  key="${MOONSHOT_API_KEY:-}" \
+  env="CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 ANTHROPIC_SMALL_FAST_MODEL=kimi-k2.5 ANTHROPIC_DEFAULT_SONNET_MODEL=kimi-k2.5 ANTHROPIC_DEFAULT_OPUS_MODEL=kimi-k2.5 ANTHROPIC_DEFAULT_HAIKU_MODEL=kimi-k2.5 CLAUDE_CODE_SUBAGENT_MODEL=kimi-k2.5"
+
+# ── MiniMax — Anthropic-compatible ───────────────────────────────────────────
+provider minimax \
+  base_url="https://api.minimax.io/anthropic" \
+  model="MiniMax-M2.5" \
+  key="${MINIMAX_API_KEY:-}" \
+  env="CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 ANTHROPIC_MODEL=MiniMax-M2.5 ANTHROPIC_SMALL_FAST_MODEL=MiniMax-M2.5 ANTHROPIC_DEFAULT_SONNET_MODEL=MiniMax-M2.5 ANTHROPIC_DEFAULT_OPUS_MODEL=MiniMax-M2.5 ANTHROPIC_DEFAULT_HAIKU_MODEL=MiniMax-M2.5"
+
+# ── ZhipuAI (Z.AI / GLM) — Anthropic-compatible ──────────────────────────────
+provider zai \
+  base_url="https://api.z.ai/api/anthropic" \
+  model="glm-5" \
+  key="${ZAI_API_KEY:-}" \
+  env="API_TIMEOUT_MS=3000000"
+EOF
+}
+
+# ── dispatch ─────────────────────────────────────────────────────────────────
+main() {
+  if [ "$#" -eq 0 ]; then usage; exit 0; fi
+  case "$1" in
+    list|ls)              shift; do_list ;;
+    model)                shift; do_model "$@" ;;
+    edit)                 shift; do_edit ;;
+    init)                 init_config ;;
+    run)                  shift; do_run "$@" ;;
+    version|--version|-v) echo "switcher $VERSION" ;;
+    help|--help|-h)       usage ;;
+    *)                    do_launch "$@" ;;
+  esac
+}
+
+main "$@"

@@ -31,6 +31,43 @@ claude
 | Superpowers plugin | Brainstorming, plan writing, plan execution, debugging, code review workflows |
 | GSD plugin | Project phases, execution, verification, session management |
 | Atlassian plugin | Jira/Confluence integration |
+| switcher | Launch Claude Code against any provider (OpenRouter/DeepSeek, Moonshot, MiniMax, ZhipuAI) with one word |
+
+## Switching AI providers (switcher)
+
+`setup.sh` installs `switcher` to `~/.local/bin/switcher` — a single self-contained
+script that points Claude Code at an Anthropic-compatible provider and launches it:
+
+```bash
+switcher deepseek claude          # DeepSeek V4 Pro via OpenRouter
+switcher deepseek-flash claude    # DeepSeek V4 Flash
+switcher moonshot claude          # Kimi
+switcher minimax claude
+switcher zai claude               # GLM
+switcher list                     # see all providers + models
+```
+
+**Set keys** by exporting them (recommended — keeps secrets out of the file):
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...   # used by deepseek, deepseek-flash, openrouter
+export MOONSHOT_API_KEY=...
+export MINIMAX_API_KEY=...
+export ZAI_API_KEY=...
+```
+
+**Change a model** — open `~/.config/switcher/config.sh` (or run `switcher edit`)
+and edit one line:
+
+```sh
+provider deepseek \
+  base_url="https://openrouter.ai/api/v1" \
+  model="deepseek/deepseek-v4-pro" \   # ← change the model slug here
+  key="${OPENROUTER_API_KEY:-}"
+```
+
+Add a provider by copying any block. The config is created on first install and
+is never overwritten when you re-run `setup.sh`.
 
 ### Project Config (.claude/)
 

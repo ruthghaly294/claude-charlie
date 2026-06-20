@@ -649,6 +649,44 @@ if [ "$RUN_TESTS" -eq 1 ]; then
   fi
 fi
 
+# ─── Step 13: Install switcher ───────────────────────────────────────
+
+log_step "Step 13: Installing switcher (multi-provider Claude launcher)..."
+
+install_switcher() {
+  local src="$SCRIPT_DIR/templates/switcher/switcher"
+  local dst="$HOME/.claude/scripts/switcher/switcher"
+
+  if [ ! -f "$src" ]; then
+    log_fail "templates/switcher/switcher missing in repo"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  install -m 755 "$src" "$dst"
+
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$dst" "$HOME/.local/bin/switcher"
+
+  # Materialize the user-editable config. Never overwrites an existing one,
+  # so re-running setup.sh preserves your models and keys.
+  if [ -f "$HOME/.config/switcher/config.sh" ]; then
+    log_ok "switcher config already present at ~/.config/switcher/config.sh (left untouched)"
+  else
+    "$dst" init >/dev/null 2>&1 || true
+    log_ok "switcher config created at ~/.config/switcher/config.sh"
+  fi
+
+  log_ok "switcher installed at $dst"
+  log_ok "switcher symlinked to ~/.local/bin/switcher"
+  log_warn "Set provider keys via env, e.g.: export OPENROUTER_API_KEY=sk-or-..."
+  log_warn "Change a model: edit ~/.config/switcher/config.sh (one line per provider)"
+}
+
+install_switcher
+verify "$HOME/.local/bin/switcher" "switcher launcher"
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""
