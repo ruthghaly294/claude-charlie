@@ -121,7 +121,6 @@ ensure_bun() {
 
 ensure_node
 ensure_claude
-ensure_gemini
 ensure_gh
 ensure_bun
 
