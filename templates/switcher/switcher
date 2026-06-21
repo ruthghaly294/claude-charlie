@@ -280,21 +280,21 @@ write_default_config() {
 # ── OpenRouter: DeepSeek V4 Pro ──────────────────────────────────────────────
 # Gateway to 400+ models. Browse slugs at https://openrouter.ai/models
 provider deepseek \
-  base_url="https://openrouter.ai/api/v1" \
+  base_url="https://openrouter.ai/api" \
   model="deepseek/deepseek-v4-pro" \
   key="${OPENROUTER_API_KEY:-}" \
   env="ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek/deepseek-v4-pro ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek/deepseek-v4-pro ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek/deepseek-v4-flash"
 
 # ── OpenRouter: DeepSeek V4 Flash (cheaper/faster) ───────────────────────────
 provider deepseek-flash \
-  base_url="https://openrouter.ai/api/v1" \
+  base_url="https://openrouter.ai/api" \
   model="deepseek/deepseek-v4-flash" \
   key="${OPENROUTER_API_KEY:-}" \
   env="ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek/deepseek-v4-flash ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek/deepseek-v4-flash ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek/deepseek-v4-flash"
 
 # ── OpenRouter: generic (pick any model with --model or by editing model=) ───
 provider openrouter \
-  base_url="https://openrouter.ai/api/v1" \
+  base_url="https://openrouter.ai/api" \
   model="" \
   key="${OPENROUTER_API_KEY:-}"
 
