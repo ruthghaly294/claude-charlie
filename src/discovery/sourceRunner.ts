@@ -11,6 +11,9 @@ import { parseRawSignals } from "./types";
 import type { DecodeConfig } from "./config";
 import { CircuitBreaker, type BreakerRecord } from "../lib/circuitBreaker";
 import { RateLimiter, domainOf } from "../lib/rateLimiter";
+import { mapWithConcurrency } from "../lib/concurrency";
+import { buildResearchPlan } from "./research";
+import { emit } from "@/events/bus";
 
 export type SourceRunnerOptions = {
   fetchImpl?: typeof fetch;
@@ -43,27 +46,6 @@ function requestUrl(input: string | URL | Request): string {
   if (typeof input === "string") return input;
   if (input instanceof URL) return input.href;
   return input.url;
-}
-
-/** Run `fn` over `items` with at most `limit` concurrent invocations. */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  const workerCount = Math.max(1, Math.min(limit, items.length));
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      for (;;) {
-        const i = next++;
-        if (i >= items.length) return;
-        results[i] = await fn(items[i]!);
-      }
-    }),
-  );
-  return results;
 }
 
 function breakerRecordFromRow(row: SourceHealthRow): BreakerRecord {
@@ -166,6 +148,13 @@ export async function runSources(
     init?: RequestInit,
   ) => limiter.schedule(domainOf(requestUrl(input)), () => fetchImpl(input, init))) as typeof fetch;
 
+  const plan = buildResearchPlan(config, db);
+  const queriesByKey: Record<string, string[] | undefined> = {
+    ...plan.queries,
+    reddit: plan.subreddits,
+    github_trending: plan.githubTopics,
+  };
+
   const healthUpdates: NewSourceHealthRow[] = [];
 
   const outputs = await mapWithConcurrency(connectors, maxParallelSources, async (connector) => {
@@ -180,6 +169,7 @@ export async function runSources(
       env,
       fetchImpl: wrappedFetch,
       signal: composedSignal,
+      queries: queriesByKey[key],
     };
 
     const st = connector.state(ctx);
@@ -222,7 +212,11 @@ export async function runSources(
     } catch (err) {
       const durationMs = clock() - started;
       const message = err instanceof Error ? err.message : String(err);
+      const wasOpen = breaker.getRecord(key).state === "open";
       breaker.recordFailure(key);
+      if (!wasOpen && breaker.getRecord(key).state === "open") {
+        emit(db, "source.breaker_opened", { source: key });
+      }
       healthUpdates.push(
         buildHealthRow(key, healthByKey.get(key), breaker, new Date(clock()).toISOString(), durationMs, false, message),
       );

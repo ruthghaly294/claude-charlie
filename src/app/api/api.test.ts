@@ -7,6 +7,7 @@ import { join } from "node:path";
 let signalsGET: (req: Request) => Promise<Response>;
 let sourcesGET: () => Promise<Response>;
 let discoverPOST: () => Promise<Response>;
+let healthGET: () => Promise<Response>;
 
 // explicit "everything off" sources so listing/discovery never touches the network
 const EMPTY_SOURCES = `sources:
@@ -44,9 +45,34 @@ beforeAll(async () => {
   process.env.DECODE_CONFIG = CFG_A;
 
   const { getDb } = await import("@/db/client");
-  const { signals } = await import("@/db/schema");
+  const { signals, sourceHealth, jobRuns } = await import("@/db/schema");
   const db = getDb();
   const now = new Date().toISOString();
+
+  db.insert(sourceHealth)
+    .values({
+      source: "rss",
+      state: "closed",
+      consecutiveFailures: 0,
+      avgLatencyMs: 120,
+      totalRuns: 5,
+      totalFailures: 0,
+      updatedAt: now,
+    })
+    .run();
+
+  db.insert(jobRuns)
+    .values({
+      id: "run-1",
+      jobId: "job-1",
+      kind: "discovery",
+      status: "ok",
+      startedAt: now,
+      finishedAt: now,
+      durationMs: 42,
+    })
+    .run();
+
   db.insert(signals)
     .values([
       {
@@ -79,6 +105,7 @@ beforeAll(async () => {
   signalsGET = (await import("@/app/api/signals/route")).GET as any;
   sourcesGET = (await import("@/app/api/sources/route")).GET as any;
   discoverPOST = (await import("@/app/api/discover/route")).POST as any;
+  healthGET = (await import("@/app/api/health/route")).GET as any;
 });
 
 describe("GET /api/signals", () => {
@@ -121,7 +148,7 @@ describe("GET /api/sources", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.business.name).toBe("Acme");
-    expect(body.sources).toHaveLength(8);
+    expect(body.sources).toHaveLength(10);
     const rss = body.sources.find((s: any) => s.key === "rss");
     expect(rss.configured).toBe(false); // empty sources config
   });
@@ -142,5 +169,21 @@ describe("POST /api/discover", () => {
     } finally {
       process.env.DECODE_CONFIG = CFG_A;
     }
+  });
+});
+
+describe("GET /api/health", () => {
+  it("returns source health (breaker state + latency) and recent job runs", async () => {
+    const res = await healthGET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    const rss = body.sourceHealth.find((s: any) => s.source === "rss");
+    expect(rss.state).toBe("closed");
+    expect(rss.avgLatencyMs).toBe(120);
+
+    expect(body.recentJobRuns).toHaveLength(1);
+    expect(body.recentJobRuns[0].kind).toBe("discovery");
+    expect(body.recentJobRuns[0].status).toBe("ok");
   });
 });

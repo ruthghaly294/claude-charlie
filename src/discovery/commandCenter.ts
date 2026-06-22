@@ -1,7 +1,7 @@
 import { count } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import { signals, insights, decisions, executions } from "@/db/schema";
-import { queryDecisions, latestRun, totalSpend } from "./loopQuery";
+import { queryDecisions, latestRun, totalSpend, countContentQueue } from "./loopQuery";
 import { effortHours, type Level } from "./score";
 
 export type Action = {
@@ -38,6 +38,8 @@ export type CommandCenter = {
     insights: number;
     decisions: number;
     executions: number;
+    /** Ready, content-lane executions awaiting review in the Content queue. */
+    contentQueue: number;
   };
 };
 
@@ -95,6 +97,7 @@ export function getCommandCenter(
       insights: n(db, insights),
       decisions: n(db, decisions),
       executions: n(db, executions),
+      contentQueue: countContentQueue(db),
     },
   };
 }

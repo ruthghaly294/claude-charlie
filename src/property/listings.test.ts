@@ -4,6 +4,7 @@ import { listings, listingSnapshots, valuationCoefs, postcodeValues } from "@/db
 import {
   importListing,
   importListingEnriched,
+  enrichAllListings,
   rankedListings,
   listingHistory,
 } from "./listings";
@@ -120,5 +121,75 @@ describe("importListing", () => {
     const ranked = rankedListings(db, "east-belfast");
     expect(ranked[0]?.address).toBe("cheap");
     expect(ranked[0]!.dealScore).toBeGreaterThan(ranked[1]!.dealScore);
+  });
+});
+
+describe("importListing - addressKey cross-agent dedup", () => {
+  it("merges listings with the same normalized address+postcode from different agents/URLs", () => {
+    const db = createDb(":memory:");
+    seedReference(db);
+    const a = importListing(db, {
+      source: "templeton-robinson",
+      address: "11 Fairway Gardens, Belfast",
+      postcode: "BT9 5FN",
+      askingPrice: 250000,
+      url: "https://www.templetonrobinson.com/property/a",
+    });
+    const b = importListing(db, {
+      source: "simon-brien",
+      address: "11 Fairway Gardens, Belfast",
+      postcode: "BT9 5FN",
+      askingPrice: 255000,
+      url: "https://www.simonbrien.com/buy/b",
+    });
+    expect(b.id).toBe(a.id); // same property, different agent/URL → merged
+    expect(db.select().from(listings).all()).toHaveLength(1);
+  });
+
+  it("keeps distinct rows for different properties", () => {
+    const db = createDb(":memory:");
+    seedReference(db);
+    const a = importListing(db, {
+      address: "11 Fairway Gardens, Belfast",
+      postcode: "BT9 5FN",
+      askingPrice: 250000,
+      url: "https://x/a",
+    });
+    const b = importListing(db, {
+      address: "3 Massey Avenue, Belfast",
+      postcode: "BT4 2JH",
+      askingPrice: 300000,
+      url: "https://x/b",
+    });
+    expect(a.id).not.toBe(b.id);
+    expect(db.select().from(listings).all()).toHaveLength(2);
+  });
+});
+
+describe("enrichAllListings", () => {
+  it("re-enriches every listing with bounded concurrency (pool of 3)", async () => {
+    const db = createDb(":memory:");
+    seedReference(db);
+    for (let i = 1; i <= 5; i++) {
+      importListing(db, {
+        address: `${i} Test Street, Belfast`,
+        area: "south-belfast",
+        askingPrice: 200000,
+      });
+    }
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchImpl = vi.fn(async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+      return new Response("[]", { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const sum = await enrichAllListings(db, { fetchImpl });
+    expect(sum.scanned).toBe(5);
+    expect(maxInFlight).toBe(3); // pool of 3, not serial
   });
 });

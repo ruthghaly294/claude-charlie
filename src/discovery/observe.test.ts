@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { eq } from "drizzle-orm";
 import { createDb, type DB } from "@/db/client";
-import { signals, insights, type Signal } from "@/db/schema";
+import { signals, insights, events, type Signal } from "@/db/schema";
 import { parseConfig, type DecodeConfig } from "./config";
 import { runObserve } from "./observe";
 
@@ -65,6 +66,23 @@ describe("runObserve", () => {
     expect(db.select().from(signals).all().every((s) => s.status === "new")).toBe(
       true,
     );
+  });
+
+  it("emits decode.insight_created with the cluster and trend for each insight written", async () => {
+    const db = createDb(":memory:");
+    seed(db, [
+      { id: "a", cluster: "radiology", score: 0.8, status: "new" },
+      { id: "b", cluster: "radiology", score: 0.9, status: "new" },
+    ]);
+
+    await runObserve(db, cfg());
+
+    const rows = db.select().from(events).where(eq(events.type, "decode.insight_created")).all();
+    expect(rows).toHaveLength(1);
+    const payload = rows[0]?.payload as { insightId: string; cluster: string; trend: string };
+    expect(payload.insightId).toBe("insight:radiology");
+    expect(payload.cluster).toBe("radiology");
+    expect(payload.trend).toContain("radiology");
   });
 
   it("is idempotent — a second run observes nothing and does not duplicate", async () => {

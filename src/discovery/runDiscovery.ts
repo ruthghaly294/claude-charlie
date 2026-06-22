@@ -12,8 +12,12 @@ import {
 import type { Connector, RawSignal } from "./types";
 import { CONNECTORS } from "./connectors";
 import { hashKey, scoreSignal, slugify } from "./scoring";
+import { socialPercentiles, applySocialBoost } from "./socialScore";
+import { mergeClusters, applyAuthorCap } from "./clusterMerge";
+import { seedEntities } from "./research";
 import type { DecodeConfig } from "./config";
 import { runSources } from "./sourceRunner";
+import { emit } from "@/events/bus";
 
 export type RunOptions = {
   fetchImpl?: typeof fetch;
@@ -96,6 +100,8 @@ export async function runDiscovery(
     multipliers = loadMultipliers(config.vault),
   } = opts;
 
+  seedEntities(db, config.seedEntities);
+
   const runId = randomUUID();
   const startedAt = new Date().toISOString();
   db.insert(discoveryRuns)
@@ -130,9 +136,8 @@ export async function runDiscovery(
   }
 
   const capturedAt = new Date().toISOString();
-  const addedBySource = new Map<string, number>();
-  const rows: NewSignal[] = [];
 
+  const candidates: { hash: string; raw: RawSignal; keywordScore: number; cluster: string }[] = [];
   for (const [h, s] of byHash) {
     if (existing.has(h)) continue;
     const { score, cluster } = scoreSignal(
@@ -141,24 +146,56 @@ export async function runDiscovery(
       multipliers,
       s.source,
     );
-    const row: NewSignal = {
+    candidates.push({ hash: h, raw: s, keywordScore: score, cluster });
+  }
+
+  const socialPercentile = socialPercentiles(
+    candidates.map((c) => ({
+      source: c.raw.source,
+      points: c.raw.points,
+      comments: c.raw.comments,
+      views: c.raw.views,
+    })),
+  );
+
+  type ScoredRow = Omit<NewSignal, "cluster" | "authorKey"> & {
+    cluster: string;
+    authorKey: string | null;
+  };
+
+  let rows: ScoredRow[] = candidates.map((c, i) => {
+    const social = socialPercentile[i]!;
+    const score = applySocialBoost(c.keywordScore, social);
+    return {
       id: randomUUID(),
-      source: s.source,
-      title: s.title,
-      url: s.url,
-      urlHash: h,
-      author: s.author,
-      publishedAt: s.publishedAt,
-      raw: s.raw,
-      tags: s.tags,
+      source: c.raw.source,
+      title: c.raw.title,
+      url: c.raw.url,
+      urlHash: c.hash,
+      author: c.raw.author,
+      publishedAt: c.raw.publishedAt,
+      raw: c.raw.raw,
+      tags: c.raw.tags,
       score,
-      cluster,
+      cluster: c.cluster,
       status: score >= config.keepThreshold ? "new" : "archived",
       capturedAt,
       runId,
+      points: c.raw.points ?? null,
+      comments: c.raw.comments ?? null,
+      views: c.raw.views ?? null,
+      socialScore: social,
+      authorKey: c.raw.authorKey ?? null,
     };
-    rows.push(row);
-    addedBySource.set(s.source, (addedBySource.get(s.source) ?? 0) + 1);
+  });
+
+  // cross-source cluster merge (title-similarity), then drop per-author excess
+  rows = mergeClusters(rows);
+  rows = applyAuthorCap(rows, config.research.perAuthorCap);
+
+  const addedBySource = new Map<string, number>();
+  for (const r of rows) {
+    addedBySource.set(r.source, (addedBySource.get(r.source) ?? 0) + 1);
   }
 
   if (rows.length > 0) {
@@ -192,6 +229,14 @@ export async function runDiscovery(
     })
     .where(inArray(discoveryRuns.id, [runId]))
     .run();
+
+  if (status === "error") {
+    const error = perSource
+      .filter((p) => p.status === "error")
+      .map((p) => `${p.source}: ${p.error}`)
+      .join("; ");
+    emit(db, "discovery.run_failed", { runId, error });
+  }
 
   return {
     runId,

@@ -25,9 +25,15 @@ const apiSchema = z.object({
 function queries(ctx: ConnectorContext): string[] {
   const c = cfgSchema.safeParse(ctx.config ?? {});
   const configured = c.success ? c.data.queries : [];
-  if (configured.length > 0) return configured;
-  if (ctx.keywords.length > 0) return ctx.keywords;
-  return ctx.businessName ? [ctx.businessName] : [];
+  const base =
+    configured.length > 0
+      ? configured
+      : ctx.keywords.length > 0
+        ? ctx.keywords
+        : ctx.businessName
+          ? [ctx.businessName]
+          : [];
+  return [...new Set([...base, ...(ctx.queries ?? [])])];
 }
 
 export const youtubeConnector: Connector = {
@@ -72,6 +78,7 @@ export const youtubeConnector: Connector = {
           publishedAt: item.snippet?.publishedAt ?? "",
           tags: ["youtube"],
           raw: item.snippet?.description ?? "",
+          authorKey: `youtube:${item.snippet?.channelTitle ?? ""}`,
         });
       }
     }

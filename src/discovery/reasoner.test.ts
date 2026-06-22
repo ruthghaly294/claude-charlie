@@ -18,6 +18,11 @@ function sig(over: Partial<Signal> = {}): Signal {
     status: "new",
     capturedAt: "2026-01-01T00:00:00.000Z",
     runId: null,
+    points: null,
+    comments: null,
+    views: null,
+    socialScore: null,
+    authorKey: null,
     ...over,
   };
 }
@@ -49,6 +54,8 @@ function decision(over: Partial<Decision> = {}): Decision {
     fromInsights: ["insight:radiology"],
     status: "open",
     createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: null,
+    expiresAt: null,
     ...over,
   };
 }

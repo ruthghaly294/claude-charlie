@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getPostGenerator } from "@/publishing/postGenerator";
+import { getPostGenerator, PLATFORMS, MAX_AMALGAMATION_ITEMS } from "@/publishing/postGenerator";
+import { validatePost } from "@/publishing/validate";
+import { loadConfig } from "@/discovery/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +19,7 @@ const itemSchema = z.object({
 
 const bodySchema = z.object({
   topic: z.string().trim().min(2).max(200),
-  item: itemSchema,
+  items: z.array(itemSchema).min(1).max(MAX_AMALGAMATION_ITEMS),
 });
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -30,9 +32,28 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   try {
-    const generator = getPostGenerator({}, process.env);
-    const post = await generator.generatePost(parsed.data);
-    return NextResponse.json({ draft: { text: post.text } });
+    const config = loadConfig();
+    const generator = getPostGenerator(
+      {
+        businessName: config.businessName,
+        businessDescription: config.businessDescription,
+        profile: config.profile,
+        voice: config.profile.voice,
+      },
+      process.env,
+    );
+    const { variants, assetPrompt } = await generator.generatePosts(parsed.data);
+    const drafts = Object.fromEntries(
+      PLATFORMS.map((p) => [
+        p,
+        {
+          text: variants[p].text,
+          hashtags: variants[p].hashtags,
+          issues: validatePost(p, variants[p], { url: parsed.data.items[0]!.url, hasImage: false }),
+        },
+      ]),
+    );
+    return NextResponse.json({ drafts, assetPrompt });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "failed to generate post" },

@@ -1,0 +1,68 @@
+name: QOTD daily draft
+
+# Hands-off Question-of-the-Day: one Instagram carousel DRAFT per day, cycling the
+# FRCR physics subtopics (X-ray → … → Radiation safety) for QOTD_SCHEDULE_DAYS runs.
+# Nothing auto-publishes — every draft lands in Buffer for human approval on /review.
+#
+# Cross-run state (rotation cursor + already-used statements) lives in the committed
+# file .github/qotd-state.json, so each run continues where the last left off even
+# though the questions DB is rebuilt fresh from Supabase every time.
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: qotd-daily
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Import verified questions from Supabase
+        run: npm run import-questions -- --supabase
+        env:
+          DECODE_DB_PATH: data/decode.db
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: Generate today's QOTD draft
+        run: npm run qotd:daily
+        env:
+          DECODE_DB_PATH: data/decode.db
+          DECODE_CONFIG: decode.config.yml
+          QOTD_STATE_PATH: .github/qotd-state.json
+          QOTD_SCHEDULE_DAYS: "30"
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          # Optional: only used to (re)generate the brand background on an R2 cache miss.
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+
+      - name: Commit advanced schedule state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/qotd-state.json
+          if git diff --cached --quiet; then
+            echo "Schedule did not advance (no draft created today)."
+          else
+            git commit -m "chore(qotd): advance daily schedule [skip ci]"
+            git push
+          fi

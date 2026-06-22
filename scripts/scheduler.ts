@@ -1,21 +1,29 @@
-import { runOnce } from "./decode";
+import { tickOnce } from "./jobs-tick";
 
 /**
- * Dependency-free scheduler: run the DECODE loop now, then every
- * DECODE_INTERVAL_MIN minutes (default 30). Pair with cron for a hands-off
- * setup, or run this directly as an always-on watcher (`npm run decode:watch`).
+ * Always-on job-runner loop: drains due jobs (discovery, decode,
+ * property-scrape, … per decode.config.yml's `jobs.schedules`) every
+ * TICK_INTERVAL_MIN minutes (default 1), seeding any never-run schedules on
+ * the first tick. Pair with cron + `npm run jobs:tick` for a stateless
+ * alternative, or run this directly as an always-on watcher
+ * (`npm run jobs:watch`).
  */
-const minutes = Number(process.env.DECODE_INTERVAL_MIN ?? 30);
+const minutes = Number(process.env.TICK_INTERVAL_MIN ?? 1);
 const intervalMs = Math.max(1, minutes) * 60_000;
 
-async function tick(): Promise<void> {
+async function loop(): Promise<void> {
   try {
-    await runOnce();
+    const result = await tickOnce();
+    if (result.claimed > 0) {
+      console.log(
+        `[scheduler] claimed ${result.claimed} · ok ${result.ok} · failed ${result.failed} · dead ${result.dead}`,
+      );
+    }
   } catch (err) {
-    console.error("[scheduler] run failed:", err instanceof Error ? err.message : err);
+    console.error("[scheduler] tick failed:", err instanceof Error ? err.message : err);
   }
 }
 
-console.log(`[scheduler] running DECODE every ${minutes} min — Ctrl+C to stop`);
-void tick();
-setInterval(() => void tick(), intervalMs);
+console.log(`[scheduler] ticking every ${minutes} min — Ctrl+C to stop`);
+void loop();
+setInterval(() => void loop(), intervalMs);

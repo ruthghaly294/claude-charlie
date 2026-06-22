@@ -17,6 +17,10 @@ export const rawSignalSchema = z.object({
   points: z.number().optional(),
   comments: z.number().optional(),
   views: z.number().optional(),
+  /** normalized "source:author" — used for the per-author cap in clusterMerge */
+  authorKey: z.string().optional(),
+  /** native upstream id (e.g. TikTok song_id) for sources that expose a stable handle */
+  externalId: z.string().optional(),
 });
 
 export type RawSignal = z.infer<typeof rawSignalSchema>;
@@ -34,6 +38,8 @@ export type ConnectorContext = {
   fetchImpl: typeof fetch;
   /** signal for cancellation/timeouts at the run level */
   signal?: AbortSignal;
+  /** additional research-plan-derived queries/topics/subreddits (Phase 3); connectors that don't use this behave as before */
+  queries?: string[];
 };
 
 export type ConnectorState =

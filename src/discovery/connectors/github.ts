@@ -46,7 +46,8 @@ export const githubConnector: Connector = {
 
   state(ctx: ConnectorContext) {
     const c = cfgSchema.safeParse(ctx.config ?? {});
-    if (!c.success || c.data.topics.length === 0) {
+    const topics = c.success ? c.data.topics : [];
+    if (topics.length === 0 && (ctx.queries?.length ?? 0) === 0) {
       return { configured: false, reason: "no topics configured" };
     }
     return { configured: true };
@@ -54,9 +55,10 @@ export const githubConnector: Connector = {
 
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {
     const { topics, window, max_pages } = cfgSchema.parse(ctx.config ?? {});
+    const allTopics = [...new Set([...topics, ...(ctx.queries ?? [])])];
     const since = sinceDate(window);
     const out: RawSignal[] = [];
-    for (const topic of topics) {
+    for (const topic of allTopics) {
       const q = encodeURIComponent(`topic:${topic} created:>${since}`);
       let url: string | undefined =
         `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=10`;

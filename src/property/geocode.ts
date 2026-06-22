@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "@/db/client";
-import { geocodeCache } from "@/db/schema";
+import { geocodeCache, postcodeValues } from "@/db/schema";
 import { fetchJson } from "@/discovery/fetchWithRetry";
 import { normalisePostcode } from "./postcodes";
 
@@ -19,27 +19,62 @@ const nominatimSchema = z.array(
 
 export type GeoResult = { postcode: string; lat: number | null; lng: number | null };
 
-/** Geocode a free-text address via OpenStreetMap/Nominatim → postcode + coords. */
+/** Fallback chain for geocodeWithCache, in order. */
+export type GeocodeProvider = "nominatim" | "postcode-centroid";
+
+export const DEFAULT_GEOCODE_PROVIDERS: GeocodeProvider[] = ["nominatim", "postcode-centroid"];
+
+export type GeocodeOptions = {
+  fetchImpl?: typeof fetch;
+  /** injectable sleep for retry backoff in tests */
+  sleep?: (ms: number) => Promise<void>;
+  /** which providers geocodeWithCache may use, in order (default: nominatim, postcode-centroid) */
+  providers?: GeocodeProvider[];
+};
+
+/** Pull a UK postcode out of free text, if present. */
+const UK_POSTCODE_RE = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i;
+function extractPostcode(text: string): string | null {
+  const m = text.match(UK_POSTCODE_RE);
+  return m ? normalisePostcode(m[0]) : null;
+}
+
+/** Centroid for a postcode from postcode_values (LPS data) — free, offline fallback. */
+function centroidForPostcode(db: DB, postcode: string): { lat: number; lng: number } | null {
+  const row = db.select().from(postcodeValues).where(eq(postcodeValues.postcode, postcode)).get();
+  if (!row || row.latitude == null || row.longitude == null) return null;
+  return { lat: row.latitude, lng: row.longitude };
+}
+
+/**
+ * Geocode a free-text address via OpenStreetMap/Nominatim → postcode + coords.
+ * Network errors and non-2xx responses are swallowed (returns null) — Nominatim
+ * is a best-effort lookup with a centroid fallback in geocodeWithCache.
+ */
 export async function geocodeAddress(
   query: string,
-  opts: { fetchImpl?: typeof fetch } = {},
+  opts: GeocodeOptions = {},
 ): Promise<GeoResult | null> {
   const url =
     `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1` +
     `&countrycodes=gb&limit=1&q=${encodeURIComponent(query)}`;
-  const data = await fetchJson(
-    url,
-    nominatimSchema,
-    { headers: { "user-agent": UA, "accept-language": "en-GB" } },
-    { fetchImpl: opts.fetchImpl },
-  );
-  const hit = data[0];
-  if (!hit || (!hit.lat && !hit.address?.postcode)) return null;
-  return {
-    postcode: hit.address?.postcode ? normalisePostcode(hit.address.postcode) : "",
-    lat: hit.lat ? Number(hit.lat) : null,
-    lng: hit.lon ? Number(hit.lon) : null,
-  };
+  try {
+    const data = await fetchJson(
+      url,
+      nominatimSchema,
+      { headers: { "user-agent": UA, "accept-language": "en-GB" } },
+      { fetchImpl: opts.fetchImpl, sleep: opts.sleep, retries: 1 },
+    );
+    const hit = data[0];
+    if (!hit || (!hit.lat && !hit.address?.postcode)) return null;
+    return {
+      postcode: hit.address?.postcode ? normalisePostcode(hit.address.postcode) : "",
+      lat: hit.lat ? Number(hit.lat) : null,
+      lng: hit.lon ? Number(hit.lon) : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -50,7 +85,7 @@ export async function geocodeAddress(
 export async function geocodeWithCache(
   db: DB,
   query: string,
-  opts: { fetchImpl?: typeof fetch; now?: () => string } = {},
+  opts: GeocodeOptions & { now?: () => string } = {},
 ): Promise<GeoResult | null> {
   const key = query.trim().toLowerCase();
   const cached = db
@@ -63,7 +98,15 @@ export async function geocodeWithCache(
     return { postcode: cached.postcode, lat: cached.latitude, lng: cached.longitude };
   }
 
-  const result = await geocodeAddress(query, { fetchImpl: opts.fetchImpl });
+  const providers = opts.providers ?? DEFAULT_GEOCODE_PROVIDERS;
+  let result = providers.includes("nominatim") ? await geocodeAddress(query, opts) : null;
+  if (!result && providers.includes("postcode-centroid")) {
+    const postcode = extractPostcode(query);
+    if (postcode) {
+      const centroid = centroidForPostcode(db, postcode);
+      if (centroid) result = { postcode, lat: centroid.lat, lng: centroid.lng };
+    }
+  }
   const now = opts.now ?? (() => new Date().toISOString());
   db.insert(geocodeCache)
     .values({

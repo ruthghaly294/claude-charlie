@@ -62,6 +62,141 @@ robustness:
       rps: 1
       concurrency: 1
 
+# Research expansion: deterministic query templates for the search connectors
+# (youtube/hackernews/google_cse), per-connector query caps, per-author dedup
+# cap, and entities seeded into the entities table on every run (idempotent —
+# only inserted if not already present by kind+value). All optional — omit to
+# use the defaults shown here.
+research:
+  expansion_templates:
+    - "{kw}"
+    - "{kw} tutorial"
+    - "{kw} 2026"
+    - "best {kw} tools"
+  max_queries_per_connector: 4
+  per_author_cap: 3
+  semantic_rerank: true          # blend embedding cosine similarity into relevance (needs an embedding key; falls back to keyword-only)
+  web_research: true             # scrape the page bodies behind top picks + distill a grounded insight (NotebookLM-free; needs OPENROUTER key). Feeds the brief.
+  seed_entities:
+    - { keyword: "web scraping", kind: subreddit, value: scrapy }
+    - { keyword: "congress trades", kind: github_topic, value: congress-trading }
+    - { keyword: "radiology", kind: github_topic, value: medical-imaging }
+    - { keyword: "saas", kind: youtube_query, value: "saas growth case study 2026" }
+
+# Buffer channel IDs to bulk-queue all generated post variants to in one click
+# via the research panel's "Queue all" button. Get channel IDs from the Buffer
+# MCP's list_channels tool. Optional and per-platform — omitted platforms are
+# simply not offered for bulk-queue (e.g. Instagram needs a cover image first,
+# so leave it out until the manual-image workflow is in place).
+publishing:
+  channels_by_platform:
+    instagram: "6a2c16ff38b55793458ab515" # frcrbank
+#   x: "<buffer channel id>"
+#   reddit: "<buffer channel id>"
+#   facebook: "<buffer channel id>"
+
+# Property intelligence: NI estate-agent scraping, LLM repair budget, and the
+# geocode fallback chain. All optional — omit to use the defaults shown here.
+# property.sources: omit to use the built-in registry (4 agent sites enabled;
+# the PropertyPal/PropertyNews portals are present but disabled until their
+# robots.txt + ToS are verified).
+property:
+  extraction:
+    llm_repair: true          # repair listings missing postcode/sizeSqm via Claude
+    llm_max_pages_per_run: 25 # cap LLM repair calls per scrape run
+  geocode:
+    providers: [nominatim, postcode-centroid]
+  # Thresholds for src/property/changeDetect.ts. All optional — omit to use
+  # the defaults shown here.
+  watch:
+    price_drop_pct: 3      # emit listing.price_drop once asking price falls this many %
+    deal_alert_pct: 15     # emit listing.deal for a new listing this many % under fair value
+    gone_after_misses: 3   # mark "gone" after this many completed property-scrape runs miss it
+
+# Recurring job schedules for the durable job runner (src/jobs/runner.ts),
+# drained by `npm run jobs:tick`. All optional — omit to use the defaults
+# shown here. jitter_pct randomizes each interval by +/- that fraction so
+# scrapes don't all line up.
+jobs:
+  schedules:
+    discovery:
+      interval_minutes: 60
+      jitter_pct: 0.15
+    property-scrape:
+      interval_minutes: 720 # 12h
+      jitter_pct: 0.15
+    decode:
+      interval_minutes: 240 # 4h
+      jitter_pct: 0.15
+    events-process:
+      interval_minutes: 5 # fan out alerts to ntfy/console promptly
+      jitter_pct: 0.15
+    decision-lifecycle:
+      interval_minutes: 1440 # 24h - expire stale decisions, reopen ones with new activity
+      jitter_pct: 0.15
+    digest:
+      interval_minutes: 1440 # 24h - daily summary notification
+      jitter_pct: 0.15
+    post-performance:
+      interval_minutes: 720 # 12h - pull Buffer metrics for tracked posts into rankings
+      jitter_pct: 0.15
+    social-research:
+      interval_minutes: 360 # 6h - heavier multi-source research run (last30days)
+      jitter_pct: 0.15
+    seo-audit:
+      interval_minutes: 10080 # weekly - crawl + on-page SEO/GEO audit, diff to-dos
+      jitter_pct: 0.1
+
+# SEO / GEO assistant (src/seo/*). Tracks one or more sites, crawls them +
+# competitors, audits on-page SEO and GEO (AI-chatbot readability), surfaces
+# trending-keyword gaps, and keeps a durable to-do list that only shows what's
+# still undone each run. Multi-site by design — add a block per project.
+# Optional providers light up only when their env vars are set:
+#   SEO_SERP_URL  → self-hosted SearXNG for free SERP/rank tracking
+#   GSC_SA_JSON   → Google Search Console (service-account)
+#   GA4_SA_JSON + GA4_PROPERTY_ID → Google Analytics 4
+seo:
+  auto_resolve_after_runs: 3 # an unfixed to-do auto-closes after N runs without it
+  sites:
+    - id: frcrbank
+      label: FRCR Bank
+      domain: https://frcrbank.com
+      competitors: [] # add competitor URLs, e.g. https://www.radiologycafe.com
+      keywords:
+        - frcr
+        - frcr part 1
+        - frcr physics
+        - radiology exam prep
+      max_pages: 40
+
+# Notification fan-out (src/notify/*) for events emitted by changeDetect,
+# runDiscovery, runDecode, and the source circuit breaker. All optional —
+# omit to use the defaults shown here. "console" always works; "ntfy" sends
+# a push to https://ntfy.sh/<NTFY_TOPIC> when that env var is set.
+notify:
+  channels: [console, ntfy]
+  events:
+    listing.deal: high
+    listing.price_drop: medium
+    listing.status_change: low
+    decode.insight_created: low
+    decode.execution_ready: medium
+    discovery.run_failed: high
+    source.breaker_opened: medium
+
+# Daily digest job (src/notify/digest.ts): top signals, new insights, open
+# decisions, deal listings, and source health -> markdown + notification.
+# All optional — omit to use the defaults shown here. hour_utc is set to 6 to
+# line up with the property-refresh workflow's 06:00 UTC daily jobs:tick.
+digest:
+  hour_utc: 6
+  sections: [deals, insights, decisions, health]
+
+# How long an "open" decision stays open before src/discovery/decisionLifecycle.ts
+# marks it expired. Optional — omit to use the default shown here.
+decisions:
+  ttl_days: 14
+
 sources:
   # --- no API key required ---
   rss:
@@ -113,3 +248,58 @@ sources:
     enabled: true        # uses PRODUCTHUNT_TOKEN
   google_cse:
     enabled: false       # flip true once GOOGLE_CSE_KEY + GOOGLE_CSE_ID are set
+
+  # --- social-research job (separate schedule; last30days.py takes minutes) ---
+  last30days:
+    enabled: true
+    topic: "Signal Desk" # TODO: narrow to a focused topic/person/project query
+
+# Trend-imitation creative engine (short-form video + music + decision gate)
+trend_imitation:
+  provider: replicate          # higgsfield | replicate | muapi
+  replicate:
+    image_model: black-forest-labs/flux-schnell
+    video_model: minimax/video-01
+    video_image_key: first_frame_image
+    # video_end_image_key: last_frame_image   # set this (to your video model's end-frame input key) AND video.end_frame: true to drive the clip toward a last keyframe. Only some models (e.g. Kling, Luma) accept one.
+  video:
+    aspect_ratio: "9:16"
+    duration_sec: 5
+    end_frame: false           # render a final-beat keyframe and animate toward it. Needs a keyframe-capable video_model + video_end_image_key above.
+  cover_variants: 2            # render N cover candidates, vision-score each, animate only the best (the frame everything is built on). 1 = single cover. Costs N× cover renders.
+  idea_threshold: 60           # min idea-judge score (0-100) to spend on rendering
+  brief_variants: 3            # generate N briefs in parallel (uses the OpenRouter key pool), idea-judge each, keep the best; 1 = single brief
+  source_mode: generate        # "generate" = synthesize video; "stock" = reuse a license-cleared Pexels portrait clip (needs PEXELS_API_KEY)
+  vision_enrichment: true      # capture pick thumbnails so the exemplar extractor SEES the top performers (needs OPENROUTER vision; best-effort)
+  virality_threshold: 70
+  score_virality: true         # run a virality score after render; off ⇒ straight to draft
+  virality_scorer: llm         # "higgsfield" (vision, paid plan) or "llm" (owl-alpha scores the brief — works on the free path)
+  save_to_draft: true          # create Buffer drafts (review) — flip to false to auto-queue
+  media_host: r2               # re-host ephemeral Replicate URLs to durable Cloudflare R2 (no per-upload credits). Needs R2_* in .env.local; falls back to passthrough until set. ("muapi" | "none" also valid)
+  # Standardized brand framework for the reproducible Question-of-the-Day carousel (@frcrbank).
+  brand:
+    handle: "@frcrbank"
+    name: "FRCRBank"
+    description: "FRCR Part 1 Physics & 2A question bank for UK radiology trainees."
+    voice: "Evidence-based, reassuring but rigorous, concrete; speaks directly to ST1 radiology trainees; leads with the specific physics fact; no hype or clickbait."
+    audience: "UK radiology ST1 trainees preparing for the FRCR Part 1 Physics exam."
+    signup_url: "https://frcrbank.com"
+    cta_primary: "Follow @frcrbank for a daily FRCR Physics question · Save this for revision"
+    cta_secondary: "Full worked explanations in the bank → link in bio"
+    # Real categories in the question_bank table (humanised). Rotation cycles through these.
+    content_pillars:
+      - "X-ray physics"
+      - "CT physics"
+      - "MRI physics"
+      - "Ultrasound physics"
+      - "Nuclear medicine physics"
+      - "Fluoroscopy physics"
+      - "Basic radiation science"
+      - "Radiation safety"
+
+notebooklm:
+  enabled: false               # toggle the NotebookLM insight layer (also flippable in /settings/notebooklm)
+  mode: discovery              # "discovery" = push this run's discovered links into the notebook, then query; "existing" = query a pre-filled notebook
+  notebook_id: ""              # target notebook (required for "existing" mode; cookies imported via /settings/notebooklm)
+  max_sources: 10              # how many top-ranked discovered links to add as sources in "discovery" mode
+  cli_timeout_ms: 240000       # per-CLI-call timeout for the unofficial `notebooklm` CLI

@@ -1,9 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDb } from "../src/db/client";
+import { loadConfig } from "../src/discovery/config";
 import { ingestReference } from "../src/property/referenceIngest";
 import { scrapeAllAgents } from "../src/property/agentScrape";
 import { enrichAllListings } from "../src/property/listings";
+import { loadSources } from "../src/property/sources";
+import { getExtractClient } from "../src/property/llmExtract";
 import { postcodeValues } from "../src/db/schema";
 import { count, sql } from "drizzle-orm";
 
@@ -33,9 +36,18 @@ export async function runScrape(): Promise<void> {
     const r = await ingestReference(db);
     console.log(`  ${r.postcodes} postcodes, ${r.coefs} coefficients (${r.quarter})`);
   }
+  const config = loadConfig();
+  const { extraction, geocode } = config.property;
   const max = Number(process.env.PROPERTY_MAX ?? 25);
   console.log(`[${new Date().toISOString()}] Scraping agents (max ${max}/agent)…`);
-  for (const s of await scrapeAllAgents(db, { max })) {
+  for (const s of await scrapeAllAgents(db, {
+    max,
+    agents: loadSources(config.property.sources),
+    extractClient: extraction.llmRepair ? getExtractClient() : null,
+    llmRepair: extraction.llmRepair,
+    llmMaxPagesPerRun: extraction.llmMaxPagesPerRun,
+    geocodeProviders: geocode.providers,
+  })) {
     console.log(`  ${s.agent}: ${s.imported} listings (${s.geocoded} geocoded)`);
   }
   console.log("Backfilling LPS facts (real floor areas) + revaluing…");

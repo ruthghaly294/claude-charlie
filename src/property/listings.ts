@@ -16,7 +16,8 @@ import {
   areaMeanVal,
   districtPpsqm,
 } from "./referenceIngest";
-import { lpsEnrichment, cachedLpsFor, type LookupOpts } from "./lpsLookup";
+import { lpsEnrichment, type LookupOpts } from "./lpsLookup";
+import { mapWithConcurrency } from "@/lib/concurrency";
 
 export type ListingInput = {
   id?: string;
@@ -48,6 +49,13 @@ function deriveId(input: ListingInput): string {
     input.url?.trim() ||
     `${input.postcode ? normalisePostcode(input.postcode) : ""}|${input.address}`;
   return `listing:${createHash("sha1").update(basis).digest("hex").slice(0, 16)}`;
+}
+
+/** Normalized "postcode|address" — the same property listed by a different agent/URL shares this. */
+function addressKeyFor(address: string, normalisedPostcode: string): string | null {
+  const addr = address.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  if (!addr) return null;
+  return `${normalisedPostcode}|${addr}`;
 }
 
 export type Valuation = { value: number | null; basis: string };
@@ -142,7 +150,14 @@ export function importListing(
     ? dealMetrics(input.askingPrice, val.value)
     : { dealPct: 0, dealScore: 0 };
 
-  const id = input.id ?? deriveId(input);
+  const addressKey = addressKeyFor(input.address, postcode);
+
+  let id = input.id ?? deriveId(input);
+  if (!input.id && addressKey) {
+    // cross-agent dedup: the same property via a different agent/URL shares this id
+    const dup = db.select().from(listings).where(eq(listings.addressKey, addressKey)).get();
+    if (dup) id = dup.id;
+  }
   const existing = db.select().from(listings).where(eq(listings.id, id)).get();
 
   const row = {
@@ -167,6 +182,7 @@ export function importListing(
     lpsCapitalValue: input.lpsCapitalValue ?? existing?.lpsCapitalValue ?? null,
     latitude: input.lat ?? existing?.latitude ?? null,
     longitude: input.lng ?? existing?.longitude ?? null,
+    addressKey,
     firstSeen: existing?.firstSeen ?? at,
     lastSeen: at,
   };
@@ -231,28 +247,20 @@ export type EnrichSummary = {
 /**
  * Backfill: re-run LPS enrichment + valuation over every stored listing, so
  * listings imported before LPS lookup existed (or before their postcode was
- * known) get real floor areas. Polite to the LPS service: cached records cost
- * no network, and live lookups are spaced by `delayMs`. Timestamps are
+ * known) get real floor areas. Runs with bounded concurrency (pool of 3) —
+ * polite to the LPS service without serial per-item pacing. Timestamps are
  * preserved — a backfill is not a market sighting.
  */
 export async function enrichAllListings(
   db: DB,
-  opts: LookupOpts & {
-    delayMs?: number;
-    sleep?: (ms: number) => Promise<void>;
-  } = {},
+  opts: LookupOpts & { concurrency?: number } = {},
 ): Promise<EnrichSummary> {
-  const delayMs = opts.delayMs ?? 400;
-  const sleep =
-    opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  const rows = db.select().from(listings).all();
+  const concurrency = opts.concurrency ?? 3;
+  const rows = db.select().from(listings).all().filter((r) => r.address);
   const sum: EnrichSummary = { scanned: 0, withLpsSize: 0, revalued: 0 };
 
-  for (const r of rows) {
-    if (!r.address) continue;
+  await mapWithConcurrency(rows, concurrency, async (r) => {
     sum.scanned++;
-    const wasCached =
-      cachedLpsFor(db, r.postcode, r.address, r.askingPrice) !== null;
     const updated = await importListingEnriched(
       db,
       {
@@ -277,8 +285,7 @@ export async function enrichAllListings(
     );
     if (updated.sizeSource === "lps") sum.withLpsSize++;
     if (updated.fairValue !== r.fairValue) sum.revalued++;
-    if (!wasCached && delayMs > 0) await sleep(delayMs);
-  }
+  });
   return sum;
 }
 

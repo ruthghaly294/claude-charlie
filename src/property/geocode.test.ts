@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createDb } from "@/db/client";
-import { geocodeCache } from "@/db/schema";
+import { geocodeCache, postcodeValues } from "@/db/schema";
 import { geocodeAddress, geocodeWithCache } from "./geocode";
 
 const NOMINATIM = [
@@ -31,6 +31,17 @@ describe("geocodeAddress", () => {
     });
     expect(r).toBeNull();
   });
+
+  it("returns null instead of throwing when Nominatim errors", async () => {
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response("oops", { status: 500 })),
+    );
+    const r = await geocodeAddress("10 Cabin Hill Mews, Belfast", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      sleep: () => Promise.resolve(),
+    });
+    expect(r).toBeNull();
+  });
 });
 
 describe("geocodeWithCache", () => {
@@ -51,5 +62,75 @@ describe("geocodeWithCache", () => {
     expect(await geocodeWithCache(db, "nowhere", { fetchImpl })).toBeNull();
     expect(await geocodeWithCache(db, "nowhere", { fetchImpl })).toBeNull();
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the postcode_values centroid when Nominatim errors", async () => {
+    const db = createDb(":memory:");
+    db.insert(postcodeValues)
+      .values({
+        postcode: "BT9 5FN",
+        latitude: 54.58,
+        longitude: -5.94,
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      .run();
+
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response("oops", { status: 500 })),
+    );
+    const result = await geocodeWithCache(
+      db,
+      "11 Fairway Gardens, Belfast, BT9 5FN",
+      { fetchImpl: fetchImpl as unknown as typeof fetch, sleep: () => Promise.resolve() },
+    );
+    expect(result).toEqual({ postcode: "BT9 5FN", lat: 54.58, lng: -5.94 });
+    expect(db.select().from(geocodeCache).all()).toHaveLength(1);
+  });
+
+  it("skips Nominatim entirely when providers excludes it", async () => {
+    const db = createDb(":memory:");
+    db.insert(postcodeValues)
+      .values({
+        postcode: "BT9 5FN",
+        latitude: 54.58,
+        longitude: -5.94,
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      .run();
+
+    const fetchImpl = fakeFetch(NOMINATIM) as unknown as typeof fetch;
+    const result = await geocodeWithCache(
+      db,
+      "11 Fairway Gardens, Belfast, BT9 5FN",
+      { fetchImpl, providers: ["postcode-centroid"] },
+    );
+    expect(result).toEqual({ postcode: "BT9 5FN", lat: 54.58, lng: -5.94 });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to the centroid when providers excludes it", async () => {
+    const db = createDb(":memory:");
+    db.insert(postcodeValues)
+      .values({
+        postcode: "BT9 5FN",
+        latitude: 54.58,
+        longitude: -5.94,
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      .run();
+
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response("oops", { status: 500 })),
+    );
+    const result = await geocodeWithCache(
+      db,
+      "11 Fairway Gardens, Belfast, BT9 5FN",
+      {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        sleep: () => Promise.resolve(),
+        providers: ["nominatim"],
+      },
+    );
+    expect(result).toBeNull();
   });
 });

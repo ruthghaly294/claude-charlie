@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { eq } from "drizzle-orm";
 import { createDb, type DB } from "@/db/client";
-import { decisions, executions } from "@/db/schema";
+import { decisions, executions, events } from "@/db/schema";
 import { parseConfig, type DecodeConfig } from "./config";
 import { runExecute } from "./execute";
 
@@ -68,6 +69,28 @@ describe("runExecute", () => {
     const sum = await runExecute(db, cfg({ qualityThreshold: 5 }));
     expect(sum.readyCount).toBe(0);
     expect(db.select().from(executions).get()?.status).toBe("draft");
+  });
+
+  it("emits decode.execution_ready only for drafts that pass the quality gate", async () => {
+    const db = createDb(":memory:");
+    seedDecision(db, { id: "decision:1", title: "Publish content on radiology", lane: "content" });
+
+    await runExecute(db, cfg());
+
+    const rows = db.select().from(events).where(eq(events.type, "decode.execution_ready")).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.payload).toEqual({
+      decisionId: "decision:1",
+      title: "Publish content on radiology",
+      lane: "content",
+    });
+  });
+
+  it("does not emit decode.execution_ready for a draft below the quality threshold", async () => {
+    const db = createDb(":memory:");
+    seedDecision(db, { id: "decision:1" });
+    await runExecute(db, cfg({ qualityThreshold: 5 }));
+    expect(db.select().from(events).where(eq(events.type, "decode.execution_ready")).all()).toHaveLength(0);
   });
 
   it("links each execution back to its decision and lane", async () => {

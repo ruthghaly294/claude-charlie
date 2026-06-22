@@ -357,24 +357,3 @@ export async function lpsEnrichment(
 export function lpsCacheCount(db: DB): number {
   return db.select().from(lpsProperties).all().length;
 }
-
-/** Cached LPS record for a postcode+address, if any (no network). */
-export function cachedLpsFor(
-  db: DB,
-  postcode: string,
-  address: string,
-  askingPrice?: number,
-): LpsProperty | null {
-  const pc = postcode ? normalisePostcode(postcode) : "";
-  const district = outwardCode(pc);
-  const cached = db
-    .select()
-    .from(lpsProperties)
-    .all()
-    .filter((c) => !district || outwardCode(c.postcode) === district);
-  const hit = matchAddress(cached.map(toSearchRow), address, {
-    postcode: pc || undefined,
-    askingPrice,
-  });
-  return hit ? (cached.find((c) => c.propertyId === hit.propertyId) ?? null) : null;
-}

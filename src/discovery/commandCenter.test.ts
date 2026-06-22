@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createDb } from "@/db/client";
-import { decisions, decodeRuns } from "@/db/schema";
+import { decisions, decodeRuns, executions } from "@/db/schema";
 import { getCommandCenter } from "./commandCenter";
 
 describe("getCommandCenter", () => {
@@ -56,6 +56,22 @@ describe("getCommandCenter", () => {
     );
     expect(cc.focusToday[0]?.effortHours).toBeGreaterThan(0);
     expect(cc.counts.decisions).toBe(3);
+  });
+
+  it("counts only ready, content-lane executions toward contentQueue", () => {
+    const db = createDb(":memory:");
+    const now = new Date().toISOString();
+    db.insert(executions)
+      .values([
+        { id: "exec:ready-content", lane: "content", title: "a", body: "", status: "ready", createdAt: now },
+        { id: "exec:ready-product", lane: "product", title: "b", body: "", status: "ready", createdAt: now },
+        { id: "exec:draft-content", lane: "content", title: "c", body: "", status: "draft", createdAt: now },
+      ])
+      .run();
+
+    const cc = getCommandCenter(db, { DECODE_BUDGET_USD: "10" });
+    expect(cc.counts.contentQueue).toBe(1);
+    expect(cc.counts.executions).toBe(3);
   });
 
   it("reports spend vs budget and the latest run", () => {

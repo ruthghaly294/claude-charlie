@@ -51,3 +51,40 @@ describe("ingestReference", () => {
     expect(db.select().from(postcodeValues).all()).toHaveLength(2);
   });
 });
+
+describe("ingestReference - last-known-good fallback", () => {
+  it("keeps existing reference data and reports stale on fetch failure", async () => {
+    const db = createDb(":memory:");
+    await ingestReference(db, { fetchImpl: fakeFetch() as unknown as typeof fetch });
+
+    const failingFetch = vi.fn(() =>
+      Promise.reject(new Error("network down")),
+    ) as unknown as typeof fetch;
+    const sum = await ingestReference(db, { fetchImpl: failingFetch });
+
+    expect(sum).toEqual({
+      quarter: "2025_Q3",
+      postcodes: 2,
+      coefs: 2,
+      stale: true,
+      error: "network down",
+    });
+    // existing data is untouched, not wiped
+    expect(db.select().from(postcodeValues).all()).toHaveLength(2);
+  });
+
+  it("returns an empty last-known-good summary when nothing has ever been ingested", async () => {
+    const db = createDb(":memory:");
+    const failingFetch = vi.fn(() =>
+      Promise.reject(new Error("network down")),
+    ) as unknown as typeof fetch;
+    const sum = await ingestReference(db, { fetchImpl: failingFetch });
+    expect(sum).toEqual({
+      quarter: "",
+      postcodes: 0,
+      coefs: 0,
+      stale: true,
+      error: "network down",
+    });
+  });
+});

@@ -1,8 +1,9 @@
 name: Property refresh
 
-# Daily scrape of estate-agent listings + LPS enrichment + revaluation.
-# The SQLite DB (gitignored for local dev) is force-committed so each run
-# builds on the last — the accumulating price history lives in git for now.
+# Daily drain of due jobs (discovery, property-scrape, decode, … per
+# decode.config.yml's jobs.schedules). The SQLite DB (gitignored for local
+# dev) is force-committed so each run builds on the last — the accumulating
+# price history lives in git for now.
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC daily
@@ -26,11 +27,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Scrape agents, enrich with LPS facts, revalue
-        run: npm run scrape:property
+      - name: Drain due jobs (discovery, property-scrape, decode, …)
+        run: npm run jobs:tick
         env:
           DECODE_DB_PATH: data/cc.db
-          REFRESH_REFERENCE: "1" # pick up new nihousepricemap quarters
 
       - name: Commit updated property data
         run: |
@@ -40,6 +40,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No property changes today."
           else
-            git commit -m "chore(property): scheduled scrape + revalue"
+            git commit -m "chore(jobs): scheduled tick"
             git push
           fi

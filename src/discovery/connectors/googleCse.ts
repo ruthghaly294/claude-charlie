@@ -45,26 +45,36 @@ export const googleCseConnector: Connector = {
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {
     const key = ctx.env.GOOGLE_CSE_KEY as string;
     const cx = ctx.env.GOOGLE_CSE_ID as string;
-    const url =
-      `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}` +
-      `&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(query(ctx))}`;
-    const data = await fetchJson(
-      url,
-      apiSchema,
-      {},
-      {
-        fetchImpl: ctx.fetchImpl,
-        signal: ctx.signal,
-      },
-    );
-    return data.items.map((i) => ({
-      source: "google",
-      title: i.title,
-      url: i.link,
-      author: i.displayLink,
-      publishedAt: "",
-      tags: ["google"],
-      raw: i.snippet,
-    }));
+    const queries = [query(ctx), ...(ctx.queries ?? [])];
+
+    const byUrl = new Map<string, RawSignal>();
+    for (const q of queries) {
+      const url =
+        `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}` +
+        `&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}`;
+      const data = await fetchJson(
+        url,
+        apiSchema,
+        {},
+        {
+          fetchImpl: ctx.fetchImpl,
+          signal: ctx.signal,
+        },
+      );
+      for (const i of data.items) {
+        if (byUrl.has(i.link)) continue;
+        byUrl.set(i.link, {
+          source: "google",
+          title: i.title,
+          url: i.link,
+          author: i.displayLink,
+          publishedAt: "",
+          tags: ["google"],
+          raw: i.snippet,
+          authorKey: `google:${i.displayLink}`,
+        });
+      }
+    }
+    return [...byUrl.values()];
   },
 };

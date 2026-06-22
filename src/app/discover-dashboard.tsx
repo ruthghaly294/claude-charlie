@@ -109,6 +109,7 @@ export default function DiscoverDashboard() {
       if (!res.ok) throw new Error(body.error ?? "discovery failed");
       setLastRun(body as RunSummary);
       setPage(0);
+      window.dispatchEvent(new Event("decode:discovered"));
       await Promise.all([loadSources(), loadSignals()]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "discovery failed");
@@ -117,11 +118,40 @@ export default function DiscoverDashboard() {
     }
   }, [loadSignals, loadSources]);
 
+  const [copied, setCopied] = useState<number | null>(null);
+  const copyResourcesForNotebook = useCallback(async () => {
+    // Pull ALL signals matching the current filters (not just the visible page) so the
+    // operator can paste the full resource set straight into NotebookLM's "add sources".
+    const params = new URLSearchParams({ limit: "500", offset: "0" });
+    if (source) params.set("source", source);
+    if (q) params.set("q", q);
+    const res = await fetch(`/api/signals?${params}`, { cache: "no-store" });
+    if (!res.ok) {
+      setError("Failed to load signals for copy");
+      return;
+    }
+    const body = (await res.json()) as SignalsResp;
+    const urls = Array.from(
+      new Set(body.rows.map((r) => r.url).filter((u) => /^https?:\/\//.test(u))),
+    );
+    if (urls.length === 0) {
+      setError("No resource links to copy for this filter");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(urls.join("\n"));
+      setCopied(urls.length);
+      setTimeout(() => setCopied(null), 2500);
+    } catch {
+      setError("Clipboard blocked by the browser");
+    }
+  }, [source, q]);
+
   const total = signals?.total ?? 0;
   const maxPage = Math.max(0, Math.ceil(total / PAGE) - 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8">
+    <main className="w-full">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -132,13 +162,22 @@ export default function DiscoverDashboard() {
             signals.
           </p>
         </div>
-        <button
-          onClick={runDiscovery}
-          disabled={running}
-          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-400 disabled:opacity-50"
-        >
-          {running ? "Discovering…" : "Run discovery"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={copyResourcesForNotebook}
+            title="Copy every matching signal URL, paste-ready for NotebookLM's add-sources"
+            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-sm font-medium text-violet-200 hover:bg-violet-500/20"
+          >
+            {copied != null ? `✓ Copied ${copied} links` : "Copy links for NotebookLM"}
+          </button>
+          <button
+            onClick={runDiscovery}
+            disabled={running}
+            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-400 disabled:opacity-50"
+          >
+            {running ? "Discovering…" : "Run discovery"}
+          </button>
+        </div>
       </header>
 
       {error && (

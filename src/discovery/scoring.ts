@@ -8,10 +8,55 @@ export function slugify(input: string): string {
     .slice(0, 50);
 }
 
-/** Stable dedup key: sha1 of the url, falling back to the title. */
+const TRACKING_PARAM = /^(utm_|fbclid$|gclid$|igshid$|mc_eid$|ref$|ref_src$)/i;
+
+/**
+ * Normalize a URL so trivially-different links to the same resource collapse to
+ * one dedup key: force https, drop a leading `www.`, strip the fragment and
+ * common tracking params (utm_*, fbclid, igshid…), and remove a trailing slash.
+ * Malformed input falls back to a trimmed/lowercased string.
+ */
+export function canonicalizeUrl(url: string): string {
+  try {
+    const u = new URL(url.trim());
+    u.hash = "";
+    for (const p of [...u.searchParams.keys()]) {
+      if (TRACKING_PARAM.test(p)) u.searchParams.delete(p);
+    }
+    const host = u.hostname.replace(/^www\./, "");
+    const path = u.pathname.replace(/\/$/, "");
+    const query = u.searchParams.toString();
+    return `https://${host}${path}${query ? `?${query}` : ""}`.toLowerCase();
+  } catch {
+    return url.trim().toLowerCase();
+  }
+}
+
+/** Stable dedup key: sha1 of the canonicalized url, falling back to the title. */
 export function hashKey(url: string, title: string): string {
-  const basis = url && url.trim() ? url.trim() : title.trim();
+  const basis = url && url.trim() ? canonicalizeUrl(url) : title.trim();
   return createHash("sha1").update(basis).digest("hex");
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const boundaryCache = new Map<string, RegExp>();
+
+/**
+ * Whole-word/phrase match: the keyword must be bounded by non-alphanumeric
+ * characters (or string edges) on both sides, so "python" matches "python
+ * programming" but not "pythonic". Multi-word phrases match as a unit. Cached
+ * per keyword since the same keyword set is reused across every item in a run.
+ */
+function matchesKeyword(haystack: string, keyword: string): boolean {
+  let re = boundaryCache.get(keyword);
+  if (!re) {
+    re = new RegExp(`(?<![a-z0-9])${escapeRegExp(keyword)}(?![a-z0-9])`, "i");
+    boundaryCache.set(keyword, re);
+  }
+  return re.test(haystack);
 }
 
 export type ScoreResult = { score: number; cluster: string };
@@ -47,7 +92,7 @@ export function scoreSignal(
   for (const kw of keywords) {
     const k = kw.toLowerCase().trim();
     if (!k) continue;
-    if (haystack.includes(k)) {
+    if (matchesKeyword(haystack, k)) {
       sum += multipliers[k] ?? 1;
       cluster ??= slugify(kw);
     }

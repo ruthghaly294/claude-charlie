@@ -36,6 +36,7 @@ type CommandCenter = {
     insights: number;
     decisions: number;
     executions: number;
+    contentQueue: number;
   };
 };
 
@@ -74,7 +75,7 @@ export default function CommandCenter() {
   const spendPct = Math.min(100, cc?.spend.pct ?? 0);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 pt-8">
+    <main className="mx-auto max-w-[1600px] px-4 pt-8 pb-2">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
           DECODE <span className="text-neutral-500">· Command Center</span>
@@ -164,6 +165,7 @@ export default function CommandCenter() {
               <span>{cc?.counts.insights ?? 0} insights</span>
               <span>{cc?.counts.decisions ?? 0} decisions</span>
               <span>{cc?.counts.executions ?? 0} drafts</span>
+              <span>{cc?.counts.contentQueue ?? 0} to review</span>
             </div>
             <div className="mt-2 text-[11px] text-neutral-600">
               {cc?.lastRun

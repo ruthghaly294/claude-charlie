@@ -119,7 +119,7 @@ export default function LoopPanels() {
   }, [loadAll]);
 
   return (
-    <section className="mx-auto mt-12 max-w-6xl px-6">
+    <section className="w-full">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">
@@ -196,7 +196,7 @@ export default function LoopPanels() {
         </div>
 
         {/* Decisions */}
-        <div>
+        <div id="decide" className="scroll-mt-24">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Decisions{" "}
             <span className="text-neutral-600">({decisions.length})</span>
@@ -233,7 +233,7 @@ export default function LoopPanels() {
         </div>
 
         {/* Executions */}
-        <div>
+        <div id="execute" className="scroll-mt-24">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Execution{" "}
             <span className="text-neutral-600">({executions.length})</span>

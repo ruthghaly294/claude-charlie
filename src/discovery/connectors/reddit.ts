@@ -19,7 +19,8 @@ export const redditConnector: Connector = {
 
   state(ctx: ConnectorContext) {
     const c = cfgSchema.safeParse(ctx.config ?? {});
-    if (!c.success || c.data.subreddits.length === 0) {
+    const subreddits = c.success ? c.data.subreddits : [];
+    if (subreddits.length === 0 && (ctx.queries?.length ?? 0) === 0) {
       return { configured: false, reason: "no subreddits configured" };
     }
     return { configured: true };
@@ -27,8 +28,9 @@ export const redditConnector: Connector = {
 
   async fetch(ctx: ConnectorContext): Promise<RawSignal[]> {
     const { subreddits } = cfgSchema.parse(ctx.config ?? {});
+    const all = [...new Set([...subreddits, ...(ctx.queries ?? [])])];
     const results = await Promise.allSettled(
-      subreddits.map((sub) =>
+      all.map((sub) =>
         fetchText(
           `https://www.reddit.com/r/${encodeURIComponent(sub)}/hot.rss?limit=15`,
           { headers: { "user-agent": UA } },
@@ -41,7 +43,15 @@ export const redditConnector: Connector = {
     for (const r of results) {
       if (r.status !== "fulfilled") continue;
       for (const item of parseFeed(r.value.xml)) {
-        out.push({ ...item, source: "reddit", tags: ["reddit", r.value.sub] });
+        const authorKey = item.author
+          ? `reddit:${item.author.replace(/^\/u\//, "").toLowerCase()}`
+          : undefined;
+        out.push({
+          ...item,
+          source: "reddit",
+          tags: ["reddit", r.value.sub],
+          ...(authorKey ? { authorKey } : {}),
+        });
       }
     }
     return out;

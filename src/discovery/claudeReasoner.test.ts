@@ -2,9 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import type { Signal, Insight, Decision } from "@/db/schema";
 import {
   makeClaudeReasoner,
+  makeOpenRouterReasoner,
   getReasoner,
   type ReasonerClient,
 } from "./claudeReasoner";
+import type { PostGenClient } from "@/publishing/postGenerator";
 import { deterministicReasoner } from "./reasoner";
 
 // One superset object satisfies all three schemas (zod strips unknown keys).
@@ -46,6 +48,11 @@ const signal = (over: Partial<Signal> = {}): Signal => ({
   status: "new",
   capturedAt: "2026-01-01T00:00:00.000Z",
   runId: null,
+  points: null,
+  comments: null,
+  views: null,
+  socialScore: null,
+  authorKey: null,
   ...over,
 });
 
@@ -91,6 +98,24 @@ describe("makeClaudeReasoner", () => {
   });
 });
 
+describe("makeOpenRouterReasoner", () => {
+  it("summarizes via the OpenRouter chat-completions seam (json_schema output)", async () => {
+    const complete = vi.fn(async (..._args: unknown[]) => ({
+      content: JSON.stringify(PARSED),
+      usage: { prompt_tokens: 100, completion_tokens: 50 },
+    }));
+    const client: PostGenClient = { complete };
+    const r = makeOpenRouterReasoner({ client, businessName: "Signal Desk" });
+    const out = await r.summarizeCluster("congress trades", [signal()]);
+
+    expect(out.trend).toContain("Congressional");
+    expect(complete).toHaveBeenCalledTimes(1);
+    const body = (complete.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>;
+    expect(body.model).toBe("deepseek/deepseek-v4-pro");
+    expect((body.response_format as { type: string }).type).toBe("json_schema");
+  });
+});
+
 describe("getReasoner", () => {
   it("falls back to deterministic when no API key", () => {
     expect(getReasoner({}, {})).toBe(deterministicReasoner);
@@ -100,5 +125,12 @@ describe("getReasoner", () => {
     expect(
       getReasoner({}, { ANTHROPIC_API_KEY: "k", DECODE_REASONER: "deterministic" }),
     ).toBe(deterministicReasoner);
+  });
+
+  it("prefers OpenRouter/DeepSeek when OPENROUTER_API_KEY is set", () => {
+    const r = getReasoner({}, { OPENROUTER_API_KEY: "k", ANTHROPIC_API_KEY: "a" });
+    expect(r).not.toBe(deterministicReasoner);
+    // smoke: it's a real reasoner with the three methods
+    expect(typeof r.summarizeCluster).toBe("function");
   });
 });

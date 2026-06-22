@@ -8,18 +8,22 @@ import { youtubeConnector } from "./youtube";
 import { googleCseConnector } from "./googleCse";
 import { twitterConnector, buildTwitterQueries } from "./twitter";
 import { productHuntConnector } from "./productHunt";
+import { tiktokSoundsConnector } from "./tiktokSounds";
 import { CONNECTORS, getConnector } from "./index";
 
+// Each call gets a fresh Response — a single Response's body can only be read once,
+// and several tests now drive fetchImpl multiple times (one per query/subreddit).
 function jsonFetch(body: unknown) {
-  return vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    }),
+  return vi.fn().mockImplementation(
+    async () =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
   );
 }
 function textFetch(text: string) {
-  return vi.fn().mockResolvedValue(new Response(text, { status: 200 }));
+  return vi.fn().mockImplementation(async () => new Response(text, { status: 200 }));
 }
 
 function ctx(p: Partial<ConnectorContext> = {}): ConnectorContext {
@@ -42,10 +46,15 @@ const ATOM = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
 </feed>`;
 
 describe("registry", () => {
-  it("exposes 8 connectors with unique keys", () => {
-    expect(CONNECTORS).toHaveLength(8);
+  it("exposes 10 connectors with unique keys", () => {
+    expect(CONNECTORS).toHaveLength(10);
     const keys = CONNECTORS.map((c) => c.key);
-    expect(new Set(keys).size).toBe(8);
+    expect(new Set(keys).size).toBe(10);
+  });
+  it("includes the last30days and tiktok_sounds connectors", () => {
+    const keys = CONNECTORS.map((c) => c.key);
+    expect(keys).toContain("last30days");
+    expect(keys).toContain("tiktok_sounds");
   });
   it("looks up by key", () => {
     expect(getConnector("rss")?.label).toBe("RSS / Atom feeds");
@@ -195,6 +204,33 @@ describe("github", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(out).toHaveLength(3);
   });
+
+  it("fetches ctx.queries as additional topics beyond config", async () => {
+    const page = (name: string) =>
+      new Response(
+        JSON.stringify({
+          items: [{ full_name: name, html_url: `https://gh/${name}`, stargazers_count: 1 }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page("a/ai"))
+      .mockResolvedValueOnce(page("a/scraping"));
+    const out = await githubConnector.fetch(
+      ctx({ config: { topics: ["ai"] }, queries: ["scraping"], fetchImpl }),
+    );
+    expect(out.map((s) => s.title)).toEqual(["a/ai", "a/scraping"]);
+    const tags = out.flatMap((o) => o.tags);
+    expect(tags).toContain("ai");
+    expect(tags).toContain("scraping");
+  });
+
+  it("is configured from ctx.queries alone, with no topics in config", () => {
+    expect(githubConnector.state(ctx({ config: {}, queries: ["llm-agents"] })).configured).toBe(
+      true,
+    );
+  });
 });
 
 describe("parseNextLink", () => {
@@ -227,6 +263,36 @@ describe("reddit", () => {
     });
     expect(out[0]?.tags).toContain("Radiology");
   });
+
+  it("derives authorKey from the feed author, stripping the /u/ prefix", async () => {
+    const atom = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+<entry><title>FRCR study tips</title><link href="https://www.reddit.com/r/Radiology/comments/abc/frcr"/><updated>2026-06-01</updated><author><name>/u/jane</name></author><content>good stuff</content></entry>
+</feed>`;
+    const out = await redditConnector.fetch(
+      ctx({ config: { subreddits: ["Radiology"] }, fetchImpl: textFetch(atom) }),
+    );
+    expect(out[0]?.authorKey).toBe("reddit:jane");
+  });
+
+  it("fetches ctx.queries as additional subreddits beyond config", async () => {
+    const atom = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+<entry><title>T</title><link href="https://x/1"/><updated>2026-06-01</updated><author><name>/u/jane</name></author><content>c</content></entry>
+</feed>`;
+    const fetchImpl = textFetch(atom);
+    const out = await redditConnector.fetch(
+      ctx({ config: { subreddits: ["Radiology"] }, queries: ["algotrading"], fetchImpl }),
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const tags = out.flatMap((o) => o.tags);
+    expect(tags).toContain("Radiology");
+    expect(tags).toContain("algotrading");
+  });
+
+  it("is configured from ctx.queries alone, with no subreddits in config", () => {
+    expect(redditConnector.state(ctx({ config: {}, queries: ["algotrading"] })).configured).toBe(
+      true,
+    );
+  });
 });
 
 describe("hackernews", () => {
@@ -252,6 +318,33 @@ describe("hackernews", () => {
       }),
     );
     expect(out[0]?.url).toBe("https://news.ycombinator.com/item?id=42");
+  });
+
+  it("populates points/comments/authorKey from the Algolia response", async () => {
+    const out = await hackernewsConnector.fetch(
+      ctx({
+        keywords: ["x"],
+        fetchImpl: jsonFetch({
+          hits: [
+            { title: "T", url: "https://x/1", author: "a", objectID: "42", points: 100, num_comments: 5 },
+          ],
+        }),
+      }),
+    );
+    expect(out[0]?.points).toBe(100);
+    expect(out[0]?.comments).toBe(5);
+    expect(out[0]?.authorKey).toBe("hackernews:a");
+  });
+
+  it("runs a search per ctx.queries entry, deduping hits by objectID", async () => {
+    const fetchImpl = jsonFetch({
+      hits: [{ title: "T", url: "https://x/1", author: "a", objectID: "42" }],
+    });
+    const out = await hackernewsConnector.fetch(
+      ctx({ queries: ["scraping", "saas"], fetchImpl }),
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(out).toHaveLength(1);
   });
 });
 
@@ -284,6 +377,22 @@ describe("youtube (key-gated)", () => {
     const out = await youtubeConnector.fetch(c);
     expect(out).toHaveLength(1);
     expect(out[0]?.url).toBe("https://www.youtube.com/watch?v=vid1");
+    expect(out[0]?.authorKey).toBe("youtube:C");
+  });
+
+  it("merges ctx.queries with the keyword-derived queries, deduped", async () => {
+    const fetchImpl = jsonFetch({
+      items: [{ id: { videoId: "vid1" }, snippet: { title: "V", channelTitle: "C" } }],
+    });
+    const c = ctx({
+      keywords: ["frcr"],
+      queries: ["frcr", "extra query"],
+      env: { YOUTUBE_API_KEY: "k" },
+      fetchImpl,
+    });
+    await youtubeConnector.fetch(c);
+    // "frcr" (from keywords) + "extra query" — deduped, so exactly 2 calls
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -325,6 +434,24 @@ describe("google_cse (key-gated)", () => {
       title: "G",
       url: "https://g/1",
     });
+    expect(out[0]?.authorKey).toBe("google:g.com");
+  });
+
+  it("runs an additional search per ctx.queries entry, deduped by url", async () => {
+    const fetchImpl = jsonFetch({
+      items: [{ title: "G", link: "https://g/1", snippet: "s", displayLink: "g.com" }],
+    });
+    const out = await googleCseConnector.fetch(
+      ctx({
+        config: { enabled: true },
+        keywords: ["x"],
+        queries: ["y"],
+        env: { GOOGLE_CSE_KEY: "k", GOOGLE_CSE_ID: "i" },
+        fetchImpl,
+      }),
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(out).toHaveLength(1);
   });
 });
 
@@ -482,5 +609,78 @@ describe("producthunt (key-gated)", () => {
       url: "https://ph/1",
     });
     expect(out[0]?.raw).toContain("▲5");
+  });
+});
+
+describe("tiktok_sounds (config-gated)", () => {
+  it("not configured when disabled (the default)", () => {
+    expect(tiktokSoundsConnector.state(ctx()).configured).toBe(false);
+    expect(
+      tiktokSoundsConnector.state(ctx({ config: { enabled: false } }))
+        .configured,
+    ).toBe(false);
+  });
+
+  it("parses trending sounds and uses real usage metrics as points", async () => {
+    const c = ctx({
+      config: { enabled: true },
+      fetchImpl: jsonFetch({
+        data: {
+          sound_list: [
+            {
+              song_id: 123,
+              title: "Boom",
+              author: "DJ X",
+              link: "https://tt/music/123",
+              play_count: 5000,
+            },
+            { title: "No Id Sound", author: "ACT" },
+          ],
+        },
+      }),
+    });
+    expect(tiktokSoundsConnector.state(c).configured).toBe(true);
+    const out = await tiktokSoundsConnector.fetch(c);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      source: "tiktok_sounds",
+      title: "Boom — DJ X",
+      url: "https://tt/music/123",
+      points: 5000,
+      authorKey: "tiktok:dj x",
+    });
+    expect(out[0]?.tags).toContain("sound");
+    expect(out[1]?.url).toBe("");
+  });
+
+  it("falls back to trending order for points when no usage metrics", async () => {
+    const c = ctx({
+      config: { enabled: true, limit: 20 },
+      fetchImpl: jsonFetch({
+        data: {
+          sound_list: [
+            { song_id: "a", title: "First" },
+            { song_id: "b", title: "Second" },
+          ],
+        },
+      }),
+    });
+    const out = await tiktokSoundsConnector.fetch(c);
+    expect(out[0]?.points).toBe(20);
+    expect(out[1]?.points).toBe(19);
+  });
+
+  it("sends the bearer token header when TIKTOK_CC_TOKEN is set", async () => {
+    const fetchImpl = jsonFetch({ data: { sound_list: [] } });
+    const c = ctx({
+      config: { enabled: true },
+      env: { TIKTOK_CC_TOKEN: "secret" },
+      fetchImpl,
+    });
+    await tiktokSoundsConnector.fetch(c);
+    const init = fetchImpl.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(
+      (init?.headers as Record<string, string>).authorization,
+    ).toBe("Bearer secret");
   });
 });

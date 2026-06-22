@@ -3,6 +3,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { ReasonerClient } from "./claudeReasoner";
 import { UsageMeter } from "./usage";
+import { makeOpenRouterClient, hasOpenRouterKeys, type PostGenClient } from "@/publishing/postGenerator";
+import { extractJson } from "@/lib/extractJson";
 
 export type DraftInput = { title: string; body: string; lane: string };
 export type DraftReview = { score: number; notes: string };
@@ -58,28 +60,74 @@ export function makeClaudeCritic(opts: {
           outputTokens: res.usage.output_tokens ?? 0,
         });
       }
-      const r = reviewSchema.parse(res.parsed_output);
-      const score =
-        Math.round(
-          ((r.sellability + r.specificity + r.novelty + r.actionability) / 4) *
-            100,
-        ) / 100;
-      return { score, notes: r.notes };
+      return aggregate(reviewSchema.parse(res.parsed_output));
     },
   };
 }
 
-/** Claude critic when a key is present, else the neutral fallback. */
+function aggregate(r: z.infer<typeof reviewSchema>): DraftReview {
+  const score =
+    Math.round(((r.sellability + r.specificity + r.novelty + r.actionability) / 4) * 100) / 100;
+  return { score, notes: r.notes };
+}
+
+/** OpenRouter/DeepSeek-backed critic: same rubric over the chat-completions seam. */
+export function makeOpenRouterCritic(opts: {
+  client: PostGenClient;
+  model?: string;
+  meter?: UsageMeter;
+}): Critic {
+  const model = opts.model ?? "deepseek/deepseek-v4-pro";
+  return {
+    async scoreDraft(input: DraftInput): Promise<DraftReview> {
+      const res = await opts.client.complete({
+        model,
+        max_tokens: 1500,
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "review", strict: true, schema: z.toJSONSchema(reviewSchema) },
+        },
+        messages: [
+          { role: "system", content: SYSTEM },
+          {
+            role: "user",
+            content: `Lane: ${input.lane}\nTitle: ${input.title}\n\n${input.body}\n\nScore sellability, specificity, novelty, actionability (1–5 each) and give one line of notes.`,
+          },
+        ],
+      });
+      if (opts.meter && res.usage) {
+        opts.meter.record(model, {
+          inputTokens: res.usage.prompt_tokens ?? 0,
+          outputTokens: res.usage.completion_tokens ?? 0,
+        });
+      }
+      return aggregate(reviewSchema.parse(extractJson(res.content)));
+    },
+  };
+}
+
+/**
+ * Select the critic: OpenRouter/DeepSeek when OPENROUTER_API_KEY is set, else
+ * Claude when ANTHROPIC_API_KEY is set, else the neutral fallback.
+ */
 export function getCritic(
   env: Record<string, string | undefined> = process.env,
   meter?: UsageMeter,
 ): Critic {
-  if (!env.ANTHROPIC_API_KEY || env.DECODE_REASONER === "deterministic") {
-    return neutralCritic;
+  if (env.DECODE_REASONER === "deterministic") return neutralCritic;
+  if (hasOpenRouterKeys(env)) {
+    return makeOpenRouterCritic({
+      client: makeOpenRouterClient(env),
+      model: env.DECODE_MODEL ?? env.OPENROUTER_MODEL,
+      meter,
+    });
   }
-  return makeClaudeCritic({
-    client: new Anthropic() as unknown as ReasonerClient,
-    model: env.DECODE_MODEL,
-    meter,
-  });
+  if (env.ANTHROPIC_API_KEY) {
+    return makeClaudeCritic({
+      client: new Anthropic() as unknown as ReasonerClient,
+      model: env.DECODE_MODEL,
+      meter,
+    });
+  }
+  return neutralCritic;
 }

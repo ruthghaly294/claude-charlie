@@ -4,6 +4,7 @@ import { decisions, executions, type NewExecution } from "@/db/schema";
 import type { DecodeConfig } from "./config";
 import { deterministicReasoner, type Reasoner } from "./reasoner";
 import { neutralCritic, type Critic } from "./critic";
+import { emit } from "@/events/bus";
 
 export type ExecuteSummary = { executionsWritten: number; readyCount: number };
 
@@ -47,7 +48,15 @@ export async function runExecute(
     const { title, body } = await reasoner.draftAsset(decision);
     const review = await critic.scoreDraft({ title, body, lane: decision.lane });
     const status = review.score >= config.qualityThreshold ? "ready" : "draft";
-    if (status === "ready") readyCount++;
+    if (status === "ready") {
+      readyCount++;
+      emit(
+        db,
+        "decode.execution_ready",
+        { decisionId: decision.id, title, lane: decision.lane },
+        { now },
+      );
+    }
     const execution: NewExecution = {
       id: `exec:${decision.id}`,
       decisionId: decision.id,

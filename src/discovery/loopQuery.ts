@@ -1,4 +1,4 @@
-import { desc, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import {
   insights,
@@ -46,6 +46,28 @@ export function queryExecutions(db: DB, limit = DEFAULT_LIMIT): Execution[] {
     .orderBy(desc(executions.createdAt))
     .limit(limit)
     .all();
+}
+
+/** Content-lane executions ready for review (drafted, quality-gated, not yet queued). */
+export function queryContentQueue(db: DB, limit = DEFAULT_LIMIT): Execution[] {
+  return db
+    .select()
+    .from(executions)
+    .where(and(eq(executions.status, "ready"), eq(executions.lane, "content")))
+    .orderBy(desc(executions.createdAt))
+    .limit(limit)
+    .all();
+}
+
+/** Count of content-lane executions ready for review (for pipeline-health badges). */
+export function countContentQueue(db: DB): number {
+  return (
+    db
+      .select({ c: count() })
+      .from(executions)
+      .where(and(eq(executions.status, "ready"), eq(executions.lane, "content")))
+      .get()?.c ?? 0
+  );
 }
 
 /** Sellable products, most recent first. */

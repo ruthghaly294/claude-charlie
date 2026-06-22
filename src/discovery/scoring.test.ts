@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, hashKey, scoreSignal } from "./scoring";
+import { slugify, hashKey, scoreSignal, canonicalizeUrl } from "./scoring";
 
 describe("slugify", () => {
   it("lowercases and dashes", () => {
@@ -14,6 +14,22 @@ describe("hashKey", () => {
   it("falls back to title when url empty", () => {
     expect(hashKey("", "title")).toBe(hashKey("", "title"));
     expect(hashKey("", "a")).not.toBe(hashKey("", "b"));
+  });
+  it("collapses trivially-different urls to one key", () => {
+    expect(hashKey("http://www.x.com/a/", "t")).toBe(
+      hashKey("https://x.com/a?utm_source=feed", "t2"),
+    );
+  });
+});
+
+describe("canonicalizeUrl", () => {
+  it("forces https, drops www, trailing slash, fragment, and tracking params", () => {
+    expect(canonicalizeUrl("http://www.Example.com/Post/?utm_source=x&id=5#top")).toBe(
+      "https://example.com/post?id=5",
+    );
+  });
+  it("returns a lowercased trimmed fallback for malformed urls", () => {
+    expect(canonicalizeUrl("  NOT a url  ")).toBe("not a url");
   });
 });
 
@@ -77,5 +93,15 @@ describe("scoreSignal", () => {
     const upper = scoreSignal("RADIOLOGY", ["radiology"]).score;
     expect(upper).toBe(scoreSignal("radiology", ["radiology"]).score);
     expect(upper).toBeGreaterThan(0);
+  });
+
+  it("matches whole words, not substrings (no 'python' in 'pythonic')", () => {
+    expect(scoreSignal("a pythonic idea", ["python"]).score).toBe(0);
+    expect(scoreSignal("learning python today", ["python"]).score).toBe(0.5);
+  });
+
+  it("matches multi-word phrases as a unit", () => {
+    expect(scoreSignal("a machine learning model", ["machine learning"]).score).toBe(0.5);
+    expect(scoreSignal("a machine washing model", ["machine learning"]).score).toBe(0);
   });
 });

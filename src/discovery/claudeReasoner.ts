@@ -11,6 +11,11 @@ import {
   type AssetDraft,
 } from "./reasoner";
 import { UsageMeter } from "./usage";
+import { makeOpenRouterClient, hasOpenRouterKeys, type PostGenClient } from "@/publishing/postGenerator";
+import { extractJson } from "@/lib/extractJson";
+
+/** A backend-agnostic structured ask: returns schema-validated JSON. */
+type Ask = <T>(schema: z.ZodType<T>, instruction: string, maxTokens: number) => Promise<T>;
 
 /**
  * Minimal structural view of the Anthropic client we depend on. Keeping it tiny
@@ -61,7 +66,13 @@ const assetSchema = z.object({
 
 const SYSTEM = `You are a market-intelligence analyst for a solo operator who monetizes insight by selling digital products — premium newsletters, research briefs, dashboards, and short courses. Every output must be concrete, specific, and immediately actionable toward a sellable digital product. No filler, no hedging, no generic advice.`;
 
-function biz(opts: ClaudeReasonerOptions): string {
+type ReasonerContext = {
+  businessName?: string;
+  businessDescription?: string;
+  profile?: OperatorProfile;
+};
+
+function biz(opts: ReasonerContext): string {
   const parts: string[] = [];
   const name = opts.businessName?.trim();
   const desc = opts.businessDescription?.trim();
@@ -81,36 +92,11 @@ function biz(opts: ClaudeReasonerOptions): string {
 }
 
 /**
- * A Claude-backed Reasoner: real LLM synthesis behind the same seam as
- * deterministicReasoner, with structured (schema-validated) outputs framed for
- * monetizable digital insight. Inject a client (the factory below wires the real
- * Anthropic SDK); tests pass a fake.
+ * The Reasoner's three methods, built once over a backend-agnostic `ask`. Both
+ * the Claude and OpenRouter/DeepSeek factories below share this — only the
+ * transport differs.
  */
-export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
-  const model = opts.model ?? "claude-opus-4-8";
-
-  async function ask<T>(
-    schema: z.ZodType<T>,
-    instruction: string,
-    maxTokens: number,
-  ): Promise<T> {
-    const res = await opts.client.messages.parse({
-      model,
-      max_tokens: maxTokens,
-      thinking: { type: "adaptive" },
-      output_config: { format: zodOutputFormat(schema), effort: "high" },
-      system: SYSTEM + biz(opts),
-      messages: [{ role: "user", content: instruction }],
-    });
-    if (opts.meter && res.usage) {
-      opts.meter.record(model, {
-        inputTokens: res.usage.input_tokens ?? 0,
-        outputTokens: res.usage.output_tokens ?? 0,
-      });
-    }
-    return schema.parse(res.parsed_output);
-  }
-
+function buildReasoner(ask: Ask): Reasoner {
   return {
     async summarizeCluster(
       cluster: string,
@@ -163,28 +149,97 @@ export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
 }
 
 /**
- * Select the reasoner for a run: Claude when an API key is present (premium,
- * monetizable output), else the deterministic fallback (hermetic, no network).
- * Set DECODE_REASONER=deterministic to force the fallback even with a key.
+ * A Claude-backed Reasoner (Anthropic SDK behind the ReasonerClient seam). Tests
+ * pass a fake client.
+ */
+export function makeClaudeReasoner(opts: ClaudeReasonerOptions): Reasoner {
+  const model = opts.model ?? "claude-opus-4-8";
+  const ask: Ask = async (schema, instruction, maxTokens) => {
+    const res = await opts.client.messages.parse({
+      model,
+      max_tokens: maxTokens,
+      thinking: { type: "adaptive" },
+      output_config: { format: zodOutputFormat(schema), effort: "high" },
+      system: SYSTEM + biz(opts),
+      messages: [{ role: "user", content: instruction }],
+    });
+    if (opts.meter && res.usage) {
+      opts.meter.record(model, {
+        inputTokens: res.usage.input_tokens ?? 0,
+        outputTokens: res.usage.output_tokens ?? 0,
+      });
+    }
+    return schema.parse(res.parsed_output);
+  };
+  return buildReasoner(ask);
+}
+
+export type OpenRouterReasonerOptions = ReasonerContext & {
+  client: PostGenClient;
+  model?: string;
+  meter?: UsageMeter;
+};
+
+/**
+ * An OpenRouter/DeepSeek-backed Reasoner: same prompts/schemas as the Claude
+ * path, over the OpenAI-compatible chat-completions seam (json_schema output).
+ */
+export function makeOpenRouterReasoner(opts: OpenRouterReasonerOptions): Reasoner {
+  const model = opts.model ?? "deepseek/deepseek-v4-pro";
+  const ask: Ask = async (schema, instruction, maxTokens) => {
+    const res = await opts.client.complete({
+      model,
+      max_tokens: maxTokens,
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "result", strict: true, schema: z.toJSONSchema(schema) },
+      },
+      messages: [
+        { role: "system", content: SYSTEM + biz(opts) },
+        { role: "user", content: instruction },
+      ],
+    });
+    if (opts.meter && res.usage) {
+      opts.meter.record(model, {
+        inputTokens: res.usage.prompt_tokens ?? 0,
+        outputTokens: res.usage.completion_tokens ?? 0,
+      });
+    }
+    return schema.parse(extractJson(res.content));
+  };
+  return buildReasoner(ask);
+}
+
+/**
+ * Select the reasoner for a run: OpenRouter/DeepSeek when OPENROUTER_API_KEY is
+ * set, else Claude when ANTHROPIC_API_KEY is set, else the deterministic
+ * fallback. Set DECODE_REASONER=deterministic to force the fallback.
  */
 export function getReasoner(
-  config: {
-    businessName?: string;
-    businessDescription?: string;
-    profile?: OperatorProfile;
-  } = {},
+  config: ReasonerContext = {},
   env: Record<string, string | undefined> = process.env,
   meter?: UsageMeter,
 ): Reasoner {
-  if (!env.ANTHROPIC_API_KEY || env.DECODE_REASONER === "deterministic") {
-    return deterministicReasoner;
+  if (env.DECODE_REASONER === "deterministic") return deterministicReasoner;
+  if (hasOpenRouterKeys(env)) {
+    return makeOpenRouterReasoner({
+      client: makeOpenRouterClient(env),
+      model: env.DECODE_MODEL ?? env.OPENROUTER_MODEL,
+      businessName: config.businessName,
+      businessDescription: config.businessDescription,
+      profile: config.profile,
+      meter,
+    });
   }
-  return makeClaudeReasoner({
-    client: new Anthropic() as unknown as ReasonerClient,
-    model: env.DECODE_MODEL,
-    businessName: config.businessName,
-    businessDescription: config.businessDescription,
-    profile: config.profile,
-    meter,
-  });
+  if (env.ANTHROPIC_API_KEY) {
+    return makeClaudeReasoner({
+      client: new Anthropic() as unknown as ReasonerClient,
+      model: env.DECODE_MODEL,
+      businessName: config.businessName,
+      businessDescription: config.businessDescription,
+      profile: config.profile,
+      meter,
+    });
+  }
+  return deterministicReasoner;
 }

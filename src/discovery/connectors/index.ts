@@ -7,6 +7,8 @@ import { youtubeConnector } from "./youtube";
 import { googleCseConnector } from "./googleCse";
 import { twitterConnector } from "./twitter";
 import { productHuntConnector } from "./productHunt";
+import { tiktokSoundsConnector } from "./tiktokSounds";
+import { createLast30DaysConnector } from "./last30days";
 
 /** Ordered registry of all discovery connectors. */
 export const CONNECTORS: Connector[] = [
@@ -18,6 +20,8 @@ export const CONNECTORS: Connector[] = [
   googleCseConnector,
   twitterConnector,
   productHuntConnector,
+  tiktokSoundsConnector,
+  createLast30DaysConnector(),
 ];
 
 export function getConnector(key: string): Connector | undefined {
@@ -33,4 +37,6 @@ export {
   googleCseConnector,
   twitterConnector,
   productHuntConnector,
+  tiktokSoundsConnector,
+  createLast30DaysConnector,
 };

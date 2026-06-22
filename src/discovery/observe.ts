@@ -3,6 +3,7 @@ import type { DB } from "@/db/client";
 import { signals, insights, type Signal, type NewInsight } from "@/db/schema";
 import type { DecodeConfig } from "./config";
 import { deterministicReasoner, type Reasoner } from "./reasoner";
+import { emit } from "@/events/bus";
 
 export type ObserveSummary = {
   clustersObserved: number;
@@ -78,6 +79,7 @@ export async function runObserve(
       })
       .run();
     insightsWritten++;
+    emit(db, "decode.insight_created", { insightId: insight.id, cluster, trend }, { now });
 
     const ids = clusterSignals.map((s) => s.id);
     db.update(signals)

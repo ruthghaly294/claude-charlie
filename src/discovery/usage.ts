@@ -7,6 +7,9 @@ const PRICING: Record<string, { in: number; out: number }> = {
   "claude-sonnet-4-6": { in: 3, out: 15 },
   "claude-haiku-4-5": { in: 1, out: 5 },
   "deepseek/deepseek-v4-pro": { in: 0.5, out: 1.5 },
+  // Stealth/cloaked OpenRouter model; pricing not published, use a conservative
+  // mid-tier estimate so cost totals stay in the right ballpark.
+  "openrouter/owl-alpha": { in: 0.5, out: 1.5 },
 };
 
 const DEFAULT_PRICE = { in: 5, out: 25 };

@@ -187,10 +187,198 @@ export function ensureSchema(sqlite: Database.Database): void {
       fetched_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS extraction_cache (
+      html_hash TEXT PRIMARY KEY,
+      url TEXT NOT NULL DEFAULT '',
+      fields TEXT NOT NULL DEFAULT '{}',
+      model TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rankings (
       keyword TEXT PRIMARY KEY,
       multiplier REAL NOT NULL DEFAULT 1,
       value REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS entities (
+      id TEXT PRIMARY KEY,
+      keyword TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      value TEXT NOT NULL,
+      weight REAL NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'active',
+      source TEXT NOT NULL DEFAULT 'seed',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS entities_keyword_idx ON entities(keyword);
+    CREATE INDEX IF NOT EXISTS entities_status_idx ON entities(status);
+
+    CREATE TABLE IF NOT EXISTS jobs (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      payload TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 3,
+      run_at TEXT NOT NULL,
+      started_at TEXT,
+      finished_at TEXT,
+      last_error TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS jobs_status_run_at_idx ON jobs(status, run_at);
+
+    CREATE TABLE IF NOT EXISTS job_runs (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      attempt INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      finished_at TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      error TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      payload TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'new',
+      created_at TEXT NOT NULL,
+      processed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS events_status_idx ON events(status);
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      channel TEXT NOT NULL,
+      event_id TEXT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      sent_at TEXT,
+      error TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS notifications_status_idx ON notifications(status);
+
+    CREATE TABLE IF NOT EXISTS published_posts (
+      id TEXT PRIMARY KEY,
+      buffer_post_id TEXT,
+      channel_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      item_url TEXT NOT NULL,
+      item_title TEXT NOT NULL,
+      keyword TEXT,
+      text TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_metrics_at TEXT,
+      metrics TEXT
+    );
+    CREATE INDEX IF NOT EXISTS published_posts_item_url_idx ON published_posts(item_url);
+    CREATE INDEX IF NOT EXISTS published_posts_buffer_post_id_idx ON published_posts(buffer_post_id);
+
+    CREATE TABLE IF NOT EXISTS music_tracks (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL,
+      trend_title TEXT NOT NULL,
+      trend_url TEXT NOT NULL DEFAULT '',
+      where_trending TEXT NOT NULL DEFAULT '',
+      engagement INTEGER NOT NULL DEFAULT 0,
+      mood TEXT NOT NULL DEFAULT 'neutral',
+      energy TEXT NOT NULL DEFAULT 'medium',
+      native_sound_id TEXT,
+      provider TEXT NOT NULL DEFAULT '',
+      safe_search_query TEXT NOT NULL DEFAULT '',
+      safe_track_url TEXT,
+      licence TEXT NOT NULL DEFAULT 'royalty-free',
+      embeddable INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS music_tracks_topic_idx ON music_tracks(topic);
+    CREATE TABLE IF NOT EXISTS research_cache (
+      topic TEXT PRIMARY KEY,
+      report TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS generated_videos (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL,
+      brief TEXT,
+      exemplars TEXT,
+      sound_track_url TEXT,
+      sound_mood TEXT,
+      cover_image_url TEXT,
+      video_url TEXT NOT NULL,
+      slide_urls TEXT,
+      format TEXT NOT NULL DEFAULT 'trend-video',
+      virality_score INTEGER,
+      virality_report_url TEXT,
+      status TEXT NOT NULL,
+      buffer_post_id TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS generated_videos_topic_idx ON generated_videos(topic);
+
+    CREATE TABLE IF NOT EXISTS exam_questions (
+      id TEXT PRIMARY KEY,
+      subtopic TEXT NOT NULL,
+      statement TEXT NOT NULL,
+      correct_answer INTEGER NOT NULL,
+      explanation TEXT NOT NULL,
+      difficulty TEXT,
+      source TEXT,
+      used_at TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS exam_questions_subtopic_idx ON exam_questions(subtopic, used_at);
+
+    CREATE TABLE IF NOT EXISTS trend_runs (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      asset_style TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      stages TEXT NOT NULL DEFAULT '[]',
+      generated_video_id TEXT,
+      error TEXT,
+      review_enabled INTEGER NOT NULL DEFAULT 0,
+      render_context TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS trend_runs_created_idx ON trend_runs(created_at);
+
+    CREATE TABLE IF NOT EXISTS prompt_overrides (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS prompt_variants (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL,
+      variant_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      template TEXT NOT NULL,
+      builtin INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS prompt_variants_key_idx ON prompt_variants(key);
+
+    CREATE TABLE IF NOT EXISTS notebooklm_settings (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      enabled INTEGER NOT NULL DEFAULT 0,
+      mode TEXT NOT NULL DEFAULT 'discovery',
+      notebook_id TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL
     );
 
@@ -207,6 +395,97 @@ export function ensureSchema(sqlite: Database.Database): void {
       total_failures INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS seo_sites (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL DEFAULT '',
+      domain TEXT NOT NULL,
+      competitors TEXT NOT NULL DEFAULT '[]',
+      keywords TEXT NOT NULL DEFAULT '[]',
+      max_pages INTEGER NOT NULL DEFAULT 40,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS seo_audits (
+      id TEXT PRIMARY KEY,
+      site_id TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      finished_at TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      scores TEXT,
+      new_rec_count INTEGER NOT NULL DEFAULT 0,
+      summary TEXT NOT NULL DEFAULT '',
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS seo_audits_site_idx ON seo_audits(site_id);
+
+    CREATE TABLE IF NOT EXISTS seo_pages (
+      id TEXT PRIMARY KEY,
+      audit_id TEXT NOT NULL,
+      site_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'self',
+      url TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      meta_description TEXT NOT NULL DEFAULT '',
+      canonical TEXT NOT NULL DEFAULT '',
+      h1s TEXT NOT NULL DEFAULT '[]',
+      json_ld_types TEXT NOT NULL DEFAULT '[]',
+      word_count INTEGER NOT NULL DEFAULT 0,
+      seo_issues TEXT NOT NULL DEFAULT '[]',
+      geo_issues TEXT NOT NULL DEFAULT '[]',
+      seo_score REAL NOT NULL DEFAULT 0,
+      geo_score REAL NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS seo_pages_audit_idx ON seo_pages(audit_id);
+
+    CREATE TABLE IF NOT EXISTS seo_trends (
+      id TEXT PRIMARY KEY,
+      audit_id TEXT NOT NULL,
+      site_id TEXT NOT NULL,
+      term TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT '',
+      momentum REAL NOT NULL DEFAULT 0,
+      on_self INTEGER NOT NULL DEFAULT 0,
+      on_competitors TEXT NOT NULL DEFAULT '[]',
+      gap INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS seo_trends_audit_idx ON seo_trends(audit_id);
+
+    CREATE TABLE IF NOT EXISTS seo_recommendations (
+      id TEXT PRIMARY KEY,
+      site_id TEXT NOT NULL,
+      fingerprint TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL DEFAULT 'seo',
+      title TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
+      execution_steps TEXT NOT NULL DEFAULT '[]',
+      impact TEXT NOT NULL DEFAULT 'medium',
+      effort TEXT NOT NULL DEFAULT 'medium',
+      evidence TEXT NOT NULL DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'open',
+      first_seen_audit_id TEXT NOT NULL,
+      last_seen_audit_id TEXT NOT NULL,
+      first_seen_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL,
+      missed_runs INTEGER NOT NULL DEFAULT 0,
+      done_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS seo_recs_site_status_idx ON seo_recommendations(site_id, status);
+    CREATE INDEX IF NOT EXISTS seo_recs_fingerprint_idx ON seo_recommendations(fingerprint);
+
+    CREATE TABLE IF NOT EXISTS seo_rankings (
+      id TEXT PRIMARY KEY,
+      audit_id TEXT NOT NULL,
+      site_id TEXT NOT NULL,
+      keyword TEXT NOT NULL,
+      engine TEXT NOT NULL DEFAULT 'searxng',
+      position INTEGER,
+      url TEXT NOT NULL DEFAULT '',
+      competitors_ahead TEXT NOT NULL DEFAULT '[]',
+      captured_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS seo_rankings_site_idx ON seo_rankings(site_id);
+    CREATE INDEX IF NOT EXISTS seo_rankings_audit_idx ON seo_rankings(audit_id);
   `);
 
   // Lightweight migrations: add columns that older DBs (created before a column
@@ -214,6 +493,8 @@ export function ensureSchema(sqlite: Database.Database): void {
   ensureColumns(sqlite, "decisions", [
     "confidence TEXT NOT NULL DEFAULT 'medium'",
     "value REAL NOT NULL DEFAULT 0",
+    "updated_at TEXT",
+    "expires_at TEXT",
   ]);
   ensureColumns(sqlite, "executions", [
     "quality_score REAL NOT NULL DEFAULT 0",
@@ -226,6 +507,26 @@ export function ensureSchema(sqlite: Database.Database): void {
     "size_source TEXT NOT NULL DEFAULT ''",
     "lps_property_id TEXT",
     "lps_capital_value REAL",
+    "address_key TEXT",
+  ]);
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS listings_address_key_idx ON listings(address_key)`,
+  );
+  ensureColumns(sqlite, "signals", [
+    "points INTEGER",
+    "comments INTEGER",
+    "views INTEGER",
+    "social_score REAL",
+    "author_key TEXT",
+  ]);
+  ensureColumns(sqlite, "trend_runs", [
+    "review_enabled INTEGER NOT NULL DEFAULT 0",
+    "render_context TEXT",
+  ]);
+  ensureColumns(sqlite, "music_tracks", ["native_sound_id TEXT"]);
+  ensureColumns(sqlite, "generated_videos", [
+    "slide_urls TEXT",
+    "format TEXT NOT NULL DEFAULT 'trend-video'",
   ]);
 }
 
