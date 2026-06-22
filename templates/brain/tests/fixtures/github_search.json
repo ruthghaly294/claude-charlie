@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "full_name": "acme/agent",
+      "html_url": "https://github.com/acme/agent",
+      "description": "An AI agent framework",
+      "stargazers_count": 1200,
+      "owner": { "login": "acme" }
+    },
+    {
+      "full_name": "foo/rad",
+      "html_url": "https://github.com/foo/rad",
+      "description": "Radiology annotation tool",
+      "stargazers_count": 340,
+      "owner": { "login": "foo" }
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# decode — router for the DECODE intelligence-to-execution loop.
+# Deterministic stages (discover, curate, feedback) run here in bash.
+# Reasoning stages (observe, decide, execute) run via the /decode slash command
+# in Claude Code; `decode run` performs the deterministic stages + a digest.
+#
+# Subcommands: discover, curate, feedback, run, status, init, help
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$HERE/lib/log.sh"
+# shellcheck disable=SC1091
+source "$HERE/lib/decode-config.sh"
+
+CONFIG_PATH="${DECODE_CONFIG:-$HOME/second-brain/decode.config.yml}"
+
+usage() {
+  cat <<'EOF'
+decode — intelligence-to-execution loop (DECODE).
+
+Usage:
+  decode discover            Scan sources → signal notes in 01-Signals/
+  decode curate              Dedup, score, cluster signals + reindex
+  decode feedback            Turn 70-Feedback/metrics.* into a keyword ranking
+  decode run                 discover → curate → (feedback) → digest
+  decode status              Business config, enabled sources, vault counts
+  decode init                Bootstrap/repair the vault + decode.config.yml
+  decode help                This message
+
+Reasoning stages (observe → decide → execute) run via the /decode slash command.
+EOF
+}
+
+_count() {
+  local d="$1"
+  [ -d "$d" ] && find "$d" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ' || echo 0
+}
+
+decode_digest() {
+  log_step "DECODE digest — $DECODE_BUSINESS_NAME"
+  echo "  ┌─ Signals    (what changed) : $(_count "$DECODE_VAULT/$DECODE_SIGNALS") new/queued"
+  echo "  ├─ Insights   (what it means): $(_count "$DECODE_VAULT/$DECODE_INSIGHTS")"
+  echo "  ├─ Decisions  (what to do)   : $(_count "$DECODE_VAULT/$DECODE_DECISIONS")"
+  echo "  └─ Execution  (what shipped) : $(_count "$DECODE_VAULT/$DECODE_EXECUTION")"
+}
+
+decode_status() {
+  log_step "DECODE status — $DECODE_BUSINESS_NAME"
+  echo "  Vault    : $DECODE_VAULT"
+  echo "  Keywords : $(printf '%s' "$DECODE_KEYWORDS" | paste -sd',' - 2>/dev/null)"
+  echo "  Threshold: $DECODE_KEEP_THRESHOLD   Top-N execute: $DECODE_TOP_N"
+  log_step "Sources"
+  for s in rss github_trending reddit hackernews youtube google_cse twitter producthunt; do
+    en="$(yq -r ".sources.${s}.enabled // \"-\"" "$CONFIG_PATH" 2>/dev/null)"
+    case "$s" in
+      google_cse) key=$([ -n "${GOOGLE_CSE_KEY:-}" ] && [ -n "${GOOGLE_CSE_ID:-}" ] && echo "key✓" || echo "no-key") ;;
+      twitter)    key=$([ -n "${TWITTER_BEARER:-}" ] && echo "key✓" || echo "no-key") ;;
+      producthunt) key=$([ -n "${PRODUCTHUNT_TOKEN:-}" ] && echo "key✓" || echo "no-key") ;;
+      *) key="" ;;
+    esac
+    printf '  %-16s enabled=%-5s %s\n' "$s" "$en" "$key"
+  done
+  "$HERE/pipelines/status.sh"
+}
+
+decode_run() {
+  log_step "DECODE run — $DECODE_BUSINESS_NAME"
+  "$HERE/pipelines/discover.sh" || log_warn "run: discover reported issues"
+  "$HERE/pipelines/curate.sh"   || log_warn "run: curate reported issues"
+  if [ -f "$DECODE_VAULT/$DECODE_FEEDBACK/metrics.csv" ] || [ -f "$DECODE_VAULT/$DECODE_FEEDBACK/metrics.md" ]; then
+    "$HERE/pipelines/feedback.sh" || log_warn "run: feedback reported issues"
+  fi
+  decode_digest
+  log_warn "Reasoning stages pending — run /decode observe, /decode decide, /decode execute in Claude Code."
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  init|help|-h|--help|"") : ;;          # config not required
+  discover|curate|feedback|run|status) decode_config_load "$CONFIG_PATH" ;;
+  *) log_fail "unknown subcommand: $cmd"; usage; exit 2 ;;
+esac
+
+case "$cmd" in
+  discover) "$HERE/pipelines/discover.sh" "$@" ;;
+  curate)   "$HERE/pipelines/curate.sh" "$@" ;;
+  feedback) "$HERE/pipelines/feedback.sh" "$@" ;;
+  run)      decode_run ;;
+  status)   decode_status ;;
+  init)
+    vault_override="${BRAIN_VAULT_OVERRIDE:-}"
+    if [ -z "$vault_override" ] && [ -f "$CONFIG_PATH" ] && command -v yq >/dev/null; then
+      vault_override="$(yq -r '.vault // ""' "$CONFIG_PATH" 2>/dev/null)"
+      case "$vault_override" in "~"|"~/"*) vault_override="${HOME}${vault_override:1}" ;; esac
+    fi
+    BRAIN_VAULT_OVERRIDE="${vault_override:-$HOME/second-brain}" "$HERE/pipelines/init.sh"
+    ;;
+  help|-h|--help|"") usage ;;
+  *) log_fail "unknown subcommand: $cmd"; usage; exit 2 ;;
+esac

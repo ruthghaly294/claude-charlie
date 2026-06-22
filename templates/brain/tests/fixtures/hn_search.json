@@ -1,0 +1,16 @@
+{
+  "hits": [
+    {
+      "title": "Show HN: Medical imaging AI",
+      "url": "https://news.example/1",
+      "author": "hnuser",
+      "objectID": "111"
+    },
+    {
+      "title": "Radiology dataset released",
+      "url": null,
+      "author": "hnuser2",
+      "objectID": "222"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DECODE — Programmable Search Engine site annotations (bulk import).
+  Import: PSE control panel (https://programmablesearchengine.google.com/controlpanel/all)
+    → your engine → Setup → "Sites to search" → upload this file.
+  "_include" adds each site to the engine. With "Search the entire web" ON,
+  these boost the listed domains rather than restricting to them.
+-->
+<Annotations>
+  <!-- Financial news / macro / institutional / 13F -->
+  <Annotation about="wsj.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="bloomberg.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="cnbc.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="reuters.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="marketwatch.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="ft.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="seekingalpha.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="sec.gov/*"><Label name="_include"/></Annotation>
+  <Annotation about="federalreserve.gov/*"><Label name="_include"/></Annotation>
+  <Annotation about="finance.yahoo.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="whalewisdom.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="hedgefollow.com/*"><Label name="_include"/></Annotation>
+
+  <!-- Congress / politician trades -->
+  <Annotation about="capitoltrades.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="unusualwhales.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="quiverquant.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="housestockwatcher.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="senatestockwatcher.com/*"><Label name="_include"/></Annotation>
+
+  <!-- Trump / political posts -->
+  <Annotation about="truthsocial.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="x.com/realDonaldTrump/*"><Label name="_include"/></Annotation>
+
+  <!-- Technical analysis / trading / risk -->
+  <Annotation about="tradingview.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="investopedia.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="stockcharts.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="babypips.com/*"><Label name="_include"/></Annotation>
+
+  <!-- Scraping / dev tech -->
+  <Annotation about="scrapingbee.com/blog/*"><Label name="_include"/></Annotation>
+  <Annotation about="zyte.com/blog/*"><Label name="_include"/></Annotation>
+  <Annotation about="github.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="stackoverflow.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="dev.to/*"><Label name="_include"/></Annotation>
+
+  <!-- SaaS / monetization -->
+  <Annotation about="indiehackers.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="saastr.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="producthunt.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="news.ycombinator.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="microconf.com/*"><Label name="_include"/></Annotation>
+
+  <!-- Marketing / SEO / trends -->
+  <Annotation about="ahrefs.com/blog/*"><Label name="_include"/></Annotation>
+  <Annotation about="semrush.com/blog/*"><Label name="_include"/></Annotation>
+  <Annotation about="moz.com/blog/*"><Label name="_include"/></Annotation>
+  <Annotation about="explodingtopics.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="backlinko.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="trends.google.com/*"><Label name="_include"/></Annotation>
+
+  <!-- Radiology -->
+  <Annotation about="radiopaedia.org/*"><Label name="_include"/></Annotation>
+  <Annotation about="auntminnie.com/*"><Label name="_include"/></Annotation>
+  <Annotation about="rsna.org/*"><Label name="_include"/></Annotation>
+  <Annotation about="pubs.rsna.org/*"><Label name="_include"/></Annotation>
+  <Annotation about="radiologyassistant.nl/*"><Label name="_include"/></Annotation>
+</Annotations>
