@@ -28,7 +28,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # npm install (not ci): the dep tree carries multiple esbuild copies whose
+      # cross-platform optional packages make `npm ci` hard-error (notsup on
+      # @esbuild/* for other OSes). npm install skips non-matching optionals.
+      - run: npm install --no-audit --no-fund
 
       - name: Import verified questions from Supabase
         run: npm run import-questions -- --supabase
