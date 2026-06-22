@@ -20,6 +20,7 @@ concurrency: qotd-daily
 jobs:
   draft:
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # never let a stalled external call burn the 6h default
     steps:
       - uses: actions/checkout@v4
 
