@@ -146,6 +146,32 @@ describe("createBufferClient", () => {
       await expect(client.getAccount()).rejects.toThrow(/HTTP 429/);
       expect(fetchImpl).toHaveBeenCalledTimes(4);
     });
+
+    it("retries a stalled/aborted request (timeout) instead of hanging", async () => {
+      const sleep = vi.fn().mockResolvedValue(undefined);
+      const fetchImpl = vi
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error("The operation was aborted"), { name: "AbortError" }))
+        .mockResolvedValueOnce(
+          jsonResponse({ data: { account: { id: "a", organizations: [{ id: "o", name: "n" }] } } }),
+        );
+      const client = createBufferClient({ BUFFER_ACCESS_TOKEN: "tok" }, fetchImpl, sleep);
+
+      const acc = await client.getAccount();
+      expect(acc.id).toBe("a");
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      // the request carries an abort signal so a stall can be cancelled
+      expect((fetchImpl.mock.calls[0]![1] as RequestInit).signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it("surfaces a clear error when the request keeps failing/stalling", async () => {
+      const sleep = vi.fn().mockResolvedValue(undefined);
+      const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
+      const client = createBufferClient({ BUFFER_ACCESS_TOKEN: "tok" }, fetchImpl, sleep);
+
+      await expect(client.getAccount()).rejects.toThrow(/Buffer request failed after 4 attempts/);
+      expect(fetchImpl).toHaveBeenCalledTimes(4);
+    });
   });
 
   describe("createPost mapping", () => {

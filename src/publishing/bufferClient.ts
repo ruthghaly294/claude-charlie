@@ -19,9 +19,15 @@ export type BufferEnv = Record<string, string | undefined>;
 export type SleepFn = (ms: number) => Promise<void>;
 const defaultSleep: SleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Total attempts on a transient HTTP 429 before giving up (the daily scheduler relies on this). */
+/** Total attempts on a transient HTTP 429 / network stall before giving up. */
 const MAX_ATTEMPTS = 4;
 const BASE_BACKOFF_MS = 1000;
+/**
+ * Per-request timeout. Buffer can stall a connection indefinitely when it's
+ * hard-throttling a token (no response, not even a 429); without this the daily
+ * job would hang forever (it did — a 16-minute CI hang). Abort + retry instead.
+ */
+const REQUEST_TIMEOUT_MS = 20000;
 
 /** How long to wait before retrying a throttled request — Retry-After header if present, else exponential. */
 function retryDelayMs(res: Response, attempt: number): number {
@@ -346,17 +352,34 @@ export function createBufferClient(
     if (!token) throw new BufferApiError("BUFFER_ACCESS_TOKEN not configured");
 
     let res!: Response;
-    // Buffer rate-limits with HTTP 429; back off and retry so a transient throttle
-    // (e.g. bursty same-day runs) doesn't fail the hands-off daily draft.
+    // Buffer rate-limits with HTTP 429 and can also stall the connection outright
+    // when hard-throttling; an aborting timeout turns a stall into a retryable
+    // failure so the hands-off daily draft never hangs.
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      res = await fetchImpl(BUFFER_GRAPHQL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query, variables }),
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        res = await fetchImpl(BUFFER_GRAPHQL_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ query, variables }),
+          signal: controller.signal,
+        });
+      } catch (e) {
+        // Timeout (abort) or network error — retry with backoff, else surface it.
+        if (attempt === MAX_ATTEMPTS - 1) {
+          throw new BufferApiError(
+            `Buffer request failed after ${MAX_ATTEMPTS} attempts: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+        await sleep(BASE_BACKOFF_MS * 2 ** attempt);
+        continue;
+      } finally {
+        clearTimeout(timer);
+      }
       if (res.status !== 429 || attempt === MAX_ATTEMPTS - 1) break;
       await sleep(retryDelayMs(res, attempt));
     }
