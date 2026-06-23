@@ -1,0 +1,12 @@
+{
+  "startDate": "2026-06-23",
+  "lastRunDate": "2026-06-23",
+  "runsCompleted": 1,
+  "usedStatements": [
+    "Rotating anodes use a tungsten stem to reduce weight.",
+    "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
+    "The heel effect is greater with a larger anode angle.",
+    "Detectors with high detective quantum efficiency require lower patient doses for a given image quality.",
+    "A high grid ratio improves scatter rejection but decreases patient dose."
+  ]
+}
