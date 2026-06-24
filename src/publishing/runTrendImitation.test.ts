@@ -102,6 +102,7 @@ function fakeBuffer(): BufferClient {
     metrics: [],
     metricsUpdatedAt: null,
     imageUrl: null,
+    imageUrls: [],
   };
   return {
     configured: true,

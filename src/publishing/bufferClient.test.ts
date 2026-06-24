@@ -197,6 +197,7 @@ describe("createBufferClient", () => {
         metrics: [],
         metricsUpdatedAt: null,
         imageUrl: null,
+        imageUrls: [],
       });
 
       const { body } = lastCall(fetchImpl);
@@ -393,6 +394,7 @@ describe("createBufferClient", () => {
         metrics: [],
         metricsUpdatedAt: null,
         imageUrl: null,
+        imageUrls: [],
       },
     ]);
 

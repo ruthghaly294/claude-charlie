@@ -30,6 +30,7 @@ const POST: BufferPost = {
   metrics: [],
   metricsUpdatedAt: null,
   imageUrl: null,
+  imageUrls: [],
 };
 
 function unconfiguredClient(): BufferClient {

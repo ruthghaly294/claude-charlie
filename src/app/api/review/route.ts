@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { generatedVideos } from "@/db/schema";
 import { loadConfig } from "@/discovery/config";
-import { createBufferClient } from "@/publishing/bufferClient";
+import { createBufferClient, resolveOrgId } from "@/publishing/bufferClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,11 +18,74 @@ function postText(brief: Brief | null): string {
   return tags.length ? `${caption}\n\n${tags.join(" ")}` : caption;
 }
 
-/** List the most recent generated videos for review (newest first). */
+type ReviewItem = {
+  id: string;
+  topic: string;
+  status: string;
+  format: string;
+  coverImageUrl: string | null;
+  videoUrl: string;
+  slideUrls: string[] | null;
+  caption: string;
+  soundMood: string | null;
+  viralityScore: number | null;
+  bufferPostId: string | null;
+  createdAt: string;
+};
+
+/** Map a live Buffer post status onto the review queue's status vocabulary. */
+function bufferStatusToReview(s: string): string {
+  if (s === "sent") return "published";
+  if (s === "error") return "error";
+  if (s === "scheduled") return "queued";
+  if (s === "sending") return "publishing";
+  return "draft"; // draft | needs_approval
+}
+
+/**
+ * Drafts that live ONLY on Buffer — e.g. created by the CI daily scheduler,
+ * which writes its DB row to the runner's throwaway disk, never this machine.
+ * Reading them straight from Buffer is what makes those drafts reviewable here.
+ */
+async function bufferDraftItems(): Promise<ReviewItem[]> {
+  const client = createBufferClient(process.env);
+  if (!client.configured) return [];
+  const channelId = loadConfig().publishing.channelsByPlatform.instagram;
+  try {
+    const orgId = await resolveOrgId(client);
+    const posts = await client.listPosts(orgId, {
+      status: ["draft", "needs_approval", "scheduled", "sending"],
+    });
+    return posts
+      .filter((p) => !channelId || p.channelId === channelId)
+      .map((p) => {
+        const isCarousel = p.imageUrls.length > 1;
+        return {
+          id: p.id,
+          topic: isCarousel ? "QOTD daily draft" : "Buffer draft",
+          status: bufferStatusToReview(p.status),
+          format: isCarousel ? "qotd-carousel" : "trend-video",
+          coverImageUrl: p.imageUrl,
+          videoUrl: "",
+          slideUrls: p.imageUrls.length ? p.imageUrls : null,
+          caption: p.text,
+          soundMood: null,
+          viralityScore: null,
+          bufferPostId: p.id,
+          createdAt: p.dueAt ?? p.sentAt ?? "",
+        };
+      });
+  } catch {
+    // Buffer unreachable/throttled — fall back to local rows only, never 500 the page.
+    return [];
+  }
+}
+
+/** List drafts for review: Buffer drafts (CI + local) merged with local DB rows. */
 export async function GET(): Promise<NextResponse> {
   const db = getDb();
   const rows = db.select().from(generatedVideos).orderBy(desc(generatedVideos.createdAt)).limit(30).all();
-  const items = rows.map((r) => {
+  const localItems: ReviewItem[] = rows.map((r) => {
     const brief = (r.brief ?? null) as Brief | null;
     return {
       id: r.id,
@@ -39,7 +102,13 @@ export async function GET(): Promise<NextResponse> {
       createdAt: r.createdAt,
     };
   });
-  return NextResponse.json({ items });
+
+  // A draft already tracked locally is shown from the local row; only surface
+  // Buffer posts we have no local record of (the CI-created ones the user can't see).
+  const localBufferIds = new Set(localItems.map((it) => it.bufferPostId).filter(Boolean));
+  const bufferOnly = (await bufferDraftItems()).filter((it) => !localBufferIds.has(it.bufferPostId));
+
+  return NextResponse.json({ items: [...bufferOnly, ...localItems] });
 }
 
 const ACTIONS = ["queue", "schedule", "publish", "status", "delete"] as const;
@@ -73,32 +142,59 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "id and a valid action are required" }, { status: 400 });
   }
 
-  const db = getDb();
-  const row = db.select().from(generatedVideos).where(eq(generatedVideos.id, id)).get();
-  if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
-
   const config = loadConfig();
   const client = createBufferClient(process.env);
   if (!client.configured) {
     return NextResponse.json({ error: "Buffer is not configured (set BUFFER_ACCESS_TOKEN)" }, { status: 400 });
   }
 
+  const db = getDb();
+  const row = db.select().from(generatedVideos).where(eq(generatedVideos.id, id)).get();
+
+  // No local row? The id may be a Buffer-only draft (e.g. created by the CI
+  // scheduler). Resolve it straight from Buffer so it's still actionable here.
+  let bufferOnly: Awaited<ReturnType<typeof client.getPost>> | null = null;
+  if (!row) {
+    try {
+      bufferOnly = await client.getPost(id);
+    } catch {
+      bufferOnly = null;
+    }
+    if (!bufferOnly) return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  // DB write helper: a no-op for Buffer-only drafts (nothing local to update).
+  type ReviewStatus =
+    | "draft"
+    | "scored"
+    | "queued"
+    | "publishing"
+    | "published"
+    | "rejected"
+    | "generated"
+    | "error";
+  const setLocalStatus = (status: ReviewStatus) => {
+    if (row) db.update(generatedVideos).set({ status }).where(eq(generatedVideos.id, id)).run();
+  };
+
   try {
     if (action === "delete") {
-      if (row.bufferPostId) await client.deletePost(row.bufferPostId);
-      db.update(generatedVideos).set({ status: "rejected" }).where(eq(generatedVideos.id, id)).run();
+      const bid = row?.bufferPostId ?? bufferOnly?.id ?? null;
+      if (bid) await client.deletePost(bid);
+      setLocalStatus("rejected");
       return NextResponse.json({ ok: true, status: "rejected" });
     }
 
-    if (!row.bufferPostId) {
+    const bufferPostId = row?.bufferPostId ?? bufferOnly?.id ?? null;
+    if (!bufferPostId) {
       return NextResponse.json({ error: "no Buffer post to act on for this item" }, { status: 400 });
     }
 
     // Re-check the live Buffer status of an already-published post (UI polling).
     if (action === "status") {
-      const post = await client.getPost(row.bufferPostId);
+      const post = await client.getPost(bufferPostId);
       const m = mapBufferStatus(post.status);
-      db.update(generatedVideos).set({ status: m.dbStatus }).where(eq(generatedVideos.id, id)).run();
+      setLocalStatus(m.dbStatus);
       return NextResponse.json({
         ok: true,
         status: m.dbStatus,
@@ -115,22 +211,26 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "no Instagram channel configured" }, { status: 400 });
     }
 
-    const isCarousel = row.format === "qotd-carousel";
+    // Media + text come from the local row when we have one, otherwise from the
+    // existing Buffer draft (whose assets/text are already attached on Buffer).
+    const editText = row ? postText((row.brief ?? null) as Brief | null) : bufferOnly!.text;
+    const editImages = row ? row.slideUrls ?? [] : bufferOnly!.imageUrls;
+    const isCarousel = row ? row.format === "qotd-carousel" : editImages.length > 1;
     const commonEdit = isCarousel
       ? {
-          id: row.bufferPostId,
+          id: bufferPostId,
           channelId,
-          text: postText((row.brief ?? null) as Brief | null),
-          imageUrls: row.slideUrls ?? [],
+          text: editText,
+          imageUrls: editImages,
           instagramType: "post" as const, // multi-image post = Instagram carousel
           saveToDraft: false,
         }
       : {
-          id: row.bufferPostId,
+          id: bufferPostId,
           channelId,
-          text: postText((row.brief ?? null) as Brief | null),
-          videoUrl: row.videoUrl,
-          thumbnailUrl: row.coverImageUrl ?? undefined,
+          text: editText,
+          videoUrl: row?.videoUrl ?? "",
+          thumbnailUrl: row?.coverImageUrl ?? bufferOnly?.imageUrl ?? undefined,
           instagramType: "reel" as const,
           saveToDraft: false,
         };
@@ -145,9 +245,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       } catch (e) {
         editError = e instanceof Error ? e.message : String(e);
       }
-      const post = await client.getPost(row.bufferPostId);
+      const post = await client.getPost(bufferPostId);
       const m = mapBufferStatus(post.status);
-      db.update(generatedVideos).set({ status: m.dbStatus }).where(eq(generatedVideos.id, id)).run();
+      setLocalStatus(m.dbStatus);
       return NextResponse.json({
         ok: true,
         status: m.dbStatus,
@@ -162,7 +262,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     // queue / schedule: move out of draft into Buffer's queue (publishes at a slot).
     await client.editPost({ ...commonEdit, dueAt: action === "schedule" ? dueAt : undefined });
-    db.update(generatedVideos).set({ status: "queued" }).where(eq(generatedVideos.id, id)).run();
+    setLocalStatus("queued");
     return NextResponse.json({ ok: true, status: "queued", scheduledFor: action === "schedule" ? dueAt : null });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });

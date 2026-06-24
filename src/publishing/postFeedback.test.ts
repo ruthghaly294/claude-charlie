@@ -37,6 +37,7 @@ function bufferPost(overrides: Partial<BufferPost>): BufferPost {
     metrics: [],
     metricsUpdatedAt: null,
     imageUrl: null,
+    imageUrls: [],
     ...overrides,
   };
 }

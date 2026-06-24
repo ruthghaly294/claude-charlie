@@ -74,6 +74,8 @@ export type BufferPost = {
   metrics: PostMetric[];
   metricsUpdatedAt: string | null;
   imageUrl: string | null;
+  /** All image asset URLs in order (a multi-image post is an Instagram carousel). */
+  imageUrls: string[];
 };
 
 export type ComposeInput = {
@@ -168,6 +170,7 @@ const postNodeSchema = z
     metrics: p.metrics,
     metricsUpdatedAt: p.metricsUpdatedAt,
     imageUrl: p.assets.find((a) => a.type === "image")?.source ?? null,
+    imageUrls: p.assets.filter((a) => a.type === "image").map((a) => a.source),
   }));
 
 const postsResponseSchema = z.object({
