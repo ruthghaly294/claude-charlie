@@ -1,12 +1,17 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-23",
-  "runsCompleted": 1,
+  "lastRunDate": "2026-06-24",
+  "runsCompleted": 2,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
     "The heel effect is greater with a larger anode angle.",
     "Detectors with high detective quantum efficiency require lower patient doses for a given image quality.",
-    "A high grid ratio improves scatter rejection but decreases patient dose."
+    "A high grid ratio improves scatter rejection but decreases patient dose.",
+    "The equivalent noise index NI is a measure used to set tube voltage modulation in CT.",
+    "Flying focal spot technology improves sampling and resolution in CT.",
+    "Third generation scanners use a rotate-rotate geometry with a parallel beam.",
+    "Water‑equivalent phantoms are used to calibrate CT numbers.",
+    "A high pitch always results in gaps in helical CT data leading to poorer image quality."
   ]
 }
