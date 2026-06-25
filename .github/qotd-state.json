@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-24",
-  "runsCompleted": 2,
+  "lastRunDate": "2026-06-25",
+  "runsCompleted": 3,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -12,6 +12,11 @@
     "Flying focal spot technology improves sampling and resolution in CT.",
     "Third generation scanners use a rotate-rotate geometry with a parallel beam.",
     "Water‑equivalent phantoms are used to calibrate CT numbers.",
-    "A high pitch always results in gaps in helical CT data leading to poorer image quality."
+    "A high pitch always results in gaps in helical CT data leading to poorer image quality.",
+    "Functional MRI primarily relies on changes in blood flow velocity.",
+    "The chemical shift between fat and water at one point five Tesla is approximately 220 Hz",
+    "T2 of cerebrospinal fluid is shorter than that of muscle",
+    "A rectangular field of view is achieved by using different sampling in frequency and phase directions",
+    "Multi echo spin echo sequences collect multiple echoes after a single excitation using a single 180 degree pulse."
   ]
 }
