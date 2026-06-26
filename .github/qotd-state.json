@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-25",
-  "runsCompleted": 3,
+  "lastRunDate": "2026-06-26",
+  "runsCompleted": 4,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -17,6 +17,11 @@
     "The chemical shift between fat and water at one point five Tesla is approximately 220 Hz",
     "T2 of cerebrospinal fluid is shorter than that of muscle",
     "A rectangular field of view is achieved by using different sampling in frequency and phase directions",
-    "Multi echo spin echo sequences collect multiple echoes after a single excitation using a single 180 degree pulse."
+    "Multi echo spin echo sequences collect multiple echoes after a single excitation using a single 180 degree pulse.",
+    "The spatial pulse length is equal to the number of cycles in the pulse divided by the wavelength.",
+    "Reverberation artefacts occur when echoes bounce between two strong reflectors.",
+    "Frame rate increases when the number of scan lines increases, all else equal.",
+    "Mirror artefacts occur due to strong reflectors causing duplication of structures behind the reflector",
+    "Reverberation artefacts occur when sound is absorbed by a single strong reflector."
   ]
 }
