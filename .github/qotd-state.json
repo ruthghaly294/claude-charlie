@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-26",
-  "runsCompleted": 4,
+  "lastRunDate": "2026-06-27",
+  "runsCompleted": 5,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -22,6 +22,11 @@
     "Reverberation artefacts occur when echoes bounce between two strong reflectors.",
     "Frame rate increases when the number of scan lines increases, all else equal.",
     "Mirror artefacts occur due to strong reflectors causing duplication of structures behind the reflector",
-    "Reverberation artefacts occur when sound is absorbed by a single strong reflector."
+    "Reverberation artefacts occur when sound is absorbed by a single strong reflector.",
+    "Lutetium-177 emits only beta particles and no gamma rays.",
+    "LSO and LYSO crystals contain lutetium and have higher light output and faster decay than NaI(Tl).",
+    "The sensitivity of a collimator is inversely proportional to the square of the hole diameter",
+    "A narrower energy window setting reduces the amount of scattered photons detected in a gamma camera.",
+    "The effective half life of a radiopharmaceutical is determined by either its physical half life or its biological half life, but not both."
   ]
 }
