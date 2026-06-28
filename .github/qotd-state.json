@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-27",
-  "runsCompleted": 5,
+  "lastRunDate": "2026-06-28",
+  "runsCompleted": 6,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -27,6 +27,11 @@
     "LSO and LYSO crystals contain lutetium and have higher light output and faster decay than NaI(Tl).",
     "The sensitivity of a collimator is inversely proportional to the square of the hole diameter",
     "A narrower energy window setting reduces the amount of scattered photons detected in a gamma camera.",
-    "The effective half life of a radiopharmaceutical is determined by either its physical half life or its biological half life, but not both."
+    "The effective half life of a radiopharmaceutical is determined by either its physical half life or its biological half life, but not both.",
+    "Automatic brightness control in fluoroscopy maintains constant image brightness by adjusting only the kVp.",
+    "In pulsed fluoroscopy decreasing the pulse width reduces patient exposure for a given pulse rate",
+    "The use of a wedge filter can help equalise attenuation and increase dose to thinner anatomy.",
+    "The photocathode is typically made of a layer of cesium and antimony",
+    "S distortion in image intensifiers is caused by the Earth's gravitational field."
   ]
 }
