@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-28",
-  "runsCompleted": 6,
+  "lastRunDate": "2026-06-29",
+  "runsCompleted": 7,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -32,6 +32,11 @@
     "In pulsed fluoroscopy decreasing the pulse width reduces patient exposure for a given pulse rate",
     "The use of a wedge filter can help equalise attenuation and increase dose to thinner anatomy.",
     "The photocathode is typically made of a layer of cesium and antimony",
-    "S distortion in image intensifiers is caused by the Earth's gravitational field."
+    "S distortion in image intensifiers is caused by the Earth's gravitational field.",
+    "The linear attenuation coefficient is independent of material density",
+    "The probability of photoelectric absorption is much greater in bone than in soft tissue at diagnostic energies",
+    "Equivalent dose is calculated by multiplying absorbed dose by a tissue weighting factor",
+    "Deterministic radiation effects have a dose threshold",
+    "Excitation of atoms involves removing an electron completely from the atom"
   ]
 }
