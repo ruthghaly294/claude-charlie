@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-06-30",
-  "runsCompleted": 8,
+  "lastRunDate": "2026-07-01",
+  "runsCompleted": 9,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -42,6 +42,11 @@
     "Local rules must specify dose investigation levels and actions to be taken if they are exceeded.",
     "The dose limit to the hands and feet for radiation workers is one hundred milliSieverts per year.",
     "Under IRMER the referrer is the person who requests a medical exposure and provides sufficient clinical information",
-    "Persons under eighteen years of age must not be appointed as radiation workers."
+    "Persons under eighteen years of age must not be appointed as radiation workers.",
+    "Image contrast in radiography increases with increasing kVp",
+    "The mAs is the product of tube current and exposure time and determines the quantity of radiation",
+    "The Bucky factor is the ratio of patient dose without the grid to patient dose with the grid.",
+    "Tungsten has an atomic number of seventy four",
+    "Collimation increases the amount of scatter reaching the detector."
   ]
 }
