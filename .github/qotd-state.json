@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-01",
-  "runsCompleted": 9,
+  "lastRunDate": "2026-07-02",
+  "runsCompleted": 10,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -47,6 +47,11 @@
     "The mAs is the product of tube current and exposure time and determines the quantity of radiation",
     "The Bucky factor is the ratio of patient dose without the grid to patient dose with the grid.",
     "Tungsten has an atomic number of seventy four",
-    "Collimation increases the amount of scatter reaching the detector."
+    "Collimation increases the amount of scatter reaching the detector.",
+    "Noise in CT images increases with higher mA",
+    "Increasing gantry rotation time improves temporal resolution in cardiac CT.",
+    "Slip ring technology requires the gantry to stop and reverse direction during helical scanning.",
+    "A detector with a high quantum efficiency requires lower radiation exposure to produce the same signal",
+    "Overbeaming refers to increased radiation exposure due to the x-ray beam width being narrower than the active detector width."
   ]
 }
