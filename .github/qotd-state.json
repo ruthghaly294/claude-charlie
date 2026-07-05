@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-04",
-  "runsCompleted": 11,
+  "lastRunDate": "2026-07-05",
+  "runsCompleted": 12,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -57,6 +57,11 @@
     "RF pulses cause precession of the net magnetisation vector about the main magnetic field.",
     "The Larmor frequency of protons at 1.5 Tesla is about 42.6 MHz.",
     "The field of view is inversely proportional to the gradient strength in the frequency encoding direction",
-    "The chemical shift between fat and water at three Tesla is approximately two hundred and twenty Hertz."
+    "The chemical shift between fat and water at three Tesla is approximately two hundred and twenty Hertz.",
+    "Spectral Doppler displays frequency as a function of time.",
+    "Acoustic impedance is the product of tissue density and sound speed",
+    "Continuous-wave Doppler can measure high velocities without aliasing and can provide range information.",
+    "Autocorrelation is used in colour Doppler to estimate mean frequency shifts",
+    "In pulsed Doppler, increasing the pulse repetition frequency decreases the maximum measurable velocity before aliasing."
   ]
 }
