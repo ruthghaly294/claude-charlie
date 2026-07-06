@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-05",
-  "runsCompleted": 12,
+  "lastRunDate": "2026-07-06",
+  "runsCompleted": 13,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -62,6 +62,11 @@
     "Acoustic impedance is the product of tissue density and sound speed",
     "Continuous-wave Doppler can measure high velocities without aliasing and can provide range information.",
     "Autocorrelation is used in colour Doppler to estimate mean frequency shifts",
-    "In pulsed Doppler, increasing the pulse repetition frequency decreases the maximum measurable velocity before aliasing."
+    "In pulsed Doppler, increasing the pulse repetition frequency decreases the maximum measurable velocity before aliasing.",
+    "Dose calibrators only need to be quality controlled annually to ensure accurate activity measurements.",
+    "The decay time of sodium iodide scintillation light is around two hundred and thirty nanoseconds",
+    "Dose calibrators measure activity in grays or sieverts.",
+    "Photomultiplier tubes (PMTs) convert visible light photons emitted by the scintillator into electrical signals.",
+    "Collimator penetration decreases with higher photon energy."
   ]
 }
