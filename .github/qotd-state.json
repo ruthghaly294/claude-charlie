@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-07",
-  "runsCompleted": 14,
+  "lastRunDate": "2026-07-08",
+  "runsCompleted": 15,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -72,6 +72,11 @@
     "High-dose cine mode in fluoroscopy significantly increases patient entrance surface dose compared with normal fluoroscopy.",
     "Flat panel detectors eliminate pincushion distortion compared to image intensifiers by using a curved input screen.",
     "Frame rates in fluoroscopy of 30 frames per second provide better temporal resolution than 15 frames but increase patient dose",
-    "Image intensifiers have higher detective quantum efficiency than flat panel detectors."
+    "Image intensifiers have higher detective quantum efficiency than flat panel detectors.",
+    "Activity decreases linearly over time following the law A equals A zero times e to the minus lambda t",
+    "Ionisation density is greater for alpha particles than for gamma rays",
+    "The effective dose from a uniform whole body exposure is always greater than the equivalent dose.",
+    "The radiation weighting factor for gamma rays is one",
+    "In electron capture an orbital electron is absorbed by the nucleus converting a neutron to a proton."
   ]
 }
