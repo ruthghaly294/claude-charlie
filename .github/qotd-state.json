@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-08",
-  "runsCompleted": 15,
+  "lastRunDate": "2026-07-09",
+  "runsCompleted": 16,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -77,6 +77,11 @@
     "Ionisation density is greater for alpha particles than for gamma rays",
     "The effective dose from a uniform whole body exposure is always greater than the equivalent dose.",
     "The radiation weighting factor for gamma rays is one",
-    "In electron capture an orbital electron is absorbed by the nucleus converting a neutron to a proton."
+    "In electron capture an orbital electron is absorbed by the nucleus converting a neutron to a proton.",
+    "IRR17 regulates the use of ionising radiation for occupational and public safety in the United States.",
+    "If an employee''s dose exceeds a dose investigation level an investigation must be initiated and recorded",
+    "The equivalent dose limit for the lens of the eye for a member of the public is fifty milliSieverts.",
+    "Workers must not eat or drink in areas where radioactive materials are handled",
+    "Tissue weighting factors are used to calculate the equivalent dose."
   ]
 }
