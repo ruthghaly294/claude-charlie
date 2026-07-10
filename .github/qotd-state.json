@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-09",
-  "runsCompleted": 16,
+  "lastRunDate": "2026-07-10",
+  "runsCompleted": 17,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -82,6 +82,11 @@
     "If an employee''s dose exceeds a dose investigation level an investigation must be initiated and recorded",
     "The equivalent dose limit for the lens of the eye for a member of the public is fifty milliSieverts.",
     "Workers must not eat or drink in areas where radioactive materials are handled",
-    "Tissue weighting factors are used to calculate the equivalent dose."
+    "Tissue weighting factors are used to calculate the equivalent dose.",
+    "Grid cut off occurs when the grid is properly aligned causing primary radiation to be absorbed.",
+    "The heel effect is less pronounced with larger source to image distances",
+    "Tungsten is used for x-ray tube filaments because of its low melting point.",
+    "In mammography, molybdenum targets produce characteristic x‑rays around 20 keV.",
+    "Collimation increases patient dose and scatter."
   ]
 }
