@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-11",
-  "runsCompleted": 18,
+  "lastRunDate": "2026-07-12",
+  "runsCompleted": 19,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -92,6 +92,11 @@
     "Paediatric CT protocols use lower kVp and mA than adult protocols",
     "Multi-slice CT uses a single row of detectors to acquire several slices simultaneously.",
     "High‑resolution CT achieves limiting spatial resolution better than 0.5 mm",
-    "CTDIvol is measured in sieverts"
+    "CTDIvol is measured in sieverts",
+    "Three dimensional acquisitions generally require shorter scan times than two dimensional acquisitions.",
+    "SAR increases with the square of both magnetic field strength and flip angle",
+    "The bandwidth determines the range of frequencies sampled during readout; reducing bandwidth decreases SNR but increases chemical shift artefact.",
+    "MR angiography commonly uses gradient echo sequences to visualise flowing blood",
+    "The magnetisation vector returns to equilibrium along the transverse axis following an exponential recovery characterised by T1."
   ]
 }
