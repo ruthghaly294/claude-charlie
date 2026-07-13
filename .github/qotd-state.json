@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-12",
-  "runsCompleted": 19,
+  "lastRunDate": "2026-07-13",
+  "runsCompleted": 20,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -97,6 +97,11 @@
     "SAR increases with the square of both magnetic field strength and flip angle",
     "The bandwidth determines the range of frequencies sampled during readout; reducing bandwidth decreases SNR but increases chemical shift artefact.",
     "MR angiography commonly uses gradient echo sequences to visualise flowing blood",
-    "The magnetisation vector returns to equilibrium along the transverse axis following an exponential recovery characterised by T1."
+    "The magnetisation vector returns to equilibrium along the transverse axis following an exponential recovery characterised by T1.",
+    "Dynamic receive focusing uses fixed electronic delays to focus echoes at different depths.",
+    "Attenuation is typically expressed in decibels per centimetre",
+    "Ultrasound gel is used to eliminate air between the transducer and skin by creating a vacuum seal.",
+    "Ultrasound gel eliminates air gaps and improves transmission",
+    "Continuous wave Doppler provides range resolution but is prone to aliasing"
   ]
 }
