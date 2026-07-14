@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-13",
-  "runsCompleted": 20,
+  "lastRunDate": "2026-07-14",
+  "runsCompleted": 21,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -102,6 +102,11 @@
     "Attenuation is typically expressed in decibels per centimetre",
     "Ultrasound gel is used to eliminate air between the transducer and skin by creating a vacuum seal.",
     "Ultrasound gel eliminates air gaps and improves transmission",
-    "Continuous wave Doppler provides range resolution but is prone to aliasing"
+    "Continuous wave Doppler provides range resolution but is prone to aliasing",
+    "Collimator septal thickness is chosen based on the half-life of the radionuclide.",
+    "Increasing the thickness of a NaI(Tl) crystal increases detection efficiency but reduces spatial resolution.",
+    "The intrinsic spatial resolution of a gamma camera is influenced by collimator design and energy window settings.",
+    "The energy resolution of a gamma camera determines its ability to discriminate between photons of different energies.",
+    "Time-of-flight PET improves localisation by measuring the energy of the emitted photons."
   ]
 }
