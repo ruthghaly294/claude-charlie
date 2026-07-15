@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-14",
-  "runsCompleted": 21,
+  "lastRunDate": "2026-07-15",
+  "runsCompleted": 22,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -107,6 +107,11 @@
     "Increasing the thickness of a NaI(Tl) crystal increases detection efficiency but reduces spatial resolution.",
     "The intrinsic spatial resolution of a gamma camera is influenced by collimator design and energy window settings.",
     "The energy resolution of a gamma camera determines its ability to discriminate between photons of different energies.",
-    "Time-of-flight PET improves localisation by measuring the energy of the emitted photons."
+    "Time-of-flight PET improves localisation by measuring the energy of the emitted photons.",
+    "The high level control mode in fluoroscopy has the same dose rate limit as normal fluoroscopy",
+    "Collimation reduces patient dose and improves image quality by reducing scatter",
+    "Lead aprons provide 100 percent shielding against scatter radiation",
+    "Last image hold allows viewing the last acquired fluoroscopic image without additional radiation exposure",
+    "Flat panel detectors are more susceptible to blooming artefacts compared to image intensifiers."
   ]
 }
