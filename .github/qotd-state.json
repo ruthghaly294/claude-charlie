@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-15",
-  "runsCompleted": 22,
+  "lastRunDate": "2026-07-16",
+  "runsCompleted": 23,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -112,6 +112,11 @@
     "Collimation reduces patient dose and improves image quality by reducing scatter",
     "Lead aprons provide 100 percent shielding against scatter radiation",
     "Last image hold allows viewing the last acquired fluoroscopic image without additional radiation exposure",
-    "Flat panel detectors are more susceptible to blooming artefacts compared to image intensifiers."
+    "Flat panel detectors are more susceptible to blooming artefacts compared to image intensifiers.",
+    "Equivalent dose units account for both dose and fractionation schedule",
+    "The speed of gamma rays in vacuum is equal to the speed of light",
+    "The linear attenuation coefficient depends only on the density of the material and not on the photon energy.",
+    "The half life of a radionuclide is independent of the chemical form",
+    "Equivalent dose differs from absorbed dose by a tissue weighting factor."
   ]
 }
