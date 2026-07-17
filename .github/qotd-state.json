@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-16",
-  "runsCompleted": 23,
+  "lastRunDate": "2026-07-17",
+  "runsCompleted": 24,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -117,6 +117,11 @@
     "The speed of gamma rays in vacuum is equal to the speed of light",
     "The linear attenuation coefficient depends only on the density of the material and not on the photon energy.",
     "The half life of a radionuclide is independent of the chemical form",
-    "Equivalent dose differs from absorbed dose by a tissue weighting factor."
+    "Equivalent dose differs from absorbed dose by a tissue weighting factor.",
+    "Time, distance, and dosimetry are the three fundamental principles of radiation protection.",
+    "Lead aprons should provide at least 0.5 mm lead equivalence for diagnostic radiology",
+    "Shielding calculations for an x-ray room consider workload, use factor, occupancy factor, and the patient's age.",
+    "Lead aprons typically provide at least 0.5 mm lead equivalence and reduce scatter dose to the torso by about 90 percent",
+    "Radiology equipment only needs quality assurance testing when a malfunction is suspected."
   ]
 }
