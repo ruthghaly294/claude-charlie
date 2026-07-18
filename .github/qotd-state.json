@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-17",
-  "runsCompleted": 24,
+  "lastRunDate": "2026-07-18",
+  "runsCompleted": 25,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -122,6 +122,11 @@
     "Lead aprons should provide at least 0.5 mm lead equivalence for diagnostic radiology",
     "Shielding calculations for an x-ray room consider workload, use factor, occupancy factor, and the patient's age.",
     "Lead aprons typically provide at least 0.5 mm lead equivalence and reduce scatter dose to the torso by about 90 percent",
-    "Radiology equipment only needs quality assurance testing when a malfunction is suspected."
+    "Radiology equipment only needs quality assurance testing when a malfunction is suspected.",
+    "Compression in mammography increases patient dose because tissue is compressed.",
+    "The mass attenuation coefficient of lead is higher than that of aluminium at diagnostic energies",
+    "Characteristic radiation has a continuous energy spectrum.",
+    "An air-gap technique can reduce the amount of scattered radiation reaching the image receptor.",
+    "Three phase generators produce more voltage ripple than single phase generators."
   ]
 }
