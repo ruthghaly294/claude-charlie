@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-18",
-  "runsCompleted": 25,
+  "lastRunDate": "2026-07-19",
+  "runsCompleted": 26,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -127,6 +127,11 @@
     "The mass attenuation coefficient of lead is higher than that of aluminium at diagnostic energies",
     "Characteristic radiation has a continuous energy spectrum.",
     "An air-gap technique can reduce the amount of scattered radiation reaching the image receptor.",
-    "Three phase generators produce more voltage ripple than single phase generators."
+    "Three phase generators produce more voltage ripple than single phase generators.",
+    "Partial volume effect is reduced by increasing slice thickness",
+    "Cone‑beam CT uses a rotating tube and flat‑panel detector to acquire volumetric data in one rotation.",
+    "Photons that pass through the patient without being absorbed contribute to patient dose",
+    "Automatic tube current modulation in CT is designed to reduce patient dose while maintaining image quality.",
+    "Bowtie filters in CT are used to increase patient attenuation and reduce dose."
   ]
 }
