@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-19",
-  "runsCompleted": 26,
+  "lastRunDate": "2026-07-20",
+  "runsCompleted": 27,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -132,6 +132,11 @@
     "Cone‑beam CT uses a rotating tube and flat‑panel detector to acquire volumetric data in one rotation.",
     "Photons that pass through the patient without being absorbed contribute to patient dose",
     "Automatic tube current modulation in CT is designed to reduce patient dose while maintaining image quality.",
-    "Bowtie filters in CT are used to increase patient attenuation and reduce dose."
+    "Bowtie filters in CT are used to increase patient attenuation and reduce dose.",
+    "T1 relaxation times generally decrease with increasing magnetic field strength.",
+    "Aliasing occurs when the field of view is smaller than the object causing signal from outside the field to wrap around",
+    "The frequency encoding gradient is applied parallel to the phase encoding gradient.",
+    "The net magnetisation vector precesses around the main magnetic field at the Larmor frequency",
+    "The slice select gradient determines the slice thickness and a stronger gradient produces thicker slices"
   ]
 }
