@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-20",
-  "runsCompleted": 27,
+  "lastRunDate": "2026-07-21",
+  "runsCompleted": 28,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -137,6 +137,11 @@
     "Aliasing occurs when the field of view is smaller than the object causing signal from outside the field to wrap around",
     "The frequency encoding gradient is applied parallel to the phase encoding gradient.",
     "The net magnetisation vector precesses around the main magnetic field at the Larmor frequency",
-    "The slice select gradient determines the slice thickness and a stronger gradient produces thicker slices"
+    "The slice select gradient determines the slice thickness and a stronger gradient produces thicker slices",
+    "Power Doppler displays flow direction as well as velocity",
+    "The output display standard provides MI and TI values on screen",
+    "Dynamic focusing uses time delays on transmit to improve lateral resolution at different depths.",
+    "Pulsed wave Doppler uses a single crystal for both transmission and reception",
+    "Refraction occurs when sound crosses a boundary at normal incidence."
   ]
 }
