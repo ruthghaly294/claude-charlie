@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-21",
-  "runsCompleted": 28,
+  "lastRunDate": "2026-07-22",
+  "runsCompleted": 29,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -142,6 +142,11 @@
     "The output display standard provides MI and TI values on screen",
     "Dynamic focusing uses time delays on transmit to improve lateral resolution at different depths.",
     "Pulsed wave Doppler uses a single crystal for both transmission and reception",
-    "Refraction occurs when sound crosses a boundary at normal incidence."
+    "Refraction occurs when sound crosses a boundary at normal incidence.",
+    "Parallel hole collimators provide lower sensitivity but higher resolution than pinhole collimators",
+    "Pinhole collimators are commonly used for thyroid and small animal imaging",
+    "Pulse pile up occurs at low count rates when multiple events occur within the resolving time of the system.",
+    "Multi pinhole collimators can improve sensitivity while maintaining resolution for small animal SPECT",
+    "Random coincidences in PET occur when two related photons are detected within the coincidence window."
   ]
 }
