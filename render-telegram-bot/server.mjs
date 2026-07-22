@@ -112,6 +112,33 @@ async function deletePost(id) {
   if (data.deletePost.__typename !== "DeletePostSuccess") throw new Error(data.deletePost.message || "Buffer delete failed");
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function confirmPublication(id, chatId) {
+  for (let attempt = 0; attempt < 18; attempt += 1) {
+    const post = await getPost(id);
+    if (post.status === "sent") {
+      await telegram("sendMessage", {
+        chat_id: chatId,
+        text: `✅ Published successfully to Instagram via Buffer.\n\nBuffer post: ${id}\nSent: ${post.sentAt || "confirmed"}`,
+      });
+      return;
+    }
+    if (post.status === "error") {
+      await telegram("sendMessage", {
+        chat_id: chatId,
+        text: `❌ Instagram publishing failed in Buffer.\n\nBuffer post: ${id}\n${post.error?.message || "Unknown Buffer error"}`,
+      });
+      return;
+    }
+    await wait(5_000);
+  }
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: `⚠️ Buffer is still processing this Instagram post after 90 seconds.\n\nBuffer post: ${id}\nCheck Buffer before trying again.`,
+  });
+}
+
 async function handleCallback(query) {
   const data = query.data || "";
   const first = data.indexOf(":");
@@ -133,6 +160,25 @@ async function handleCallback(query) {
   else throw new Error("Unknown action");
   await telegram("editMessageReplyMarkup", { chat_id: message.chat.id, message_id: message.message_id, reply_markup: { inline_keyboard: [] } });
   await telegram("answerCallbackQuery", { callback_query_id: query.id, text: command === "publish" ? "Approved — publishing via Buffer" : command === "at" ? `Scheduled for ${dueAt}` : "Rejected" });
+  if (command === "publish") {
+    void confirmPublication(id, message.chat.id).catch(async (error) => {
+      console.error("Publish confirmation failed", error);
+      await telegram("sendMessage", {
+        chat_id: message.chat.id,
+        text: `⚠️ Could not confirm the final Buffer status for ${id}. Please check Buffer.`,
+      }).catch(() => undefined);
+    });
+  } else if (command === "at") {
+    await telegram("sendMessage", {
+      chat_id: message.chat.id,
+      text: `🗓 Scheduled successfully in Buffer.\n\nBuffer post: ${id}\nPublish time: ${dueAt}`,
+    });
+  } else if (command === "delete") {
+    await telegram("sendMessage", {
+      chat_id: message.chat.id,
+      text: `🗑 Rejected and removed from Buffer.\n\nBuffer post: ${id}`,
+    });
+  }
 }
 
 async function syncDrafts(seed = false) {
