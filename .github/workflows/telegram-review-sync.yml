@@ -28,6 +28,9 @@ jobs:
           BUFFER_CHANNEL_ID: 6a2c16ff38b55793458ab515
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_REVIEW_CHAT_ID: ${{ secrets.TELEGRAM_REVIEW_CHAT_ID }}
+          # A manual run is an explicit delivery test; scheduled runs remain
+          # deduplicated and only send genuinely unseen drafts.
+          FORCE_LATEST: ${{ github.event_name == 'workflow_dispatch' }}
         run: node render-telegram-bot/sync.mjs
       - name: Persist notification state
         run: |

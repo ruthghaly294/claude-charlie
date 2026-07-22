@@ -146,7 +146,7 @@ async function syncDrafts(seed = false) {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.url === "/health") return void response.end(JSON.stringify({ ok: true }));
-    if (request.method !== "POST" || request.url !== "/telegram/webhook") {
+    if (request.method !== "POST") {
       response.statusCode = 404; return void response.end("not found");
     }
     if (request.headers["x-telegram-bot-api-secret-token"] !== process.env.TELEGRAM_WEBHOOK_SECRET) {

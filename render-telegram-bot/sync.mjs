@@ -45,15 +45,24 @@ async function send(item) {
   } else if (previews[0]) {
     await post(`${telegramApi}/sendPhoto`, { chat_id: process.env.TELEGRAM_REVIEW_CHAT_ID,
       photo: previews[0], caption, reply_markup: keyboard(item.id) });
+  } else {
+    throw new Error(`Buffer draft ${item.id} has no Telegram-compatible preview`);
   }
 }
 
 const state = JSON.parse(readFileSync(statePath, "utf8"));
 const current = await drafts();
 const seen = new Set(state.seen || []);
+const forceLatest = process.env.FORCE_LATEST === "true";
+let delivered = 0;
 if (state.initialized) {
-  for (const item of current) if (!seen.has(item.id)) await send(item);
+  for (const [index, item] of current.entries()) {
+    if (!seen.has(item.id) || (forceLatest && index === 0)) {
+      await send(item);
+      delivered += 1;
+    }
+  }
 }
 for (const item of current) seen.add(item.id);
 writeFileSync(statePath, `${JSON.stringify({ initialized: true, seen: [...seen].slice(-500) }, null, 2)}\n`);
-console.log(`${state.initialized ? "Sent new" : "Seeded"} Buffer drafts; tracking ${seen.size}.`);
+console.log(`${state.initialized ? `Delivered ${delivered}` : "Seeded"} Buffer draft notification(s); tracking ${seen.size}.`);
