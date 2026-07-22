@@ -2,7 +2,9 @@ name: Telegram review sync
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Run once after the 07:00 UTC content-generation window, batching all new
+    # Buffer drafts into a single daily Telegram review delivery.
+    - cron: "15 7 * * *"
   workflow_dispatch:
 
 permissions:
