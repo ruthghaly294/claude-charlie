@@ -1,7 +1,7 @@
 {
   "startDate": "2026-06-23",
-  "lastRunDate": "2026-07-22",
-  "runsCompleted": 29,
+  "lastRunDate": "2026-07-23",
+  "runsCompleted": 30,
   "usedStatements": [
     "Rotating anodes use a tungsten stem to reduce weight.",
     "Rotating anodes allow higher tube currents by distributing heat over a larger area.",
@@ -147,6 +147,11 @@
     "Pinhole collimators are commonly used for thyroid and small animal imaging",
     "Pulse pile up occurs at low count rates when multiple events occur within the resolving time of the system.",
     "Multi pinhole collimators can improve sensitivity while maintaining resolution for small animal SPECT",
-    "Random coincidences in PET occur when two related photons are detected within the coincidence window."
+    "Random coincidences in PET occur when two related photons are detected within the coincidence window.",
+    "In a C arm fluoroscopy unit positioning the X ray tube above the patient reduces radiation dose to staff",
+    "Digital subtraction angiography subtracts a mask image from subsequent images to highlight vascular contrast",
+    "The fluoroscopic exposure rate is directly proportional to the square of the source to image distance.",
+    "The photocathode converts light to electrons in an image intensifier",
+    "In fluoroscopy the automatic brightness control response time is instantaneous"
   ]
 }
