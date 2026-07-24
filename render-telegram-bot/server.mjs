@@ -1,4 +1,5 @@
 import http from "node:http";
+import { createSignupMonitor, formatSummary } from "./supabase-signups.mjs";
 
 const port = Number(process.env.PORT || 10000);
 const telegramApi = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
@@ -21,6 +22,11 @@ async function jsonFetch(url, body, headers = {}) {
 function telegram(method, body) {
   return jsonFetch(`${telegramApi}/${method}`, body);
 }
+
+const signupChatId = process.env.TELEGRAM_SIGNUP_CHAT_ID || process.env.TELEGRAM_REVIEW_CHAT_ID;
+const signupMonitor = createSignupMonitor({
+  notify: (text) => telegram("sendMessage", { chat_id: signupChatId, text }),
+});
 
 async function buffer(query, variables) {
   const json = await jsonFetch(bufferEndpoint, { query, variables }, {
@@ -181,6 +187,14 @@ async function handleCallback(query) {
   }
 }
 
+async function handleMessage(message) {
+  if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) throw new Error("Unauthorized chat");
+  const command = message.text?.trim().split(/\s+/)[0]?.split("@")[0];
+  if (command !== "/signups") return;
+  const users = await signupMonitor.list(24);
+  await telegram("sendMessage", { chat_id: message.chat.id, text: formatSummary(users) });
+}
+
 async function syncDrafts(seed = false) {
   const drafts = await listDrafts();
   for (const post of drafts) {
@@ -202,6 +216,7 @@ const server = http.createServer(async (request, response) => {
     for await (const chunk of request) raw += chunk;
     const update = JSON.parse(raw || "{}");
     if (update.callback_query) await handleCallback(update.callback_query);
+    else if (update.message) await handleMessage(update.message);
     response.end(JSON.stringify({ ok: true }));
   } catch (error) {
     console.error(error);
@@ -213,4 +228,10 @@ server.listen(port, async () => {
   console.log(`FRCR Bank Telegram review service listening on ${port}`);
   try { await syncDrafts(true); } catch (error) { console.error("Initial Buffer sync failed", error); }
   setInterval(() => syncDrafts(false).catch((error) => console.error("Buffer sync failed", error)), 5 * 60_000).unref();
+  if (signupMonitor.configured) {
+    try { await signupMonitor.poll(); } catch (error) { console.error("Initial Supabase signup sync failed", error); }
+    setInterval(() => signupMonitor.poll().catch((error) => console.error("Supabase signup sync failed", error)), 60_000).unref();
+  } else {
+    console.warn("Supabase signup alerts disabled: set SUPABASE_URL and SUPABASE_SECRET_KEY");
+  }
 });
