@@ -6,6 +6,7 @@ const signupPollMs = Math.max(1, Number(process.env.SIGNUP_POLL_HOURS || 4)) * 6
 const telegramApi = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 const bufferEndpoint = "https://api.buffer.com/graphql";
 const seenDrafts = new Set();
+let latestSeoReport = null;
 
 async function jsonFetch(url, body, headers = {}) {
   const response = await fetch(url, {
@@ -23,6 +24,21 @@ async function jsonFetch(url, body, headers = {}) {
 function telegram(method, body) {
   return jsonFetch(`${telegramApi}/${method}`, body);
 }
+
+const seoMenu = { inline_keyboard: [
+  [{ text: "1 · Executive summary", callback_data: "seo:summary" }],
+  [{ text: "2 · Business KPIs", callback_data: "seo:kpis" }],
+  [{ text: "3 · What’s working", callback_data: "seo:working" }],
+  [{ text: "4 · Underperforming", callback_data: "seo:underperforming" }],
+  [{ text: "5 · Recommendations", callback_data: "seo:recommendations" }],
+  [{ text: "6 · Action plan", callback_data: "seo:actions" }],
+] };
+const seoLabels = { summary: "Executive summary", kpis: "Business KPIs", working: "What’s working", underperforming: "What’s underperforming", recommendations: "Prioritized recommendations", actions: "Action plan" };
+function seoText(section) {
+  if (!latestSeoReport) return "📊 SEO report\n\nNo report has been received yet. The menu will populate after the next Nightly SEO run.";
+  return latestSeoReport[section] || "This section is not available in the latest report.";
+}
+function seoBackKeyboard() { return { inline_keyboard: [[{ text: "← Back to SEO menu", callback_data: "seo:menu" }]] }; }
 
 const signupChatId = process.env.TELEGRAM_SIGNUP_CHAT_ID || process.env.TELEGRAM_REVIEW_CHAT_ID;
 const signupMonitor = createSignupMonitor({
@@ -155,6 +171,11 @@ async function handleCallback(query) {
   const dueAt = second < 0 ? undefined : data.slice(second + 1);
   const message = query.message;
   if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) throw new Error("Unauthorized chat");
+  if (command === "seo") {
+    await telegram("answerCallbackQuery", { callback_query_id: query.id });
+    if (id === "menu") return telegram("editMessageText", { chat_id: message.chat.id, message_id: message.message_id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
+    return telegram("editMessageText", { chat_id: message.chat.id, message_id: message.message_id, text: `📊 ${seoLabels[id] || "SEO report"}\n\n${seoText(id)}`, reply_markup: seoBackKeyboard() });
+  }
   if (command === "schedule" || command === "back") {
     await telegram("editMessageReplyMarkup", { chat_id: message.chat.id, message_id: message.message_id,
       reply_markup: command === "schedule" ? scheduleKeyboard(id) : keyboard(id) });
@@ -190,6 +211,7 @@ async function handleCallback(query) {
 
 async function handleMessage(message) {
   const command = message.text?.trim().split(/\s+/)[0]?.split("@")[0];
+  if (command === "/seo") return telegram("sendMessage", { chat_id: message.chat.id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
   if (command !== "/signups") return;
   if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
     await telegram("sendMessage", {
@@ -222,6 +244,12 @@ async function syncDrafts(seed = false) {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.url === "/health") return void response.end(JSON.stringify({ ok: true }));
+    if (request.url === "/seo/report" && request.method === "POST") {
+      if (request.headers.authorization !== `Bearer ${process.env.SEO_REPORT_WEBHOOK_SECRET}`) { response.statusCode = 401; return void response.end("unauthorized"); }
+      let raw = ""; for await (const chunk of request) raw += chunk;
+      latestSeoReport = JSON.parse(raw || "{}");
+      return void response.end(JSON.stringify({ ok: true }));
+    }
     if (request.method !== "POST") {
       response.statusCode = 404; return void response.end("not found");
     }
