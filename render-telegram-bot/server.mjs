@@ -275,7 +275,7 @@ const server = http.createServer(async (request, response) => {
     for await (const chunk of request) raw += chunk;
     const update = JSON.parse(raw || "{}");
     if (update.callback_query) await handleCallback(update.callback_query);
-    else if (update.message) await handleMessage(update.message);
+    else if (update.message || update.channel_post) await handleMessage(update.message || update.channel_post);
     response.end(JSON.stringify({ ok: true }));
   } catch (error) {
     console.error(error);
