@@ -164,12 +164,35 @@ async function confirmPublication(id, chatId) {
 
 async function handleCallback(query) {
   const data = query.data || "";
+  const message = query.message;
+  if (data.startsWith("seo:")) {
+    if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
+      await telegram("answerCallbackQuery", {
+        callback_query_id: query.id,
+        text: `This chat is not authorized. Chat ID: ${message.chat.id}`,
+        show_alert: true,
+      });
+      return;
+    }
+    const section = data.slice(4);
+    await telegram("answerCallbackQuery", { callback_query_id: query.id });
+    if (section === "menu") {
+      return telegram("editMessageText", {
+        chat_id: message.chat.id, message_id: message.message_id,
+        text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu,
+      });
+    }
+    return telegram("editMessageText", {
+      chat_id: message.chat.id, message_id: message.message_id,
+      text: `📊 ${seoLabels[section] || "SEO report"}\n\n${seoText(section)}`,
+      reply_markup: seoBackKeyboard(),
+    });
+  }
   const first = data.indexOf(":");
   const second = data.indexOf(":", first + 1);
   const command = data.slice(0, first);
   const id = data.slice(first + 1, second < 0 ? undefined : second);
   const dueAt = second < 0 ? undefined : data.slice(second + 1);
-  const message = query.message;
   if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
     await telegram("answerCallbackQuery", {
       callback_query_id: query.id,
@@ -177,11 +200,6 @@ async function handleCallback(query) {
       show_alert: true,
     });
     return;
-  }
-  if (command === "seo") {
-    await telegram("answerCallbackQuery", { callback_query_id: query.id });
-    if (id === "menu") return telegram("editMessageText", { chat_id: message.chat.id, message_id: message.message_id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
-    return telegram("editMessageText", { chat_id: message.chat.id, message_id: message.message_id, text: `📊 ${seoLabels[id] || "SEO report"}\n\n${seoText(id)}`, reply_markup: seoBackKeyboard() });
   }
   if (command === "schedule" || command === "back") {
     await telegram("editMessageReplyMarkup", { chat_id: message.chat.id, message_id: message.message_id,
