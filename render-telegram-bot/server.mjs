@@ -170,7 +170,14 @@ async function handleCallback(query) {
   const id = data.slice(first + 1, second < 0 ? undefined : second);
   const dueAt = second < 0 ? undefined : data.slice(second + 1);
   const message = query.message;
-  if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) throw new Error("Unauthorized chat");
+  if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
+    await telegram("answerCallbackQuery", {
+      callback_query_id: query.id,
+      text: `This chat is not authorized. Chat ID: ${message.chat.id}`,
+      show_alert: true,
+    });
+    return;
+  }
   if (command === "seo") {
     await telegram("answerCallbackQuery", { callback_query_id: query.id });
     if (id === "menu") return telegram("editMessageText", { chat_id: message.chat.id, message_id: message.message_id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
@@ -211,7 +218,15 @@ async function handleCallback(query) {
 
 async function handleMessage(message) {
   const command = message.text?.trim().split(/\s+/)[0]?.split("@")[0];
-  if (command === "/seo") return telegram("sendMessage", { chat_id: message.chat.id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
+  if (command === "/seo") {
+    if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
+      return telegram("sendMessage", {
+        chat_id: message.chat.id,
+        text: `This chat is not authorized for SEO data.\n\nChat ID: ${message.chat.id}\nUse /seo in the FRCR Bank review chat or configure this chat for reports.`,
+      });
+    }
+    return telegram("sendMessage", { chat_id: message.chat.id, text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu });
+  }
   if (command !== "/signups") return;
   if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
     await telegram("sendMessage", {
