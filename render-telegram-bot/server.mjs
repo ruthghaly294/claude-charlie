@@ -188,11 +188,26 @@ async function handleCallback(query) {
 }
 
 async function handleMessage(message) {
-  if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) throw new Error("Unauthorized chat");
   const command = message.text?.trim().split(/\s+/)[0]?.split("@")[0];
   if (command !== "/signups") return;
-  const users = await signupMonitor.list(24);
-  await telegram("sendMessage", { chat_id: message.chat.id, text: formatSummary(users) });
+  if (String(message.chat.id) !== String(process.env.TELEGRAM_REVIEW_CHAT_ID)) {
+    await telegram("sendMessage", {
+      chat_id: message.chat.id,
+      text: `This chat is not authorized for signup data.\n\nChat ID: ${message.chat.id}\nConfigure this as TELEGRAM_REVIEW_CHAT_ID or use /signups in the FRCR Bank review chat.`,
+    });
+    return;
+  }
+  await telegram("sendChatAction", { chat_id: message.chat.id, action: "typing" });
+  try {
+    const users = await signupMonitor.list(24);
+    await telegram("sendMessage", { chat_id: message.chat.id, text: formatSummary(users) });
+  } catch (error) {
+    console.error("Supabase /signups command failed", error);
+    await telegram("sendMessage", {
+      chat_id: message.chat.id,
+      text: `⚠️ Could not fetch signups: ${error instanceof Error ? error.message : "unknown error"}`,
+    });
+  }
 }
 
 async function syncDrafts(seed = false) {
