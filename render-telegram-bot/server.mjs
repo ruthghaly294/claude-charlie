@@ -260,7 +260,7 @@ const server = http.createServer(async (request, response) => {
   try {
     if (request.url === "/health") return void response.end(JSON.stringify({ ok: true }));
     if (request.url === "/seo/report" && request.method === "POST") {
-      if (request.headers.authorization !== `Bearer ${process.env.SEO_REPORT_WEBHOOK_SECRET}`) { response.statusCode = 401; return void response.end("unauthorized"); }
+      if (request.headers["x-telegram-bot-api-secret-token"] !== process.env.TELEGRAM_WEBHOOK_SECRET) { response.statusCode = 401; return void response.end("unauthorized"); }
       let raw = ""; for await (const chunk of request) raw += chunk;
       latestSeoReport = JSON.parse(raw || "{}");
       return void response.end(JSON.stringify({ ok: true }));
