@@ -175,15 +175,18 @@ async function handleCallback(query) {
       return;
     }
     const section = data.slice(4);
-    await telegram("answerCallbackQuery", { callback_query_id: query.id });
+    await telegram("answerCallbackQuery", {
+      callback_query_id: query.id,
+      text: section === "menu" ? "Opening SEO menu…" : "Fetching data…",
+    }).catch((error) => console.warn("Could not acknowledge SEO callback:", error.message));
     if (section === "menu") {
-      return telegram("editMessageText", {
-        chat_id: message.chat.id, message_id: message.message_id,
+      return telegram("sendMessage", {
+        chat_id: message.chat.id,
         text: "📊 Nightly SEO & GA4\n\nChoose a section:", reply_markup: seoMenu,
       });
     }
-    return telegram("editMessageText", {
-      chat_id: message.chat.id, message_id: message.message_id,
+    return telegram("sendMessage", {
+      chat_id: message.chat.id,
       text: `📊 ${seoLabels[section] || "SEO report"}\n\n${seoText(section)}`,
       reply_markup: seoBackKeyboard(),
     });
