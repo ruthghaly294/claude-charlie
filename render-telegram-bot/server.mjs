@@ -2,6 +2,7 @@ import http from "node:http";
 import { createSignupMonitor, formatSummary } from "./supabase-signups.mjs";
 
 const port = Number(process.env.PORT || 10000);
+const signupPollMs = Math.max(1, Number(process.env.SIGNUP_POLL_HOURS || 4)) * 60 * 60_000;
 const telegramApi = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 const bufferEndpoint = "https://api.buffer.com/graphql";
 const seenDrafts = new Set();
@@ -245,7 +246,8 @@ server.listen(port, async () => {
   setInterval(() => syncDrafts(false).catch((error) => console.error("Buffer sync failed", error)), 5 * 60_000).unref();
   if (signupMonitor.configured) {
     try { await signupMonitor.poll(); } catch (error) { console.error("Initial Supabase signup sync failed", error); }
-    setInterval(() => signupMonitor.poll().catch((error) => console.error("Supabase signup sync failed", error)), 60_000).unref();
+    setInterval(() => signupMonitor.poll().catch((error) => console.error("Supabase signup sync failed", error)), signupPollMs).unref();
+    console.log(`Supabase signup alerts checking every ${signupPollMs / 3_600_000} hour(s)`);
   } else {
     console.warn("Supabase signup alerts disabled: set SUPABASE_URL and SUPABASE_SECRET_KEY");
   }
