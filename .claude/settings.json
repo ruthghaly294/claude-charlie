@@ -51,6 +51,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash /home/codespace/.claude/scripts/brain/hooks/save-conversation.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "echo '\\n--- Verification Reminder ---\\nBefore declaring done, confirm:\\n  [ ] Tests pass (npm test)\\n  [ ] Types check (npx tsc --noEmit)\\n  [ ] Lint passes (npm run lint)\\n  [ ] Changes reviewed (git diff main...HEAD)\\nRun /verify to check all at once.\\n---' >&2"
           }
         ]

@@ -95,3 +95,9 @@ EOF
 fi
 
 log_ok "vault ready at $vault"
+
+# Ensure qmd indexes the vault
+if command -v qmd >/dev/null; then
+  (cd "$vault" && qmd collection add . --name brain 2>/dev/null || true)
+  log_ok "qmd collection registered"
+fi

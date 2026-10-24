@@ -574,6 +574,7 @@ install_brain_scripts() {
   fi
 
   chmod +x "$dst/brain" "$dst"/adapters/*.sh "$dst"/pipelines/*.sh
+  [ -d "$dst/hooks" ] && chmod +x "$dst"/hooks/*.sh
 
   mkdir -p "$HOME/.local/bin"
   ln -sf "$dst/brain" "$HOME/.local/bin/brain"
@@ -584,6 +585,84 @@ install_brain_scripts() {
   log_ok "brain scripts installed at $dst"
   log_ok "brain symlinked to ~/.local/bin/brain"
   log_ok "/brain slash command installed"
+}
+
+register_brain_stop_hook() {
+  local settings="$HOME/.claude/settings.json"
+  local hook_cmd="$HOME/.claude/scripts/brain/hooks/save-conversation.sh"
+  command -v jq >/dev/null || { log_fail "jq required for hook registration"; ERRORS=$((ERRORS + 1)); return; }
+
+  if [ ! -f "$settings" ]; then
+    echo '{}' > "$settings"
+  fi
+  jq empty "$settings" 2>/dev/null || { log_warn "settings.json malformed — skipping hook registration"; return; }
+
+  cp "$settings" "${settings}.bak"
+
+  jq --arg cmd "$hook_cmd" '
+    .hooks = ((.hooks // {})) |
+    .hooks.Stop = ((.hooks.Stop // []) | map(select(.hooks // [] | map(.command) | index($cmd) | not))) |
+    .hooks.Stop += [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": $cmd}]
+    }]
+  ' "$settings" > "${settings}.tmp" && mv "${settings}.tmp" "$settings"
+
+  if jq -e --arg cmd "$hook_cmd" '
+    .hooks.Stop // [] | map(.hooks // [] | map(.command)) | flatten | index($cmd)
+  ' "$settings" >/dev/null; then
+    log_ok "brain Stop hook registered (auto-saves conversations to vault)"
+  else
+    log_fail "failed to register brain Stop hook"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
+register_brain_auto_context() {
+  local global_md="$HOME/.claude/CLAUDE.md"
+  local marker_start="<!-- BEGIN brain-auto-context -->"
+  local marker_end="<!-- END brain-auto-context -->"
+  local snippet
+  snippet="$(cat <<'EOF'
+<!-- BEGIN brain-auto-context -->
+## Second Brain — auto-context reflex
+
+You have access to the `qmd` MCP server, which indexes the user's personal
+knowledge vault at `~/second-brain/`. Treat it as the user's long-term memory.
+
+**Use the qmd `query` tool by reflex when:**
+- The user asks about something they may have read, captured, or discussed before
+  ("what did I learn about X?", "have I seen this?", "remind me of…")
+- The user references prior work, decisions, or notes
+- A question would be answered better with cited prior context than from
+  general knowledge alone
+- The user pastes or references a topic that maps cleanly to vault content
+
+**Do NOT call qmd for:**
+- Pure code generation, refactoring, or implementation tasks
+- Questions that have nothing to do with the user's saved knowledge
+- Trivial factual lookups answerable from your training
+
+When you do call qmd, cite the result file paths so the user can open them in
+Obsidian (`~/second-brain/...`).
+<!-- END brain-auto-context -->
+EOF
+)"
+
+  mkdir -p "$HOME/.claude"
+  if [ ! -f "$global_md" ]; then
+    printf '%s\n' "$snippet" > "$global_md"
+    log_ok "brain auto-context snippet added to ~/.claude/CLAUDE.md (created)"
+    return
+  fi
+
+  if grep -q "$marker_start" "$global_md"; then
+    log_ok "brain auto-context snippet already present in ~/.claude/CLAUDE.md"
+    return
+  fi
+
+  printf '\n%s\n' "$snippet" >> "$global_md"
+  log_ok "brain auto-context snippet appended to ~/.claude/CLAUDE.md"
 }
 
 register_qmd_mcp() {
@@ -633,6 +712,8 @@ ensure_graphify_python
 ensure_obsidian_skills_plugin
 install_brain_scripts
 register_qmd_mcp
+register_brain_stop_hook
+register_brain_auto_context
 bootstrap_vault
 
 if [ "$RUN_TESTS" -eq 1 ]; then

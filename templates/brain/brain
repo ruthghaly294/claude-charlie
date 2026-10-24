@@ -4,7 +4,15 @@
 
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve real path of the script (handling symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+HERE="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
 # shellcheck disable=SC1091
 source "$HERE/lib/log.sh"
 # shellcheck disable=SC1091
@@ -22,6 +30,7 @@ Usage:
   brain status                             Vault stats + tool availability
   brain query "<question>"                 Hybrid qmd search
   brain canvas <topic>                     Build JSON Canvas of topic neighborhood
+  brain watch                              Daemon: watch _dropbox/ for new captures
   brain init                               Bootstrap or repair the vault
   brain help                               This message
 EOF
@@ -54,6 +63,9 @@ case "$cmd" in
     ;;
   canvas)
     "$HERE/pipelines/canvas.sh" "$@"
+    ;;
+  watch)
+    "$HERE/pipelines/watch.sh" "$@"
     ;;
   init)
     "$HERE/pipelines/init.sh"

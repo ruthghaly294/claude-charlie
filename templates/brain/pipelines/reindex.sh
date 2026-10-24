@@ -22,9 +22,9 @@ else
   qmd_status=127
 fi
 
-log_step "Reindex (2/2) — graphify --update --obsidian"
+log_step "Reindex (2/2) — graphify update"
 if command -v graphify >/dev/null; then
-  graphify "$BRAIN_VAULT" --update --obsidian --obsidian-dir "$BRAIN_VAULT" || graphify_status=$?
+  graphify update "$BRAIN_VAULT" || graphify_status=$?
 else
   log_warn "graphify not installed — skipping"
   graphify_status=127

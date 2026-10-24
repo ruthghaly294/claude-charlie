@@ -54,6 +54,27 @@ Run `./setup.sh` to install global tools. See README.md for details.
 | `verify-app`       | Background verification (tests, types, lint) |
 | `security-auditor` | Background OWASP security scan               |
 
+## Second Brain — auto-context reflex
+
+You have access to the `qmd` MCP server, which indexes the user's personal
+knowledge vault at `~/second-brain/`. Treat it as the user's long-term memory.
+
+**Use the qmd `query` tool by reflex when:**
+- The user asks about something they may have read, captured, or discussed before
+  ("what did I learn about X?", "have I seen this?", "remind me of…")
+- The user references prior work, decisions, or notes
+- A question would be answered better with cited prior context than from
+  general knowledge alone
+- The user pastes or references a topic that maps cleanly to vault content
+
+**Do NOT call qmd for:**
+- Pure code generation, refactoring, or implementation tasks
+- Questions that have nothing to do with the user's saved knowledge
+- Trivial factual lookups answerable from your training
+
+When you do call qmd, cite the result file paths so the user can open them in
+Obsidian (`~/second-brain/...`).
+
 ## Hooks (automatic)
 
 - **PreToolUse**: blocks dangerous commands + protects sensitive files
