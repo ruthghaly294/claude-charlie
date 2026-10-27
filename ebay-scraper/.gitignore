@@ -1,0 +1,3 @@
+coverage/
+.server/
+.env.server

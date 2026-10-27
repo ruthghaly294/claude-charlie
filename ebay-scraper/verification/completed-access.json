@@ -1,0 +1,18 @@
+[
+  {
+    "sold_only": false,
+    "status": 503,
+    "data": {
+      "code": "UPSTREAM_AUTH_REQUIRED",
+      "detail": "eBay requires sign-in for completed listings. Connect a dedicated signed-in Chrome session using EBAY_CHROME_CDP."
+    }
+  },
+  {
+    "sold_only": true,
+    "status": 503,
+    "data": {
+      "code": "UPSTREAM_AUTH_REQUIRED",
+      "detail": "eBay requires sign-in for completed listings. Connect a dedicated signed-in Chrome session using EBAY_CHROME_CDP."
+    }
+  }
+]

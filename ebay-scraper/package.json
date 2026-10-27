@@ -1,0 +1,37 @@
+{
+  "name": "ebay-search-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "setup:chrome": "bash scripts/setup-chrome.sh",
+    "dev": "tsx watch src/main.ts",
+    "start": "node --env-file-if-exists=.env dist/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "prettier --check src tests *.json *.ts",
+    "format": "prettier --write src tests *.json *.ts",
+    "login": "node --env-file-if-exists=.env dist/login.js"
+  },
+  "dependencies": {
+    "cheerio": "1.2.0",
+    "fastify": "5.12.7",
+    "impit": "0.14.7",
+    "playwright-core": "1.64.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "5.0.5",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

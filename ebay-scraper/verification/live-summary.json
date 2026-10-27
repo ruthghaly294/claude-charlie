@@ -1,0 +1,59 @@
+{
+  "browser": "Google Chrome 156.0.8078.47",
+  "mode": "headed Chrome under Xvfb, service default",
+  "anonymous_profile": true,
+  "proxy_used": false,
+  "scrapebadger_used": false,
+  "query": {
+    "query": "pokemon card charizard base set psa",
+    "domain": "co.uk",
+    "per_page": 60,
+    "buying_format": "buy_it_now"
+  },
+  "pages": [
+    {
+      "page": 1,
+      "status": 200,
+      "duration_ms": "19677",
+      "returned": 60,
+      "pagination": {
+        "current_page": 1,
+        "per_page": 60,
+        "returned": 60,
+        "total_results": 1800,
+        "total_pages": null,
+        "has_more": true
+      },
+      "first_ids": [
+        "940042554020",
+        "880035372489",
+        "327424635081"
+      ],
+      "scraped_at": "2026-10-26T22:32:44.374Z",
+      "response_sha256": "0b795e529ee60af229e1d337d3524b4271af75730663d9746d8afeba3d281aa2"
+    },
+    {
+      "page": 2,
+      "status": 200,
+      "duration_ms": "14601",
+      "returned": 60,
+      "pagination": {
+        "current_page": 2,
+        "per_page": 60,
+        "returned": 60,
+        "total_results": 1800,
+        "total_pages": null,
+        "has_more": true
+      },
+      "first_ids": [
+        "407074162771",
+        "407254429217",
+        "407074180033"
+      ],
+      "scraped_at": "2026-10-26T22:32:59.261Z",
+      "response_sha256": "3f49fd782c937b2639afc09f7d478cda861d5fef2401e51d96a90bb4fe05b668"
+    }
+  ],
+  "unique_items": 120,
+  "overlapping_item_ids": 0
+}

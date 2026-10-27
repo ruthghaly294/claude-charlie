@@ -1,0 +1,36 @@
+app = "aaron-ebay-scraper"
+primary_region = "lhr"
+kill_signal = "SIGTERM"
+kill_timeout = "90s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "3001"
+  EBAY_CHROME_PROFILE = "/data/chrome"
+  EBAY_CHROME_HEADLESS = "true"
+  MAX_CONCURRENT = "1"
+  WATCH_DB = "/data/watches.sqlite"
+  ENABLE_VNC = "false"
+  EBAY_SESSION_IMPORT = "/data/ebay-session.json"
+  EBAY_TIMEOUT_MS = "60000"
+
+[[mounts]]
+  source = "ebay_chrome"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+[[restart]]
+  policy = "always"

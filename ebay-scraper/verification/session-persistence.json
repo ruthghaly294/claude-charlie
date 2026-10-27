@@ -1,0 +1,12 @@
+{
+  "query": "chesterfield captain chairs",
+  "market": "co.uk",
+  "before_count": 60,
+  "after_container_recreation_count": 60,
+  "same_item_ids": true,
+  "reauthentication_required": false,
+  "api_navigation_fix_pending_verification": false,
+  "after_fix_api_http_status": 200,
+  "after_fix_api_result_count": 60,
+  "after_fix_api_elapsed_ms": 9566
+}

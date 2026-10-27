@@ -1,0 +1,98 @@
+{
+  "profiles": [
+    {
+      "profile": "chairs",
+      "windows": [
+        {
+          "requestedDays": 90,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 58,
+          "average": 227.83,
+          "median": 208.7,
+          "floor": 21.07,
+          "ceiling": 595,
+          "typicalLow": 126,
+          "typicalHigh": 290.33,
+          "oldestSale": "2026-08-03T00:00:00.000Z",
+          "newestSale": "2026-10-26T00:00:00.000Z"
+        },
+        {
+          "requestedDays": 180,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 59,
+          "average": 229.89,
+          "median": 208.7,
+          "floor": 21.07,
+          "ceiling": 595,
+          "typicalLow": 127,
+          "typicalHigh": 297.62,
+          "oldestSale": "2026-07-29T00:00:00.000Z",
+          "newestSale": "2026-10-26T00:00:00.000Z"
+        },
+        {
+          "requestedDays": 365,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 59,
+          "average": 229.89,
+          "median": 208.7,
+          "floor": 21.07,
+          "ceiling": 595,
+          "typicalLow": 127,
+          "typicalHigh": 297.62,
+          "oldestSale": "2026-07-29T00:00:00.000Z",
+          "newestSale": "2026-10-26T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "profile": "charizard_psa9_base",
+      "windows": [
+        {
+          "requestedDays": 90,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 9,
+          "average": 2829.49,
+          "median": 2810.67,
+          "floor": 2471.89,
+          "ceiling": 3149.86,
+          "typicalLow": 2709.7,
+          "typicalHigh": 2899.99,
+          "oldestSale": "2026-08-30T00:00:00.000Z",
+          "newestSale": "2026-10-27T00:00:00.000Z"
+        },
+        {
+          "requestedDays": 180,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 9,
+          "average": 2829.49,
+          "median": 2810.67,
+          "floor": 2471.89,
+          "ceiling": 3149.86,
+          "typicalLow": 2709.7,
+          "typicalHigh": 2899.99,
+          "oldestSale": "2026-08-30T00:00:00.000Z",
+          "newestSale": "2026-10-27T00:00:00.000Z"
+        },
+        {
+          "requestedDays": 365,
+          "currency": "GBP",
+          "coverage": "sampled",
+          "count": 9,
+          "average": 2829.49,
+          "median": 2810.67,
+          "floor": 2471.89,
+          "ceiling": 3149.86,
+          "typicalLow": 2709.7,
+          "typicalHigh": 2899.99,
+          "oldestSale": "2026-08-30T00:00:00.000Z",
+          "newestSale": "2026-10-27T00:00:00.000Z"
+        }
+      ]
+    }
+  ]
+}

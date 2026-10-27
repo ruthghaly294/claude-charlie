@@ -1,0 +1,44 @@
+{
+  "checkedAt": "2026-10-27T08:41:11.144484+00:00",
+  "provider": "Fly.io",
+  "app": "aaron-ebay-scraper",
+  "machine": "7819642a325748",
+  "state": "started",
+  "region": "lhr",
+  "guest": {
+    "cpu_kind": "shared",
+    "cpus": 1,
+    "memory_mb": 1024
+  },
+  "restart": {
+    "policy": "always"
+  },
+  "runtimeLimitConfigured": false,
+  "services": [
+    {
+      "protocol": "tcp",
+      "internal_port": 3001,
+      "autostop": false,
+      "autostart": true,
+      "min_machines_running": 1,
+      "ports": [
+        {
+          "port": 80,
+          "handlers": [
+            "http"
+          ],
+          "force_https": true
+        },
+        {
+          "port": 443,
+          "handlers": [
+            "http",
+            "tls"
+          ]
+        }
+      ],
+      "force_instance_key": null
+    }
+  ],
+  "volumeCount": 1
+}

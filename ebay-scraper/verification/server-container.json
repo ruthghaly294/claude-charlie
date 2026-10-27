@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-27T07:35:06.288Z",
+  "unauthenticatedStatus": 401,
+  "results": [
+    {
+      "route": "search",
+      "status": 200,
+      "elapsedMs": 15427,
+      "count": 60,
+      "code": null
+    },
+    {
+      "route": "completed",
+      "status": 502,
+      "elapsedMs": 7889,
+      "count": null,
+      "code": "UPSTREAM_BLOCKED"
+    }
+  ]
+}

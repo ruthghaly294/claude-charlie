@@ -1,0 +1,65 @@
+{
+  "searches": [
+    {
+      "name": "Chesterfield captain chairs — sold",
+      "query": "chesterfield captain chairs",
+      "domain": "co.uk",
+      "mode": "sold",
+      "intervalMinutes": 2,
+      "marketProfile": "chairs",
+      "id": "fbb0feda-ff67-4781-acee-7e2c536bec7f",
+      "baselined": true,
+      "nextRun": 1793090263059,
+      "lastSuccess": 1793090166569,
+      "lastError": null,
+      "resultCount": 52
+    },
+    {
+      "name": "Chesterfield captain chairs — active",
+      "query": "chesterfield captain chairs",
+      "domain": "co.uk",
+      "mode": "active",
+      "intervalMinutes": 2,
+      "marketProfile": "chairs",
+      "id": "b527bae6-98b6-4306-9c39-e488be57717c",
+      "baselined": true,
+      "nextRun": 1793090234126,
+      "lastSuccess": 1793089936336,
+      "lastError": "UPSTREAM_TIMEOUT",
+      "resultCount": 54
+    },
+    {
+      "name": "Charizard Base Set PSA 9 — sold",
+      "query": "charizard base set 4/102 PSA 9 -shadowless -1st -japanese -celebrations",
+      "domain": "co.uk",
+      "mode": "sold",
+      "intervalMinutes": 2,
+      "marketProfile": "charizard_psa9_base",
+      "id": "68674c2f-8897-43d7-ab31-257dc8b32f79",
+      "baselined": true,
+      "nextRun": 1793090234130,
+      "lastSuccess": 1793089947062,
+      "lastError": "SEARCH_FAILED",
+      "resultCount": 14
+    },
+    {
+      "name": "Charizard Base Set PSA 9 — active",
+      "query": "charizard base set 4/102 PSA 9 -shadowless -1st -japanese -celebrations",
+      "domain": "co.uk",
+      "mode": "active",
+      "intervalMinutes": 2,
+      "marketProfile": "charizard_psa9_base",
+      "id": "9d6e5c6b-aeee-4d03-a3a6-4de1356aa5b3",
+      "baselined": true,
+      "nextRun": 1793090234131,
+      "lastSuccess": 1793089953611,
+      "lastError": "SEARCH_FAILED",
+      "resultCount": 6
+    }
+  ],
+  "alerts": {
+    "monitoringConfirmedAt": "1793089695220",
+    "queued": 0,
+    "delivered": 4
+  }
+}

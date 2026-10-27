@@ -1,0 +1,7 @@
+{
+  "checkedAt": "2026-10-27T07:39:12.101Z",
+  "status": 503,
+  "elapsedMs": 37997,
+  "code": "UPSTREAM_AUTH_REQUIRED",
+  "resultCount": null
+}

@@ -1,0 +1,38 @@
+services:
+  scraper:
+    build: .
+    hostname: ebay-scraper
+    platform: linux/amd64
+    restart: unless-stopped
+    init: false
+    shm_size: 1gb
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      SERVICE_API_KEY: ${SERVICE_API_KEY:?Set SERVICE_API_KEY in .env.server}
+      MAX_CONCURRENT: "1"
+    volumes:
+      - chrome-profile:/data
+    stop_grace_period: 30s
+  login:
+    build: .
+    hostname: ebay-scraper
+    platform: linux/amd64
+    profiles: [login]
+    shm_size: 1gb
+    ports:
+      - "127.0.0.1:5900:5900"
+    environment:
+      HOST: 127.0.0.1
+      ENABLE_VNC: "true"
+    command: [node, dist/login.js]
+    volumes:
+      - chrome-profile:/data
+    secrets:
+      - vnc_password
+    stop_grace_period: 30s
+volumes:
+  chrome-profile:
+secrets:
+  vnc_password:
+    file: .server/vnc-password
