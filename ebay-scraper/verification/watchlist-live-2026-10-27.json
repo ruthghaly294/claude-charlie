@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-27T18:36:14.643Z",
+  "supabaseCrud": true,
+  "researchReportGenerated": true,
+  "optInCreatedBothModes": true,
+  "removeStoppedJobs": true,
+  "telegramTestMessagesSent": 0,
+  "note": "Live eBay completed results were used with an isolated owner-0 Supabase row and local SQLite store. UI replies were captured, not sent to the paired chat.",
+  "datedDisclosedSales": 41,
+  "temporaryTestRowRemoved": true
+}

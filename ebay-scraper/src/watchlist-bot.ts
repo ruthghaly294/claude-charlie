@@ -346,6 +346,7 @@ export async function handleWatchlistInput(
       patch = {
         query: text,
         name: text.slice(0, 100),
+        market_profile: null,
         research_requested_at: new Date().toISOString(),
       };
     } else if (conversation.field === "price") {

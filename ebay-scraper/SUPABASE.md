@@ -95,3 +95,17 @@ Validation includes isolated PostgreSQL checks, real Supabase create/edit/
 revision/soft-delete checks with cleanup, private-chat callback authorization,
 filter forwarding, research-only/opt-in behavior, baseline-preserving migration,
 and stopping paused/deleted jobs captured by an already-running cycle.
+
+Live verification on 2026-10-27 created an isolated owner-0 item, used the hosted
+eBay completed endpoint to produce a report from 41 dated disclosed sold prices,
+enabled both monitoring modes, then removed the item and its jobs. Replies were
+captured rather than sent to the paired chat; the temporary Supabase row was
+removed. Evidence is in `verification/watchlist-live-2026-10-27.json`.
+The paired chat's command menu and reply keyboard were installed through Telegram,
+and one readiness message was accepted. Both original products were verified in
+Supabase with all four original local job IDs and baselines intact. Final local
+validation passed 140 tests plus build, typecheck and formatting checks.
+
+Editing search terms clears a built-in comparison preset so, for example,
+changing a chair search to a phone does not keep rejecting results as non-chairs.
+Condition, price and delivery edits retain the product's preset criteria.

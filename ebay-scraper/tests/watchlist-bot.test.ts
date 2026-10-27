@@ -105,3 +105,18 @@ describe("Telegram watch list conversation", () => {
     }
   });
 });
+
+it("clears a preset comparison group when the user changes the product search", async () => {
+  const f = fixture();
+  try {
+    await f.run({ text: "Chesterfield captain chairs" });
+    const row = [...f.rows.values()][0]!;
+    f.rows.set(row.id, { ...row, market_profile: "chairs" });
+    await f.run({ data: `w:${row.id}:1:query` });
+    await f.run({ text: "iPhone 15" });
+    expect(f.rows.get(row.id)?.query).toBe("iPhone 15");
+    expect(f.rows.get(row.id)?.market_profile).toBeNull();
+  } finally {
+    f.store.close();
+  }
+});
