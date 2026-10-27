@@ -1,0 +1,346 @@
+{
+  "samples": [
+    {
+      "at": "2026-10-27T17:55:47.266Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123667357,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793123765081
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123696588,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123811098
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123370626,
+          "lastError": "UPSTREAM_TIMEOUT",
+          "resultCount": 14,
+          "nextRun": 1793123752306
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123670947,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123787365
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:56:17.289Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123771385,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793123886102
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123696588,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123811098
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123775141,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793123891389
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123670947,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123787365
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:56:47.304Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123771385,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793123886102
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123696588,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123811098
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123775141,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793123891389
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123799877,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123916104
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:57:17.317Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123771385,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793123886102
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123817266,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123931107
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123775141,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793123891389
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123799877,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123916104
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:57:47.336Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123771385,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793123886102
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123817266,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123931107
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123775141,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793123891389
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123799877,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123916104
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:58:17.349Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123892011,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793124006109
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123817266,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123931107
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123896405,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793124012015
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123799877,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793123916104
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:58:47.360Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123892011,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793124006109
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123817266,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793123931107
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123896405,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793124012015
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123919823,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793124036110
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:59:17.380Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123892011,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793124006109
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123935883,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793124051112
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123896405,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793124012015
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123919823,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793124036110
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    },
+    {
+      "at": "2026-10-27T17:59:47.403Z",
+      "searches": [
+        {
+          "name": "Chesterfield captain chairs — sold",
+          "lastSuccess": 1793123892011,
+          "lastError": null,
+          "resultCount": 52,
+          "nextRun": 1793124006109
+        },
+        {
+          "name": "Chesterfield captain chairs — active",
+          "lastSuccess": 1793123935883,
+          "lastError": null,
+          "resultCount": 54,
+          "nextRun": 1793124051112
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — sold",
+          "lastSuccess": 1793123896405,
+          "lastError": null,
+          "resultCount": 14,
+          "nextRun": 1793124012015
+        },
+        {
+          "name": "Charizard Base Set PSA 9 — active",
+          "lastSuccess": 1793123919823,
+          "lastError": null,
+          "resultCount": 6,
+          "nextRun": 1793124036110
+        }
+      ],
+      "alerts": {
+        "monitoringConfirmedAt": "1793089695220",
+        "queued": 0,
+        "delivered": 100
+      }
+    }
+  ]
+}

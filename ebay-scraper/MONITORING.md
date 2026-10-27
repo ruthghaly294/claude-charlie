@@ -170,7 +170,30 @@ sample size; arbitrary new products require their own comparable-sales criteria.
 A Telegram Mini App is an option if a full popup form is desired; a guided bot
 conversation can provide the initial entry flow without a separate web app.
 
-Deployment of the incident repair is on hold pending clarification of whether
-the user wants the existing paid Fly.io machine to remain running. No hosting
-tier or budget increase has been applied. The current watch store is SQLite on
-Fly's persistent volume; it has not yet been moved to Supabase.
+The user confirmed on 2026-10-27 that Fly.io should continue operating until the
+system is fully functional. Keep the current tier while repairing and verifying;
+no hosting tier or budget increase has been applied. Free hosting for testing is
+a future requirement. The current watch store is SQLite on Fly's persistent
+volume; it has not yet been moved to Supabase.
+
+## Incident repair deployment
+
+On 2026-10-27 the alert suppression, scan backoff and photo/link delivery changes
+were deployed as image
+`aaron-ebay-scraper:deployment-01M5Z7SVZZ42W3Z250JJ3K783R` on the existing
+`shared-cpu-1x`, 1 GB machine. All four watches and their baselines survived the
+restart. Within the first few minutes, every watch had a fresh successful scan,
+including the chair active watch that had last succeeded in the morning. The
+market endpoint returned both research profiles, and one real listing alert
+with a photo and listing button was accepted by Telegram. There were no queued
+legacy error warnings after migration. Local validation passed all 121 tests,
+build, typecheck and formatting checks. Bounded post-deploy samples are in
+`verification/incident-recovery-2026-10-27.json`; this observation window does not
+establish 24-hour reliability.
+
+Fly's [CPU performance documentation](https://docs.fly.io/machines/cpu-performance)
+explains shared CPU quotas and distinguishes CPU steal from explicit quota
+throttling. The observed 92–93% steal is consistent with severe CPU starvation;
+that sample alone cannot distinguish quota throttling from host contention.
+Keep watching sustained scan times on the current tier before deciding whether
+further browser optimization or a hosting change is necessary.
