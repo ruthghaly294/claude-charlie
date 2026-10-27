@@ -11,8 +11,11 @@ one-time import file was removed after successful import.
 Four saved searches monitor active and sold UK Chesterfield captain chairs and
 English unlimited Base Set Charizard 4/102 PSA 9 every two minutes. All four
 baselined and repeated successfully after redeployment without a new login.
-Normal scans took roughly 6–24 seconds; eBay delayed one scan enough to time out,
-and it recovered on retry. The interval is a target, not a freshness guarantee.
+Initial scans took roughly 6–24 seconds; repeated browsing later hit memory and
+loading delays, including timeouts. Resource loading was reduced, Node heap was
+bounded, and search extraction now waits for parsed HTML rather than deferred
+scripts. A hosted repeat scan then took 3.5 seconds with the same result count.
+The interval remains a target, not an eBay freshness guarantee.
 
 Telegram was paired to the user's private chat. The persistent outbox's hosted
 verification message was delivered and acknowledged in SQLite. The activation

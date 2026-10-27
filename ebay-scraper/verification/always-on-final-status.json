@@ -1,5 +1,6 @@
 {
-  "checkedAt": "2026-10-27T08:39:18.905Z",
+  "checkedAt": "2026-10-27T08:49:44.149Z",
+  "workspaceBrowserStopped": true,
   "searches": [
     {
       "name": "Chesterfield captain chairs — sold",
@@ -10,8 +11,8 @@
       "marketProfile": "chairs",
       "id": "fbb0feda-ff67-4781-acee-7e2c536bec7f",
       "baselined": true,
-      "nextRun": 1793090428320,
-      "lastSuccess": 1793090326611,
+      "nextRun": 1793091044285,
+      "lastSuccess": 1793090929364,
       "lastError": null,
       "resultCount": 52
     },
@@ -24,8 +25,8 @@
       "marketProfile": "chairs",
       "id": "b527bae6-98b6-4306-9c39-e488be57717c",
       "baselined": true,
-      "nextRun": 1793090368070,
-      "lastSuccess": 1793090260848,
+      "nextRun": 1793091059286,
+      "lastSuccess": 1793090944677,
       "lastError": null,
       "resultCount": 54
     },
@@ -38,8 +39,8 @@
       "marketProfile": "charizard_psa9_base",
       "id": "68674c2f-8897-43d7-ab31-257dc8b32f79",
       "baselined": true,
-      "nextRun": 1793090381407,
-      "lastSuccess": 1793090276662,
+      "nextRun": 1793091089288,
+      "lastSuccess": 1793090973164,
       "lastError": null,
       "resultCount": 14
     },
@@ -52,8 +53,8 @@
       "marketProfile": "charizard_psa9_base",
       "id": "9d6e5c6b-aeee-4d03-a3a6-4de1356aa5b3",
       "baselined": true,
-      "nextRun": 1793090396781,
-      "lastSuccess": 1793090295293,
+      "nextRun": 1793090989966,
+      "lastSuccess": 1793090873441,
       "lastError": null,
       "resultCount": 6
     }
@@ -61,6 +62,6 @@
   "alerts": {
     "monitoringConfirmedAt": "1793089695220",
     "queued": 0,
-    "delivered": 4
+    "delivered": 8
   }
 }

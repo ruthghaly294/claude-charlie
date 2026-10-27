@@ -46,6 +46,8 @@ async function search(
   page.on("framenavigated", onNavigation);
   await page.route("**/*", async (route) => {
     const request = route.request();
+    if (["image", "media", "font"].includes(request.resourceType()))
+      return route.abort();
     if (
       request.isNavigationRequest() &&
       request.frame() === page.mainFrame() &&
@@ -96,8 +98,11 @@ async function search(
         return first;
     }
     await page.goto(buildSearchUrl(query).href, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "commit",
     });
+    // The full HTML is parsed at interactive; deferred advertising scripts can
+    // hold DOMContentLoaded long after the server-rendered results exist.
+    await page.waitForFunction(() => document.readyState !== "loading");
     await page
       .locator(
         ".srp-results, .srp-controls__count-heading, #error-info, #captcha_form",
