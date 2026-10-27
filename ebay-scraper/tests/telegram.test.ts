@@ -36,3 +36,66 @@ describe("Telegram delivery", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+it("sends the listing photo with its caption and a direct listing button", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  const send = telegramSender(
+    "123456:abcdefghijklmnopqrstuvwxyz",
+    "1234",
+    fetcher,
+  );
+  await send("New listing: Charizard PSA 9", {
+    image: "https://i.ebayimg.com/images/g/example/s-l500.jpg",
+    url: "https://www.ebay.co.uk/itm/123",
+  });
+  expect(fetcher.mock.calls[0]?.[0]).toContain("/sendPhoto");
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    photo: "https://i.ebayimg.com/images/g/example/s-l500.jpg",
+    caption: "New listing: Charizard PSA 9",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "Open listing", url: "https://www.ebay.co.uk/itm/123" }],
+      ],
+    },
+  });
+});
+
+it("keeps a direct listing button when the listing has no usable photo", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  await telegramSender(
+    "123456:abcdefghijklmnopqrstuvwxyz",
+    "1234",
+    fetcher,
+  )("Listing without a photo", {
+    image: null,
+    url: "https://www.ebay.co.uk/itm/123",
+  });
+  expect(fetcher.mock.calls[0]?.[0]).toContain("/sendMessage");
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    reply_markup: {
+      inline_keyboard: [[{ url: "https://www.ebay.co.uk/itm/123" }]],
+    },
+  });
+});
+
+it("does not send untrusted photo URLs or listing buttons to Telegram", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  await telegramSender(
+    "123456:abcdefghijklmnopqrstuvwxyz",
+    "1234",
+    fetcher,
+  )("Untrusted metadata", {
+    image: "https://i.ebayimg.com.attacker.example/image.jpg",
+    url: "https://www.ebay.co.uk.attacker.example/itm/123",
+  });
+  expect(fetcher.mock.calls[0]?.[0]).toContain("/sendMessage");
+  const body = JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body));
+  expect(body).not.toHaveProperty("photo");
+  expect(body).not.toHaveProperty("reply_markup");
+});

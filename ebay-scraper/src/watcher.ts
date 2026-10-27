@@ -6,6 +6,7 @@ import {
   researchText,
   type MarketProfile,
 } from "./market.js";
+import type { ListingMedia } from "./telegram.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -47,6 +48,16 @@ const pendingSchema = z.object({
   id: z.number(),
   payload: z.string(),
   attempts: z.number(),
+  media: z
+    .string()
+    .nullable()
+    .transform((value): ListingMedia | undefined =>
+      value === null
+        ? undefined
+        : z
+            .object({ image: z.string().nullable(), url: z.string() })
+            .parse(JSON.parse(value)),
+    ),
 });
 export function alertText(watch: Watch, listing: Listing): string {
   const amount = watch.mode === "sold" ? listing.sale_price : listing.price;
@@ -66,6 +77,25 @@ export class WatchStore {
    CREATE TABLE IF NOT EXISTS outbox(id INTEGER PRIMARY KEY,job TEXT NOT NULL REFERENCES watches(id) ON DELETE CASCADE,item TEXT NOT NULL,payload TEXT NOT NULL,delivered INTEGER NOT NULL DEFAULT 0,attempts INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,UNIQUE(job,item));
  CREATE TABLE IF NOT EXISTS observations(profile TEXT NOT NULL,item TEXT NOT NULL,price REAL NOT NULL,sold_at INTEGER NOT NULL,PRIMARY KEY(profile,item));
  CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);`);
+    const columns = this.db.prepare("PRAGMA table_info(outbox)").all();
+    if (!columns.some((column) => column["name"] === "media"))
+      this.db.exec("ALTER TABLE outbox ADD COLUMN media TEXT");
+    // Carry the most recent legacy warning into the service-wide cooldown.
+    if (this.setting("healthAlertAt") === undefined) {
+      const legacy = this.db
+        .prepare(
+          "SELECT item FROM outbox WHERE item LIKE 'error:%' ORDER BY id DESC LIMIT 1",
+        )
+        .get();
+      if (typeof legacy?.["item"] === "string") {
+        const at = Number(legacy["item"].split(":").at(-1));
+        if (Number.isFinite(at)) this.setSetting("healthAlertAt", String(at));
+      }
+    }
+    // Withdraw legacy retry warnings; keep listing alerts and delivered history.
+    this.db.exec(
+      "DELETE FROM outbox WHERE delivered=0 AND item LIKE 'error:%'",
+    );
   }
   create(input: unknown): Watch {
     const parsed = watchSchema.parse(input);
@@ -132,18 +162,30 @@ export class WatchStore {
               id,
               `deal:${r.item_id}`,
               `POTENTIAL BELOW-MARKET LISTING (${deal.discountPercent}% below median)\n${r.title}\nPrice + advertised delivery: £${deal.totalPrice.toFixed(2)}\nSold median £${stats.median?.toFixed(2)} from ${stats.count} comparable disclosed sales (90-day sample).\n${r.url}\n${job.baselined ? "Observed in current scan." : "Observed in initial scan, not newly listed since monitoring started."} Verify condition and authenticity.`,
+              { image: r.image, url: r.url },
             );
             dealQueued = true;
           }
         }
         if (job.baselined && inserted.changes && !dealQueued)
-          this.enqueue(id, r.item_id, alertText(job, r));
+          this.enqueue(id, r.item_id, alertText(job, r), {
+            image: r.image,
+            url: r.url,
+          });
       }
       this.db
         .prepare(
           "UPDATE watches SET baseline=1,last_success=?,last_error=NULL,result_count=?,next_run=? WHERE id=?",
         )
         .run(now, rows.length, startedAt + job.intervalMinutes * 60000, id);
+      this.db
+        .prepare("DELETE FROM settings WHERE key IN (?,?)")
+        .run(`failureSince:${id}`, `failureCount:${id}`);
+      this.db
+        .prepare(
+          "DELETE FROM outbox WHERE job=? AND delivered=0 AND item LIKE 'health:%'",
+        )
+        .run(id);
       this.db.exec("COMMIT");
     } catch (e) {
       this.db.exec("ROLLBACK");
@@ -153,33 +195,82 @@ export class WatchStore {
   failure(id: string, code: string, now: number): void {
     const job = this.get(id);
     if (!job) return;
-    if (job.lastError !== code)
-      this.db
-        .prepare("INSERT OR IGNORE INTO outbox(job,item,payload) VALUES(?,?,?)")
-        .run(
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const sinceKey = `failureSince:${id}`;
+      const countKey = `failureCount:${id}`;
+      const since = Number(this.setting(sinceKey) ?? now);
+      const count = Math.min(30, Number(this.setting(countKey) ?? 0) + 1);
+      this.setSetting(sinceKey, String(since));
+      this.setSetting(countKey, String(count));
+      const lastAlert = this.setting("healthAlertAt");
+      const needsAttention =
+        code === "UPSTREAM_AUTH_REQUIRED" || now - since >= 30 * 60000;
+      // One service-wide health warning per day, even through restarts,
+      // alternating errors, and brief recoveries. Listing alerts are independent.
+      if (
+        needsAttention &&
+        !this.db
+          .prepare(
+            "SELECT 1 FROM outbox WHERE delivered=0 AND item LIKE 'health:%' LIMIT 1",
+          )
+          .get() &&
+        (lastAlert === undefined || now - Number(lastAlert) >= 86400000)
+      ) {
+        this.enqueue(
           id,
-          `error:${code}:${now}`,
-          `Search needs attention: ${job.name}\n${code}${code === "UPSTREAM_AUTH_REQUIRED" ? " — sign into the server eBay browser again." : " — the search will retry automatically."}`,
+          `health:${now}`,
+          `eBay monitoring needs attention: ${job.name}\n${code === "UPSTREAM_AUTH_REQUIRED" ? "eBay requires sign-in; sign into the server eBay browser again." : "This search has been failing for at least 30 minutes. Automatic retries are continuing."} Use /status for all searches. Health notifications are limited to one per day.`,
         );
-    this.db
-      .prepare("UPDATE watches SET last_error=?,next_run=? WHERE id=?")
-      .run(code, now + job.intervalMinutes * 60000, id);
+        this.setSetting("healthAlertAt", String(now));
+      }
+      const interval = job.intervalMinutes * 60000;
+      const delay = Math.max(
+        interval,
+        Math.min(30 * 60000, interval * 2 ** (count - 1)),
+      );
+      this.db
+        .prepare("UPDATE watches SET last_error=?,next_run=? WHERE id=?")
+        .run(code, now + delay, id);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
-  pending(now: number): { id: number; payload: string; attempts: number }[] {
+
+  pending(now: number): z.infer<typeof pendingSchema>[] {
     return this.db
       .prepare(
-        "SELECT id,payload,attempts FROM outbox WHERE delivered=0 AND next_attempt<=? ORDER BY id LIMIT 20",
+        "SELECT id,payload,attempts,media FROM outbox WHERE delivered=0 AND next_attempt<=? ORDER BY id LIMIT 20",
       )
       .all(now)
       .map((r) => pendingSchema.parse(r));
   }
-  enqueue(job: string, key: string, text: string): void {
+  enqueue(job: string, key: string, text: string, media?: ListingMedia): void {
     this.db
-      .prepare("INSERT OR IGNORE INTO outbox(job,item,payload) VALUES(?,?,?)")
-      .run(job, key, text);
+      .prepare(
+        "INSERT OR IGNORE INTO outbox(job,item,payload,media) VALUES(?,?,?,?)",
+      )
+      .run(job, key, text, media ? JSON.stringify(media) : null);
   }
-  delivered(id: number): void {
-    this.db.prepare("UPDATE outbox SET delivered=1 WHERE id=?").run(id);
+  delivered(id: number, now = Date.now()): void {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const row = this.db
+        .prepare("SELECT item FROM outbox WHERE id=? AND delivered=0")
+        .get(id);
+      this.db.prepare("UPDATE outbox SET delivered=1 WHERE id=?").run(id);
+      if (
+        typeof row?.["item"] === "string" &&
+        row["item"].startsWith("health:")
+      )
+        this.setSetting("healthAlertAt", String(now));
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
   retry(id: number, attempts: number, now: number): void {
     this.db
@@ -246,7 +337,7 @@ export class WatchStore {
 export async function runWatchCycle(
   store: WatchStore,
   search: (watch: Watch) => Promise<readonly Listing[]>,
-  send: (text: string) => Promise<void>,
+  send: (text: string, media?: ListingMedia) => Promise<void>,
   clock: () => number = Date.now,
   shouldStop: () => boolean = () => false,
 ): Promise<void> {
@@ -267,8 +358,8 @@ export async function runWatchCycle(
   for (const pending of store.pending(clock())) {
     if (shouldStop()) break;
     try {
-      await send(pending.payload);
-      store.delivered(pending.id);
+      await send(pending.payload, pending.media);
+      store.delivered(pending.id, clock());
     } catch {
       store.retry(pending.id, pending.attempts, clock());
     }

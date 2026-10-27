@@ -1,21 +1,60 @@
+import { markets } from "./query.js";
+
+export type ListingMedia = { image: string | null; url: string };
+
+function safeUrl(
+  value: string | null | undefined,
+  image: boolean,
+): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    const host = url.hostname;
+    if (url.protocol !== "https:" || url.username || url.password)
+      return undefined;
+    if (
+      image
+        ? host !== "i.ebayimg.com"
+        : !Object.keys(markets).some((market) => host === `www.ebay.${market}`)
+    )
+      return undefined;
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
 export function telegramSender(
   token: string,
   chatId: string,
   fetcher: typeof fetch = fetch,
-): (text: string) => Promise<void> {
+): (text: string, media?: ListingMedia) => Promise<void> {
   if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^-?\d+$/.test(chatId))
     throw new Error("Invalid Telegram configuration");
-  return async (text: string): Promise<void> => {
+  return async (text: string, media?: ListingMedia): Promise<void> => {
+    const photo = safeUrl(media?.image, true);
+    const url = safeUrl(media?.url, false);
     try {
       const response = await fetcher(
-        `https://api.telegram.org/bot${token}/sendMessage`,
+        `https://api.telegram.org/bot${token}/${photo ? "sendPhoto" : "sendMessage"}`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: text.slice(0, 4000),
-            link_preview_options: { is_disabled: true },
+            ...(photo
+              ? { photo, caption: text.slice(0, 1024) }
+              : {
+                  text: text.slice(0, 4000),
+                  link_preview_options: { is_disabled: true },
+                }),
+            ...(url
+              ? {
+                  reply_markup: {
+                    inline_keyboard: [[{ text: "Open listing", url }]],
+                  },
+                }
+              : {}),
           }),
           signal: AbortSignal.timeout(15000),
         },

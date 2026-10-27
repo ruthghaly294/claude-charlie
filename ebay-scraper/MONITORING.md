@@ -119,3 +119,58 @@ removed. VNC is disabled on the hosted service.
 This deployment is intentionally one machine to keep costs low; there is no
 second standby server. Fly bills compute, storage and traffic while running.
 Current provider pricing: https://fly.io/docs/about/pricing/
+
+## Failure notification policy
+
+Transient scan failures are recorded for `/status` and retried silently. Repeated
+failures back off from the configured interval up to 30 minutes (longer configured
+intervals remain unchanged), resetting after a successful scan. A continuous
+failure lasting at least 30 minutes can generate a health warning; a sign-in
+requirement can generate one immediately. All searches share a persistent limit
+of one health warning per 24 hours, including across restarts, changing error
+codes and brief recoveries. Unsent warnings are withdrawn when their search
+recovers. Listing/deal messages retain their separate event deduplication.
+On upgrade, queued legacy error warnings are withdrawn and the latest legacy
+warning seeds the daily cooldown. Delivered history and listing alerts remain.
+
+The 2026-10-27 incident produced 95 delivered error warnings because brief
+successes reset per-search error suppression. Runtime sampling also showed
+92–93% CPU steal on the shared CPU VM and searches taking about a minute.
+The service kept retrying, but this did not provide a dependable two-minute scan
+cadence. A restart can recover a stuck browser; sustained CPU capacity still
+needs verification under continuous operation.
+
+Rollback: deploy image `aaron-ebay-scraper:deployment-01M5Y8MRFKXAP1FYA6H7189BWS`
+with `fly deploy --image <image> --ha=false`. The database remains compatible;
+withdrawn legacy pending warnings are intentionally not replayed.
+
+Listing and deal notifications include the specific listing photo when eBay
+provides a usable HTTPS image URL, a caption and an **Open listing** button.
+Photo/link metadata persists in the outbox across restarts and delivery retries.
+If no usable image exists, the message still includes the listing link/button.
+Health warnings and market summaries remain text messages. Delivery uses
+[Telegram sendPhoto](https://core.telegram.org/bots/api#sendphoto); only known
+eBay image and marketplace hosts are accepted for attached media/buttons.
+
+## Next phase: Telegram-managed watch list (requested, not implemented)
+
+After continuous active/completed scans and research are verified, Supabase will
+be the authoritative watch list. Telegram will offer **Add**, **Delete** and
+**Review watch list**. Guided entry will collect search terms, condition, price,
+marketplace, delivery/free-delivery preferences, active/completed/both modes and
+scan interval. Confirming an addition saves it to Supabase; confirming deletion
+removes/disables it there. The scheduler synchronizes changes periodically so
+restarts and offline periods do not lose edits. Deletions must also prevent
+obsolete queued listing alerts. The existing chairs and Charizard watches will
+be migrated without resetting their baselines or replaying old listings.
+
+The paired private chat remains the only authorized editor. Supabase service
+credentials stay on the server. Market analysis must show actual coverage and
+sample size; arbitrary new products require their own comparable-sales criteria.
+A Telegram Mini App is an option if a full popup form is desired; a guided bot
+conversation can provide the initial entry flow without a separate web app.
+
+Deployment of the incident repair is on hold pending clarification of whether
+the user wants the existing paid Fly.io machine to remain running. No hosting
+tier or budget increase has been applied. The current watch store is SQLite on
+Fly's persistent volume; it has not yet been moved to Supabase.

@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -143,4 +144,145 @@ describe("market-aware alerts", () => {
     expect(store.pending(now)[0]?.payload).toContain("POTENTIAL BELOW-MARKET");
     store.close();
   });
+});
+
+describe("quiet failure recovery", () => {
+  it("keeps transient failures silent even when errors alternate and scans recover", () => {
+    const store = new WatchStore(":memory:");
+    const job = store.create(watch);
+    for (let i = 0; i < 100; i++) {
+      const now = i * 120000;
+      store.failure(
+        job.id,
+        i % 2 ? "UPSTREAM_TIMEOUT" : "UPSTREAM_BROWSER_ERROR",
+        now,
+      );
+      store.record(job.id, [], now + 1000);
+    }
+    expect(store.pending(86400000)).toHaveLength(0);
+    store.close();
+  });
+  it("shares a durable daily health alert cap across searches and error codes", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "watch-health-"));
+    const file = join(dir, "state.sqlite");
+    let store = new WatchStore(file);
+    try {
+      const a = store.create(watch);
+      const b = store.create(watch);
+      store.failure(a.id, "UPSTREAM_TIMEOUT", 0);
+      expect(store.pending(0)).toHaveLength(0);
+      store.failure(a.id, "UPSTREAM_TIMEOUT", 1800000);
+      expect(store.pending(1800000)).toHaveLength(1);
+      store.delivered(store.pending(1800000)[0]!.id, 1800000);
+      store.close();
+      store = new WatchStore(file);
+      store.failure(b.id, "UPSTREAM_AUTH_REQUIRED", 1800001);
+      store.record(a.id, [], 1800002);
+      store.failure(a.id, "UPSTREAM_AUTH_REQUIRED", 1800003);
+      expect(store.pending(1800003)).toHaveLength(0);
+      store.failure(b.id, "UPSTREAM_AUTH_REQUIRED", 88200000);
+      expect(store.pending(88200000)).toHaveLength(1);
+    } finally {
+      store.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it("backs off failed scans durably and resets after success without losing listing alerts", () => {
+    const store = new WatchStore(":memory:");
+    const job = store.create({ ...watch, intervalMinutes: 2 });
+    store.record(job.id, [item("1")], 0);
+    store.failure(job.id, "UPSTREAM_TIMEOUT", 1000);
+    expect(store.get(job.id)?.nextRun).toBe(121000);
+    store.failure(job.id, "UPSTREAM_TIMEOUT", 121000);
+    expect(store.get(job.id)?.nextRun).toBe(361000);
+    store.record(job.id, [item("2")], 400000);
+    expect(store.pending(400000)).toHaveLength(1);
+    store.failure(job.id, "UPSTREAM_TIMEOUT", 520000);
+    expect(store.get(job.id)?.nextRun).toBe(640000);
+    expect(store.get(job.id)?.lastSuccess).toBe(400000);
+    store.close();
+  });
+  it("withdraws unsent health warnings after the affected search recovers", () => {
+    const store = new WatchStore(":memory:");
+    const job = store.create(watch);
+    store.failure(job.id, "UPSTREAM_AUTH_REQUIRED", 0);
+    expect(store.pending(0)).toHaveLength(1);
+    store.record(job.id, [], 1000);
+    expect(store.pending(1000)).toHaveLength(0);
+    store.close();
+  });
+});
+
+it("withdraws legacy queued errors on upgrade while retaining listing messages and the daily cap", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "watch-upgrade-"));
+  const file = join(dir, "state.sqlite");
+  try {
+    const before = new WatchStore(file);
+    const job = before.create(watch);
+    before.enqueue(job.id, "error:UPSTREAM_TIMEOUT:1000", "old warning");
+    before.enqueue(job.id, "listing:1", "new listing");
+    before.close();
+    const after = new WatchStore(file);
+    expect(after.pending(2000).map((p) => p.payload)).toEqual(["new listing"]);
+    after.failure(job.id, "UPSTREAM_AUTH_REQUIRED", 2000);
+    expect(after.pending(2000)).toHaveLength(1);
+    after.close();
+    const db = new DatabaseSync(file);
+    expect(
+      db
+        .prepare("SELECT count(*) AS n FROM outbox WHERE item LIKE 'error:%'")
+        .get()?.["n"],
+    ).toBe(0);
+    db.close();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+it("retains listing photos and links in the durable outbox until delivered", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "watch-photo-"));
+  const file = join(dir, "state.sqlite");
+  let store = new WatchStore(file);
+  try {
+    const job = store.create(watch);
+    store.record(job.id, [], 0);
+    const listing = {
+      ...item("123"),
+      image: "https://i.ebayimg.com/images/g/example/s-l500.jpg",
+    };
+    store.record(job.id, [listing], 1000);
+    store.close();
+    store = new WatchStore(file);
+    let received: unknown;
+    await runWatchCycle(
+      store,
+      async () => [],
+      async (_text, media) => {
+        received = media;
+      },
+      () => 1000,
+    );
+    expect(received).toEqual({ image: listing.image, url: listing.url });
+    expect(store.pending(1000)).toHaveLength(0);
+  } finally {
+    store.close();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+it("does not accumulate health warnings during a multi-day Telegram outage", async () => {
+  const store = new WatchStore(":memory:");
+  try {
+    const a = store.create(watch);
+    const b = store.create(watch);
+    store.failure(a.id, "UPSTREAM_AUTH_REQUIRED", 0);
+    store.failure(b.id, "UPSTREAM_AUTH_REQUIRED", 86400001);
+    expect(store.pending(86400001)).toHaveLength(1);
+    const pending = store.pending(86400001)[0]!;
+    store.delivered(pending.id, 86400001);
+    store.failure(b.id, "UPSTREAM_AUTH_REQUIRED", 86400002);
+    expect(store.pending(86400002)).toHaveLength(0);
+  } finally {
+    store.close();
+  }
 });
