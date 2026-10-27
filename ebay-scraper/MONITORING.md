@@ -152,7 +152,7 @@ Health warnings and market summaries remain text messages. Delivery uses
 [Telegram sendPhoto](https://core.telegram.org/bots/api#sendphoto); only known
 eBay image and marketplace hosts are accepted for attached media/buttons.
 
-## Next phase: Telegram-managed watch list (requested, not implemented)
+## Telegram-managed watch list requirements (implemented)
 
 After continuous active/completed scans and research are verified, Supabase will
 be the authoritative watch list. Telegram will offer **Add**, **Delete** and
@@ -173,8 +173,8 @@ conversation can provide the initial entry flow without a separate web app.
 The user confirmed on 2026-10-27 that Fly.io should continue operating until the
 system is fully functional. Keep the current tier while repairing and verifying;
 no hosting tier or budget increase has been applied. Free hosting for testing is
-a future requirement. The current watch store is SQLite on Fly's persistent
-volume; it has not yet been moved to Supabase.
+a future requirement. Search definitions are synchronized from Supabase; scan baselines, seen items and
+queued alerts remain in SQLite on Fly's persistent volume.
 
 ## Incident repair deployment
 
@@ -197,3 +197,11 @@ throttling. The observed 92–93% steal is consistent with severe CPU starvation
 that sample alone cannot distinguish quota throttling from host contention.
 Keep watching sustained scan times on the current tier before deciding whether
 further browser optimization or a hosting change is necessary.
+
+The Telegram-managed Supabase watch list is now implemented; see
+[SUPABASE.md](SUPABASE.md) for controls, deployment, limits and rollback. The
+previous “next phase” section records the original request. Active alerts now
+say **Newly detected listing**, include a detection timestamp, and explain a
+monitoring gap when present. Detection time is not the seller's creation time.
+Market statistics are computed once per scan rather than once per listing;
+measured 60-item scan CPU fell from roughly 300 ms to roughly 15 ms locally.

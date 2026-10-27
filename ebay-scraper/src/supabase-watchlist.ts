@@ -110,7 +110,12 @@ export function createWatchlistRepository(
   if (!secretKey.startsWith("sb_secret_") && !secretKey.startsWith("eyJ"))
     throw new Error("A server Supabase key is required");
   const client = new PostgrestClient(endpoint.origin + "/rest/v1", {
-    headers: { apikey: secretKey },
+    headers: {
+      apikey: secretKey,
+      ...(secretKey.startsWith("eyJ")
+        ? { Authorization: `Bearer ${secretKey}` }
+        : {}),
+    },
     fetch: (input, init) =>
       fetcher(input, { ...init, signal: AbortSignal.timeout(15000) }),
   });

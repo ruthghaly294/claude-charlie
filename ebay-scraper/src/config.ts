@@ -16,6 +16,21 @@ const configSchema = z
     apiKey: z.string().min(24).max(512).optional(),
     transport: z.enum(["chrome", "direct"]).default("chrome"),
     watchDb: z.string().refine(isAbsolute).optional(),
+    supabaseUrl: z
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          url.protocol === "https:" &&
+          !url.username &&
+          !url.password &&
+          url.pathname === "/" &&
+          !url.search &&
+          !url.hash
+        );
+      })
+      .optional(),
+    supabaseSecretKey: z.string().min(20).optional(),
     telegramToken: z
       .string()
       .regex(/^\d+:[A-Za-z0-9_-]{20,}$/)
@@ -57,6 +72,11 @@ const configSchema = z
       )
       .optional(),
   })
+  .refine(
+    (config) =>
+      Boolean(config.supabaseUrl) === Boolean(config.supabaseSecretKey),
+    { message: "Supabase URL and server key must be configured together" },
+  )
   .refine((config) => !(config.chromeProfile && config.chromeCdp), {
     message: "Choose a managed profile or external CDP, not both",
   })
@@ -72,6 +92,10 @@ const configSchema = z
 
 export function readConfig(env: NodeJS.ProcessEnv) {
   return configSchema.parse({
+    ...(env["SUPABASE_URL"] ? { supabaseUrl: env["SUPABASE_URL"] } : {}),
+    ...(env["SUPABASE_SECRET_KEY"]
+      ? { supabaseSecretKey: env["SUPABASE_SECRET_KEY"] }
+      : {}),
     ...(env["WATCH_DB"] ? { watchDb: env["WATCH_DB"] } : {}),
     ...(env["TELEGRAM_BOT_TOKEN"]
       ? { telegramToken: env["TELEGRAM_BOT_TOKEN"] }

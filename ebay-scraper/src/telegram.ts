@@ -1,3 +1,6 @@
+import { handleWatchlistInput } from "./watchlist-bot.js";
+import type { WatchlistRepository } from "./supabase-watchlist.js";
+import type { TelegramOptions, TelegramSend } from "./telegram-options.js";
 import { markets } from "./query.js";
 
 export type ListingMedia = { image: string | null; url: string };
@@ -28,10 +31,10 @@ export function telegramSender(
   token: string,
   chatId: string,
   fetcher: typeof fetch = fetch,
-): (text: string, media?: ListingMedia) => Promise<void> {
+): TelegramSend {
   if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^-?\d+$/.test(chatId))
     throw new Error("Invalid Telegram configuration");
-  return async (text: string, media?: ListingMedia): Promise<void> => {
+  return async (text: string, media?: TelegramOptions): Promise<void> => {
     const photo = safeUrl(media?.image, true);
     const url = safeUrl(media?.url, false);
     try {
@@ -48,13 +51,28 @@ export function telegramSender(
                   text: text.slice(0, 4000),
                   link_preview_options: { is_disabled: true },
                 }),
-            ...(url
+            ...(media?.buttons || url
               ? {
                   reply_markup: {
-                    inline_keyboard: [[{ text: "Open listing", url }]],
+                    inline_keyboard: [
+                      ...(url ? [[{ text: "Open listing", url }]] : []),
+                      ...(media?.buttons ?? []).map((row) =>
+                        row.map((button) => ({
+                          text: button.text,
+                          callback_data: button.data,
+                        })),
+                      ),
+                    ],
                   },
                 }
-              : {}),
+              : media?.keyboard
+                ? {
+                    reply_markup: {
+                      keyboard: media.keyboard,
+                      resize_keyboard: true,
+                    },
+                  }
+                : {}),
           }),
           signal: AbortSignal.timeout(15000),
         },
@@ -81,6 +99,16 @@ const updatesSchema = z.object({
   result: z.array(
     z.object({
       update_id: z.number().int(),
+      callback_query: z
+        .object({
+          id: z.string(),
+          data: z.string().optional(),
+          from: z.object({ id: z.number() }),
+          message: z
+            .object({ chat: z.object({ id: z.number(), type: z.string() }) })
+            .optional(),
+        })
+        .optional(),
       message: z
         .object({
           chat: z.object({ id: z.number(), type: z.string() }),
@@ -94,7 +122,8 @@ export async function telegramCommands(
   token: string,
   chatId: string,
   store: WatchStore,
-  send: (text: string) => Promise<void>,
+  send: TelegramSend,
+  repository?: WatchlistRepository,
 ): Promise<void> {
   try {
     const offset = Number(store.setting("telegramOffset") ?? "0");
@@ -105,11 +134,58 @@ export async function telegramCommands(
     if (!response.ok) throw new Error("Telegram unavailable");
     const data = updatesSchema.parse(await response.json());
     for (const update of data.result) {
+      const callback = update.callback_query;
+      if (
+        repository &&
+        callback?.data &&
+        callback.message?.chat.type === "private" &&
+        String(callback.message.chat.id) === chatId &&
+        String(callback.from.id) === chatId
+      ) {
+        await fetch(
+          `https://api.telegram.org/bot${token}/answerCallbackQuery`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ callback_query_id: callback.id }),
+            signal: AbortSignal.timeout(10000),
+          },
+        ).catch(() => {});
+        await handleWatchlistInput(
+          { data: callback.data, updateId: update.update_id },
+          chatId,
+          store,
+          repository,
+          send,
+        );
+        store.setSetting("telegramOffset", String(update.update_id + 1));
+        continue;
+      }
       const message = update.message;
+      if (
+        repository &&
+        message?.chat.type === "private" &&
+        String(message.chat.id) === chatId &&
+        message.text
+      ) {
+        if (
+          await handleWatchlistInput(
+            { text: message.text, updateId: update.update_id },
+            chatId,
+            store,
+            repository,
+            send,
+          )
+        ) {
+          store.setSetting("telegramOffset", String(update.update_id + 1));
+          continue;
+        }
+      }
       if (
         message?.chat.type === "private" &&
         String(message.chat.id) === chatId &&
-        message.text?.startsWith("/")
+        (message.text?.startsWith("/") ||
+          message.text?.toLowerCase() === "status")
       ) {
         const text = message.text.toLowerCase();
         if (text.startsWith("/market")) {
@@ -123,14 +199,14 @@ export async function telegramCommands(
               ? 180
               : 90;
           await send(store.research(profile, days));
-        } else if (text.startsWith("/status")) {
+        } else if (text.startsWith("/status") || text === "status") {
           await send(
             "eBay monitor status\n" +
               store
                 .list()
                 .map(
                   (w) =>
-                    `${w.name}: ${w.lastError ?? (w.baselined ? "OK" : "baseline pending")} · ${w.resultCount} results · every ${w.intervalMinutes} min · last success ${w.lastSuccess ? new Date(w.lastSuccess).toISOString() : "pending"}`,
+                    `${w.name}: ${w.lastError ?? (w.baselined ? "OK" : "baseline pending")} · ${w.resultCount} results · ${w.once ? (w.baselined ? "research complete; not polling" : "one-off research queued") : `every ${w.intervalMinutes} min`} · last success ${w.lastSuccess ? new Date(w.lastSuccess).toISOString() : "pending"}`,
                 )
                 .join("\n"),
           );

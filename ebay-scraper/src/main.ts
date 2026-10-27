@@ -1,9 +1,14 @@
+import { createWatchSearch } from "./watch-search.js";
+import { createWatchlistRepository } from "./supabase-watchlist.js";
+import {
+  migrateExistingWatches,
+  syncWatchlist,
+  publishResearch,
+} from "./watchlist-sync.js";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { WatchStore } from "./watcher.js";
 import { telegramSender, telegramCommands } from "./telegram.js";
-import { searchResponseSchema } from "./contract.js";
-import { ScrapeError } from "./errors.js";
 import { readConfig } from "./config.js";
 import { buildApp } from "./server.js";
 import { createHtmlFetcher } from "./transport.js";
@@ -37,7 +42,7 @@ try {
     cycle = runWatchCycle;
     await mkdir(dirname(config.watchDb), { recursive: true, mode: 0o700 });
     store = new WatchStore(config.watchDb);
-    if (store.list().length === 0) {
+    if (store.list().length === 0 && !store.setting("watchlistMigrated")) {
       for (const profile of ["chairs", "charizard_psa9_base"] as const) {
         for (const mode of ["sold", "active"] as const)
           store.create({
@@ -68,12 +73,15 @@ try {
     logger: true,
   });
   let timer: ReturnType<typeof setInterval> | undefined;
+  let controlTimer: ReturnType<typeof setInterval> | undefined;
+  let controls: Promise<void> | undefined;
   let running: Promise<void> | undefined;
   let stopping = false;
   app.addHook("onClose", async () => {
     stopping = true;
     clearInterval(timer);
-    await running;
+    clearInterval(controlTimer);
+    await Promise.all([running, controls]);
     await chrome?.close();
     store?.close();
   });
@@ -92,72 +100,64 @@ try {
         : async () => {
             throw new Error("Telegram not configured");
           };
+    const repository =
+      config.supabaseUrl && config.supabaseSecretKey
+        ? createWatchlistRepository(
+            config.supabaseUrl,
+            config.supabaseSecretKey,
+          )
+        : undefined;
+    const controlTick = (): void => {
+      if (controls || stopping) return;
+      controls = (async () => {
+        if (repository && config.telegramChatId) {
+          try {
+            await migrateExistingWatches(db, repository, config.telegramChatId);
+            const entries = await repository.list(config.telegramChatId);
+            if (stopping) return;
+            syncWatchlist(db, entries);
+            publishResearch(db, entries, Date.now());
+            db.setSetting("watchlistLastSync", String(Date.now()));
+          } catch {
+            app.log.warn(
+              { event: "watchlist_sync_failed" },
+              "Watch list sync will retry; existing searches retained",
+            );
+          }
+        }
+        if (!stopping && config.telegramToken && config.telegramChatId)
+          await telegramCommands(
+            config.telegramToken,
+            config.telegramChatId,
+            db,
+            send,
+            repository,
+          );
+      })()
+        .catch(() => {
+          app.log.warn(
+            { event: "telegram_commands_failed" },
+            "Telegram commands will retry",
+          );
+        })
+        .finally(() => {
+          controls = undefined;
+        });
+    };
+    controlTimer = setInterval(controlTick, 5000);
+    controlTimer.unref();
+    controlTick();
     const tick = (): void => {
       if (running || stopping) return;
       running = runWatchCycle(
         db,
-        async (job) => {
-          if (stopping) throw new Error("Stopping");
-          const params = new URLSearchParams({
-            query: job.query,
-            domain: job.domain,
-          });
-          if (job.mode === "active") params.set("sort_by", "newly_listed");
-          else params.set("sold_only", "true");
-          if (job.maxPrice !== undefined)
-            params.set("max_price", String(job.maxPrice));
-          const results: import("./contract.js").Listing[] = [];
-          for (
-            let page = 1;
-            page <= (job.mode === "sold" && !job.baselined ? 3 : 1);
-            page++
-          ) {
-            params.set("page", String(page));
-            const response = await app.inject({
-              method: "GET",
-              url: `/v1/ebay/${job.mode === "active" ? "search" : "completed"}?${params}`,
-              headers: config.apiKey ? { "x-api-key": config.apiKey } : {},
-            });
-            if (response.statusCode !== 200) {
-              const body: unknown = response.json();
-              const code =
-                typeof body === "object" &&
-                body !== null &&
-                "code" in body &&
-                typeof body.code === "string"
-                  ? body.code
-                  : "SEARCH_FAILED";
-              throw new ScrapeError(
-                code,
-                "Scheduled search failed",
-                response.statusCode,
-              );
-            }
-            const result = searchResponseSchema.parse(response.json());
-            results.push(...result.results);
-            if (!result.pagination.has_more) break;
-          }
-          return results;
-        },
+        createWatchSearch(app, config.apiKey, () => stopping),
         send,
         Date.now,
         () => stopping,
       )
         .then(async () => {
           if (stopping) return;
-          if (config.telegramToken && config.telegramChatId) {
-            await telegramCommands(
-              config.telegramToken,
-              config.telegramChatId,
-              db,
-              send,
-            ).catch(() => {
-              app.log.warn(
-                { event: "telegram_commands_failed" },
-                "Telegram commands will retry",
-              );
-            });
-          }
           if (
             db.list().every((w) => w.baselined) &&
             !db.setting("activationSent")

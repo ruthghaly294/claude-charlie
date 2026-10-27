@@ -95,13 +95,11 @@ describe("Supabase watch list boundary", () => {
     await expect(repository(invalid).list("123")).rejects.toThrow(
       "Supabase watch list unavailable",
     );
-    const denied = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ message: "sb_secret_do_not_leak" }), {
-          status: 401,
-        }),
-      );
+    const denied = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "sb_secret_do_not_leak" }), {
+        status: 401,
+      }),
+    );
     await expect(repository(denied).list("123")).rejects.toThrow(
       "Supabase watch list unavailable",
     );

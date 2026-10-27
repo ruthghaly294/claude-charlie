@@ -99,3 +99,36 @@ it("does not send untrusted photo URLs or listing buttons to Telegram", async ()
   expect(body).not.toHaveProperty("photo");
   expect(body).not.toHaveProperty("reply_markup");
 });
+
+it("renders watch-list actions as Telegram callback buttons", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  await telegramSender(
+    "123456:abcdefghijklmnopqrstuvwxyz",
+    "1234",
+    fetcher,
+  )("Keep watching?", {
+    buttons: [
+      [
+        {
+          text: "Yes, keep watching",
+          data: "w:d76774de-6fea-4d07-8adf-227d57e03da6:1:yes",
+        },
+      ],
+    ],
+  });
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    text: "Keep watching?",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Yes, keep watching",
+            callback_data: "w:d76774de-6fea-4d07-8adf-227d57e03da6:1:yes",
+          },
+        ],
+      ],
+    },
+  });
+});

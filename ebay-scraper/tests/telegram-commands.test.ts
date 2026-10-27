@@ -49,3 +49,66 @@ describe("Telegram bot commands", () => {
     }
   });
 });
+
+it("ignores callbacks unless both the sender and private chat match the paired user", async () => {
+  const store = new WatchStore(":memory:");
+  const list = vi.fn().mockResolvedValue([]);
+  const repository: import("../src/supabase-watchlist.js").WatchlistRepository =
+    {
+      list,
+      create: async () => {
+        throw new Error("unexpected");
+      },
+      update: async () => {
+        throw new Error("unexpected");
+      },
+      remove: async () => {
+        throw new Error("unexpected");
+      },
+    };
+  const send = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          result: [
+            {
+              update_id: 15,
+              callback_query: {
+                id: "foreign",
+                from: { id: 999 },
+                data: "w:d76774de-6fea-4d07-8adf-227d57e03da6:1:remove",
+                message: { chat: { id: 123, type: "private" } },
+              },
+            },
+            {
+              update_id: 16,
+              callback_query: {
+                id: "group",
+                from: { id: 123 },
+                data: "w:d76774de-6fea-4d07-8adf-227d57e03da6:1:remove",
+                message: { chat: { id: 123, type: "group" } },
+              },
+            },
+          ],
+        }),
+      ),
+    ),
+  );
+  try {
+    await telegramCommands(
+      "123:abcdefghijklmnopqrstuvwxyz",
+      "123",
+      store,
+      send,
+      repository,
+    );
+    expect(list).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+    expect(store.setting("telegramOffset")).toBe("17");
+  } finally {
+    store.close();
+  }
+});

@@ -6,7 +6,10 @@ import {
   researchText,
   type MarketProfile,
 } from "./market.js";
-import type { ListingMedia } from "./telegram.js";
+import {
+  telegramOptionsSchema,
+  type TelegramOptions,
+} from "./telegram-options.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -51,21 +54,27 @@ const pendingSchema = z.object({
   media: z
     .string()
     .nullable()
-    .transform((value): ListingMedia | undefined =>
+    .transform((value): TelegramOptions | undefined =>
       value === null
         ? undefined
-        : z
-            .object({ image: z.string().nullable(), url: z.string() })
-            .parse(JSON.parse(value)),
+        : telegramOptionsSchema.parse(JSON.parse(value)),
     ),
 });
-export function alertText(watch: Watch, listing: Listing): string {
+export function alertText(
+  watch: Watch,
+  listing: Listing,
+  now = Date.now(),
+): string {
   const amount = watch.mode === "sold" ? listing.sale_price : listing.price;
   const price = amount
     ? `${amount.currency} ${amount.value.toFixed(2)}`
     : "Price undisclosed";
-  return `${watch.mode === "sold" ? "Newly sold" : "New listing"}: ${listing.title}\n${price}${listing.ended_date ? ` · ended ${listing.ended_date}` : ""}\n${listing.url}`;
+  const gap =
+    watch.lastSuccess !== null &&
+    now - watch.lastSuccess > watch.intervalMinutes * 120000;
+  return `${watch.mode === "sold" ? "Newly detected sale" : "Newly detected listing"}: ${listing.title}\n${price}${listing.ended_date ? ` · ended ${listing.ended_date}` : ""}\nDetected ${new Date(now).toISOString()}${gap ? " after a monitoring gap; it may have been listed earlier." : "; seller listing time is not confirmed."}\n${listing.url}`;
 }
+const researchCompleteNextRun = Date.UTC(9999, 11, 31);
 export class WatchStore {
   private readonly db: DatabaseSync;
   constructor(path: string) {
@@ -171,8 +180,13 @@ export class WatchStore {
             dealQueued = true;
           }
         }
-        if (job.baselined && inserted.changes && !dealQueued)
-          this.enqueue(id, r.item_id, alertText(job, r), {
+        if (
+          job.baselined &&
+          inserted.changes &&
+          !dealQueued &&
+          job.notifyNew !== false
+        )
+          this.enqueue(id, r.item_id, alertText(job, r, now), {
             image: r.image,
             url: r.url,
           });
@@ -181,7 +195,14 @@ export class WatchStore {
         .prepare(
           "UPDATE watches SET baseline=1,last_success=?,last_error=NULL,result_count=?,next_run=? WHERE id=?",
         )
-        .run(now, rows.length, startedAt + job.intervalMinutes * 60000, id);
+        .run(
+          now,
+          rows.length,
+          job.once
+            ? researchCompleteNextRun
+            : startedAt + job.intervalMinutes * 60000,
+          id,
+        );
       this.db
         .prepare("DELETE FROM settings WHERE key IN (?,?)")
         .run(`failureSince:${id}`, `failureCount:${id}`);
@@ -251,12 +272,24 @@ export class WatchStore {
       .all(now)
       .map((r) => pendingSchema.parse(r));
   }
-  enqueue(job: string, key: string, text: string, media?: ListingMedia): void {
+  enqueue(
+    job: string,
+    key: string,
+    text: string,
+    media?: TelegramOptions,
+  ): void {
     this.db
       .prepare(
         "INSERT OR IGNORE INTO outbox(job,item,payload,media) VALUES(?,?,?,?)",
       )
       .run(job, key, text, media ? JSON.stringify(media) : null);
+  }
+  isPending(id: number): boolean {
+    return Boolean(
+      this.db
+        .prepare("SELECT 1 FROM outbox WHERE id=? AND delivered=0")
+        .get(id),
+    );
   }
   delivered(id: number, now = Date.now()): void {
     this.db.exec("BEGIN IMMEDIATE");
@@ -323,6 +356,54 @@ export class WatchStore {
   research(profile: MarketProfile, days = 90): string {
     return researchText(profile, this.market(profile, days));
   }
+  listings(id: string): Listing[] {
+    return this.db
+      .prepare("SELECT payload FROM seen WHERE job=?")
+      .all(id)
+      .map((row) => listingSchema.parse(JSON.parse(String(row["payload"]))));
+  }
+  configure(id: string, input: WatchInput): void {
+    const job = this.get(id);
+    if (!job) return;
+    const config = watchSchema.parse(input);
+    const next =
+      config.once && job.baselined
+        ? researchCompleteNextRun
+        : job.once && !config.once
+          ? 0
+          : job.nextRun;
+    this.db
+      .prepare("UPDATE watches SET input=?,next_run=? WHERE id=?")
+      .run(JSON.stringify(config), next, id);
+  }
+  link(id: string, watchlistId: string, researchRequest?: string): void {
+    const job = this.get(id);
+    if (!job) return;
+    const {
+      id: _id,
+      baselined: _baseline,
+      nextRun: _next,
+      lastSuccess: _success,
+      lastError: _error,
+      resultCount: _count,
+      ...input
+    } = job;
+    this.db.prepare("UPDATE watches SET input=? WHERE id=?").run(
+      JSON.stringify(
+        watchSchema.parse({
+          ...input,
+          watchlistId,
+          ...(researchRequest && job.mode === "sold"
+            ? { researchRequest }
+            : {}),
+          freeShipping: false,
+          once: false,
+          notifyNew: job.mode === "active",
+        }),
+      ),
+      id,
+    );
+  }
   setting(key: string): string | undefined {
     const row = this.db
       .prepare("SELECT value FROM settings WHERE key=?")
@@ -341,13 +422,14 @@ export class WatchStore {
 export async function runWatchCycle(
   store: WatchStore,
   search: (watch: Watch) => Promise<readonly Listing[]>,
-  send: (text: string, media?: ListingMedia) => Promise<void>,
+  send: (text: string, media?: TelegramOptions) => Promise<void>,
   clock: () => number = Date.now,
   shouldStop: () => boolean = () => false,
 ): Promise<void> {
-  for (const job of store.list()) {
+  for (const saved of store.list()) {
     if (shouldStop()) break;
-    if (job.nextRun > clock()) continue;
+    const job = store.get(saved.id);
+    if (!job || job.nextRun > clock()) continue;
     try {
       const startedAt = clock();
       store.record(job.id, await search(job), clock(), startedAt);
@@ -361,6 +443,7 @@ export async function runWatchCycle(
   }
   for (const pending of store.pending(clock())) {
     if (shouldStop()) break;
+    if (!store.isPending(pending.id)) continue;
     try {
       await send(pending.payload, pending.media);
       store.delivered(pending.id, clock());

@@ -117,11 +117,8 @@ export function potentialDeal(
     discountPercent: Math.round((1 - totalPrice / stats.median) * 100),
   };
 }
-export function researchText(
-  profile: MarketProfile,
-  stats: MarketSummary,
-): string {
+export function researchText(profile: string, stats: MarketSummary): string {
   const money = (v: number | null) =>
     v === null ? "unknown" : `£${v.toFixed(2)}`;
-  return `${profile === "chairs" ? "Chesterfield captain chairs" : "Charizard Base Set 4/102 PSA 9 (English unlimited)"}\n${stats.requestedDays}-day sold sample: ${stats.count} comparable disclosed prices\nAverage ${money(stats.average)} · median ${money(stats.median)}\nObserved floor ${money(stats.floor)} · ceiling ${money(stats.ceiling)}\nTypical range ${money(stats.typicalLow)}–${money(stats.typicalHigh)}\n${stats.oldestSale ? `Oldest observed sale: ${stats.oldestSale.slice(0, 10)}` : "No dated sold comparables yet"}\nSampled results, not complete market history. Sold prices exclude delivery; accepted offers with hidden amounts excluded.`;
+  return `${profile === "chairs" ? "Chesterfield captain chairs" : profile === "charizard_psa9_base" ? "Charizard Base Set 4/102 PSA 9 (English unlimited)" : profile}\n${stats.requestedDays}-day sold sample: ${stats.count} ${profile === "chairs" || profile === "charizard_psa9_base" ? "comparable" : "search-matched"} disclosed prices\nAverage ${money(stats.average)} · median ${money(stats.median)}\nObserved floor ${money(stats.floor)} · ceiling ${money(stats.ceiling)}\nTypical range ${money(stats.typicalLow)}–${money(stats.typicalHigh)}\n${stats.oldestSale ? `Oldest observed sale: ${stats.oldestSale.slice(0, 10)}` : "No dated sold comparables yet"}\nSampled results, not complete market history. Sold prices exclude delivery; accepted offers with hidden amounts excluded.`;
 }

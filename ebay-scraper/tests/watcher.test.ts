@@ -286,3 +286,47 @@ it("does not accumulate health warnings during a multi-day Telegram outage", asy
     store.close();
   }
 });
+
+it("labels discovery after an outage without claiming the seller listed it at detection time", () => {
+  const store = new WatchStore(":memory:");
+  try {
+    const job = store.create({ ...watch, intervalMinutes: 2 });
+    store.record(job.id, [], 0);
+    store.record(job.id, [item("123")], 3600000);
+    expect(store.pending(3600000)[0]?.payload).toContain(
+      "Newly detected listing",
+    );
+    expect(store.pending(3600000)[0]?.payload).toContain("monitoring gap");
+  } finally {
+    store.close();
+  }
+});
+
+it("honors a pause made while an earlier search in the same cycle is running", async () => {
+  const store = new WatchStore(":memory:");
+  try {
+    const first = store.create(watch);
+    const second = store.create(watch);
+    store.record(second.id, [], 0);
+    const calls: string[] = [];
+    await runWatchCycle(
+      store,
+      async (job) => {
+        calls.push(job.id);
+        if (job.id === first.id)
+          store.configure(second.id, {
+            ...watch,
+            domain: "co.uk",
+            mode: "active",
+            once: true,
+          });
+        return [];
+      },
+      async () => {},
+      () => 1000000,
+    );
+    expect(calls).toEqual([first.id]);
+  } finally {
+    store.close();
+  }
+});
