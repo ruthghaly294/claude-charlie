@@ -136,6 +136,11 @@ export class WatchStore {
     );
     this.db.exec("BEGIN IMMEDIATE");
     try {
+      // Active rows cannot add sold observations: use one consistent snapshot.
+      const stats =
+        job.mode === "active" && job.marketProfile
+          ? this.market(job.marketProfile, 90, now)
+          : undefined;
       for (const r of rows) {
         if (job.mode === "sold" && job.marketProfile) {
           const sale = saleObservation(r, now);
@@ -154,8 +159,7 @@ export class WatchStore {
             .prepare("UPDATE seen SET payload=? WHERE job=? AND item=?")
             .run(JSON.stringify(r), id, r.item_id);
         let dealQueued = false;
-        if (job.mode === "active" && job.marketProfile) {
-          const stats = this.market(job.marketProfile, 90, now);
+        if (stats) {
           const deal = potentialDeal(r, stats);
           if (deal) {
             this.enqueue(

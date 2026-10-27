@@ -1,0 +1,12 @@
+{
+  "scenario": "Record 60 active chair listings against 60 sold comparables in an in-memory WatchStore, ten iterations",
+  "beforeCpuMs": [552.351,350.148,457.694,391.424,299.831,267.183,255.901,292.74,297.381,275.619],
+  "afterCpuMs": [18.131,13.184,16.674,11.72,11.389,8.086,14.664,17.79,34.409,11.454],
+  "change": "Compute one market snapshot per active scan rather than once per listing",
+  "browserExperiment": {
+    "change": "Block external scripts and stylesheets in one diagnostic page on the hosted machine",
+    "durationMs": 40960,
+    "resultCount": 60,
+    "verdict": "Not adopted: insufficient improvement over throttled baseline"
+  }
+}
