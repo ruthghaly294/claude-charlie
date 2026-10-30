@@ -29,3 +29,19 @@ it("keeps a normally allocated page open for its caller", async () => {
   expect(await allocateBrowserPage(async () => page, 100)).toBe(page);
   expect(closed).toBe(false);
 });
+it("reports a failed navigation without crashing on the abandoned response wait", async () => {
+  const { navigateAndWait } = await import("../src/browser-page.js");
+  const waiting = new Promise<never>((_resolve, reject) =>
+    setTimeout(() => reject(new Error("response timeout")), 10),
+  );
+  await expect(
+    navigateAndWait(waiting, () => Promise.reject(new Error("goto timeout"))),
+  ).rejects.toThrow("goto timeout");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+});
+it("returns the awaited response after navigation succeeds", async () => {
+  const { navigateAndWait } = await import("../src/browser-page.js");
+  await expect(
+    navigateAndWait(Promise.resolve("listings"), async () => {}),
+  ).resolves.toBe("listings");
+});

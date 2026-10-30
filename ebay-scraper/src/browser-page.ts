@@ -33,3 +33,15 @@ export async function allocateBrowserPage<T extends { close(): Promise<void> }>(
     if (timer) clearTimeout(timer);
   }
 }
+
+// Start waiting before navigating so the response is not missed, but mark the
+// wait handled: if navigation fails first, its later rejection would otherwise
+// be unhandled and crash the process.
+export async function navigateAndWait<T>(
+  waiting: Promise<T>,
+  navigate: () => Promise<unknown>,
+): Promise<T> {
+  waiting.catch(() => {});
+  await navigate();
+  return waiting;
+}

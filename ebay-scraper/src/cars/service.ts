@@ -1,3 +1,4 @@
+import { navigateAndWait } from "../browser-page.js";
 import type { Browser } from "playwright-core";
 import { telegramSender } from "../telegram.js";
 import type { WatchStore } from "../watcher.js";
@@ -131,17 +132,20 @@ export function createCarService(options: {
         : route.continue(),
     );
     try {
-      const first = tab.waitForResponse(
-        (response) =>
-          response.url().includes("SearchResultsListingsGridQuery") &&
-          response.request().method() === "POST",
-        { timeout: 60000 },
+      const first = await navigateAndWait(
+        tab.waitForResponse(
+          (response) =>
+            response.url().includes("SearchResultsListingsGridQuery") &&
+            response.request().method() === "POST",
+          { timeout: 60000 },
+        ),
+        () =>
+          tab.goto(
+            `https://www.autotrader.co.uk/car-search?make=${encodeURIComponent(watch.make)}&model=${encodeURIComponent(watch.model)}&postcode=${belfast}&year-from=${new Date().getFullYear() - watch.max_age_years}&exclude-writeoff-categories=on&sort=most-recent${scope === "ni" ? "&radius=60" : ""}`,
+            { waitUntil: "domcontentloaded", timeout: 60000 },
+          ),
       );
-      await tab.goto(
-        `https://www.autotrader.co.uk/car-search?make=${encodeURIComponent(watch.make)}&model=${encodeURIComponent(watch.model)}&postcode=${belfast}&year-from=${new Date().getFullYear() - watch.max_age_years}&exclude-writeoff-categories=on&sort=most-recent${scope === "ni" ? "&radius=60" : ""}`,
-        { waitUntil: "domcontentloaded", timeout: 60000 },
-      );
-      const request = (await first).request();
+      const request = first.request();
       const replay = {
         url: request.url(),
         headers: Object.fromEntries(
