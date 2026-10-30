@@ -138,6 +138,20 @@ export async function handleWatchlistInput(
     );
     return true;
   }
+  const feedback = /^f:([ud]):(\d{1,30})$/.exec(input.data ?? "");
+  if (feedback) {
+    const verdict = feedback[1] === "u" ? "up" : "down";
+    store.setSetting(
+      `feedback:${feedback[2]}`,
+      JSON.stringify({ verdict, at: Date.now() }),
+    );
+    await reply(
+      verdict === "up"
+        ? "Saved as a good find."
+        : "Noted: not for you. To skip listings like this, open Watch list → the item → Edit → Block words.",
+    );
+    return true;
+  }
   if (input.data) {
     const match = /^w:([0-9a-f-]{36}):(\d+):([a-z_]+)$/.exec(input.data);
     if (!match) {

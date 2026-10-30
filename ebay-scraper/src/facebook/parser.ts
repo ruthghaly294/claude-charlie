@@ -125,6 +125,23 @@ export function parseListingTime(
   return null;
 }
 
+export function parseListingDescription(
+  payloads: readonly string[],
+  id: string,
+): string | null {
+  for (const value of objects(payloads)) {
+    const node = z
+      .object({
+        id: z.string(),
+        redacted_description: z.object({ text: z.string().max(10000) }),
+      })
+      .safeParse(value);
+    if (node.success && node.data.id === id)
+      return node.data.redacted_description.text;
+  }
+  return null;
+}
+
 export function hasEmptySearchFeed(payloads: readonly string[]): boolean {
   const noResults = z.object({
     node: z.object({

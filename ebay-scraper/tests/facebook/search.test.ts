@@ -332,3 +332,38 @@ it("limits a new search's first scan to the last day so busy searches can finish
   });
   expect(facebook.loaded[0]).toContain("daysSinceListed=1");
 });
+
+it("attaches the seller's description to listings whose page was opened", async () => {
+  const results = await createFacebookSearch({
+    load: async (url) => {
+      if (url.includes("/search/")) return capture("facebook-search.json");
+      const id = /item\/(\d+)/.exec(url)?.[1] ?? "";
+      const page = detail(id, 54.6, -5.9);
+      return {
+        ...page,
+        payloads: [
+          ...page.payloads,
+          JSON.stringify({
+            id,
+            redacted_description: { text: `Captain's style ${id}` },
+          }),
+        ],
+      };
+    },
+  })(watch("chair"));
+  expect(
+    results.find((r) => r.item_id === "1083292931250072")?.description,
+  ).toBe("Captain's style 1083292931250072");
+});
+
+it("finishes a one-off price check with what it loaded when the feed is too long to reach the end", async () => {
+  const results = await createFacebookSearch({
+    load: async (url) => ({
+      ...(url.includes("/search/")
+        ? capture("facebook-search.json")
+        : capture("facebook-detail.json")),
+      incomplete: true,
+    }),
+  })({ ...watch("chest of drawers"), once: true, baselined: false });
+  expect(results.length).toBeGreaterThan(0);
+});

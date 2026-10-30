@@ -7,6 +7,7 @@ import { eastBelfast, type Coordinates } from "./geo.js";
 import {
   hasEmptySearchFeed,
   parseListingCoordinates,
+  parseListingDescription,
   parseListingTime,
   parseSearchPayloads,
 } from "./parser.js";
@@ -63,6 +64,11 @@ export function createFacebookSearch(options: {
 }): (job: Watch) => Promise<Listing[]> {
   const located = new Map<string, Coordinates | null>();
   const listingTimes = new Map<string, string | null>();
+  const descriptions = new Map<string, string>();
+  const described = (row: Listing): Listing => {
+    const description = descriptions.get(row.item_id);
+    return description ? { ...row, description } : row;
+  };
   const seen = options.seen ?? (() => false);
   return async (job) => {
     const params = new URLSearchParams({
@@ -126,6 +132,8 @@ export function createFacebookSearch(options: {
           const detail = await open(options.load, row.url);
           located.set(row.id, parseListingCoordinates(detail.payloads, row.id));
           listingTimes.set(row.id, parseListingTime(detail.payloads, row.id));
+          const description = parseListingDescription(detail.payloads, row.id);
+          if (description) descriptions.set(row.id, description);
         } catch (error) {
           if (
             error instanceof ScrapeError &&
@@ -151,7 +159,7 @@ export function createFacebookSearch(options: {
         freshListing(verified, options.clock?.() ?? Date.now(), maxAge)
       )
         await options.onVerified?.(job, {
-          ...verified,
+          ...described(verified),
           detected_at: new Date(now).toISOString(),
         });
     }
@@ -172,7 +180,7 @@ export function createFacebookSearch(options: {
       },
     );
     const near = local.results.map((row, index) => ({
-      ...row,
+      ...described(row),
       position: known.length + index + 1,
     }));
     const detected_at = new Date(now).toISOString();
@@ -186,7 +194,8 @@ export function createFacebookSearch(options: {
       detailFailures,
     });
     if (
-      page.incomplete ||
+      // A price check samples asking prices; a very long feed is still a sample.
+      (page.incomplete && !job.once) ||
       detailFailures ||
       (maxAge !== undefined && local.unknownLocation)
     )

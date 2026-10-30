@@ -283,3 +283,19 @@ it("edits must-mention and block words from Telegram and shows them on the watch
     f.store.close();
   }
 });
+
+it("records alert feedback and tells the user how to block similar listings", async () => {
+  const f = facebookBot();
+  try {
+    await f.run({ data: "f:d:1119629597724483" });
+    expect(f.store.setting("feedback:1119629597724483")).toContain(
+      '"verdict":"down"',
+    );
+    expect(f.messages.at(-1)?.text).toContain("Block words");
+    await f.run({ data: "f:u:42" });
+    expect(f.store.setting("feedback:42")).toContain('"verdict":"up"');
+    expect(f.messages.at(-1)?.text).toContain("good find");
+  } finally {
+    f.store.close();
+  }
+});

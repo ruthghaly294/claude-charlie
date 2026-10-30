@@ -293,6 +293,12 @@ export class WatchStore {
           this.enqueue(id, r.item_id, alertText(job, r, now), {
             image: r.image,
             url: r.url,
+            buttons: [
+              [
+                { text: "👍 Good find", data: `f:u:${r.item_id}` },
+                { text: "👎 Not for me", data: `f:d:${r.item_id}` },
+              ],
+            ],
           });
       }
       if (completeScan) {

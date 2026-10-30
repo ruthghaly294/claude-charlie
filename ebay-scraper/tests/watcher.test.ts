@@ -267,7 +267,7 @@ it("retains listing photos and links in the durable outbox until delivered", asy
       },
       () => 1000,
     );
-    expect(received).toEqual({ image: listing.image, url: listing.url });
+    expect(received).toMatchObject({ image: listing.image, url: listing.url });
     expect(store.pending(1000)).toHaveLength(0);
   } finally {
     store.close();
@@ -421,5 +421,18 @@ it("applies the search's must-mention and block words to title and description b
   const pending = store.pending(2000);
   expect(pending).toHaveLength(1);
   expect(pending[0]?.payload).toContain("https://www.ebay.co.uk/itm/3");
+  store.close();
+});
+it("puts good-find and not-for-me buttons on every new listing alert", () => {
+  const store = new WatchStore(":memory:");
+  const job = store.create(watch);
+  store.record(job.id, [item("1")], 1000);
+  store.record(job.id, [item("1"), item("2")], 2000);
+  expect(store.pending(2000)[0]?.media?.buttons).toEqual([
+    [
+      { text: "👍 Good find", data: "f:u:2" },
+      { text: "👎 Not for me", data: "f:d:2" },
+    ],
+  ]);
   store.close();
 });
