@@ -63,7 +63,20 @@ export function telegramSender(
               ? {
                   reply_markup: {
                     inline_keyboard: [
-                      ...(url ? [[{ text: "Open listing", url }]] : []),
+                      ...(url
+                        ? [
+                            [
+                              {
+                                text: url.startsWith(
+                                  "https://www.facebook.com/",
+                                )
+                                  ? "💬 Message seller"
+                                  : "🛒 Buy on eBay",
+                                url,
+                              },
+                            ],
+                          ]
+                        : []),
                       ...(media?.buttons ?? []).map((row) =>
                         row.map((button) => ({
                           text: button.text,

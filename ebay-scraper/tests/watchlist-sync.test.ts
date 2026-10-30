@@ -153,3 +153,19 @@ it("keeps queued research and baseline when ongoing monitoring is enabled", asyn
     store.close();
   }
 });
+it("passes the watch list's must-mention and block words to the live search", () => {
+  const store = new WatchStore(":memory:");
+  syncWatchlist(store, [
+    watchlistRowSchema.parse({
+      ...entry,
+      monitor_active: true,
+      include_words: "chesterfield, captain’s ,",
+      exclude_words: "PU",
+    }),
+  ]);
+  expect(store.list().find((w) => w.mode === "active")).toMatchObject({
+    includeWords: ["chesterfield", "captain’s"],
+    excludeWords: ["PU"],
+  });
+  store.close();
+});

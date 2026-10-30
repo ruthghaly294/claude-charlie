@@ -51,6 +51,8 @@ export const watchlistDraftSchema = z.object({
     .enum(["chairs", "charizard_psa9_base"])
     .nullable()
     .default(null),
+  include_words: z.string().max(500).nullable().default(null),
+  exclude_words: z.string().max(500).nullable().default(null),
 });
 const validPrices = (input: {
   min_price: number | null;

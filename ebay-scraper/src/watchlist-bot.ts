@@ -16,7 +16,15 @@ const menu = [
   ["Market research", "Status"],
 ];
 const conversationSchema = z.object({
-  field: z.enum(["new", "query", "price", "interval", "radius"]),
+  field: z.enum([
+    "new",
+    "query",
+    "price",
+    "interval",
+    "radius",
+    "include",
+    "exclude",
+  ]),
   id: z.uuid().optional(),
   revision: z.number().int().positive().optional(),
   expires: z.number(),
@@ -45,6 +53,9 @@ function actions(entry: WatchlistEntry): TelegramOptions {
   };
 }
 function details(entry: WatchlistEntry): string {
+  return `${baseDetails(entry)}\nMust mention any of: ${entry.include_words ?? "anything"} · Block words: ${entry.exclude_words ?? "none"}`;
+}
+function baseDetails(entry: WatchlistEntry): string {
   if (entry.provider === "facebook")
     return `${entry.name}\nSearch: ${entry.query}\n${entry.monitor_active ? "New-listing alerts on" : "Research only; new-listing alerts off"}\nWithin ${entry.radius_km ?? 40} km of ${entry.location_name ?? "the search centre"} · max price: ${entry.max_price === null ? "any" : `£${entry.max_price}`}\nChecks every ${entry.interval_minutes} minutes when monitoring is on.`;
   return `${entry.name}\nSearch: ${entry.query}\n${entry.monitor_active ? "New-listing alerts on" : "Research only; new-listing alerts off"}\nCondition: ${entry.condition ?? "any"} · max price: ${entry.max_price === null ? "any" : `£${entry.max_price}`}\nDelivery: ${entry.free_shipping ? "free only" : "any price"} · ${entry.location ?? "any location"}\nChecks every ${entry.interval_minutes} minutes when monitoring is on.`;
@@ -162,6 +173,10 @@ export async function handleWatchlistInput(
                 button("Radius", "radius"),
                 button("Check interval", "interval"),
               ],
+              [
+                button("Must mention", "include"),
+                button("Block words", "exclude"),
+              ],
               [button("Back", "view")],
             ]
           : [
@@ -177,12 +192,20 @@ export async function handleWatchlistInput(
                 button("Buying format", "format"),
                 button("Check interval", "interval"),
               ],
+              [
+                button("Must mention", "include"),
+                button("Block words", "exclude"),
+              ],
               [button("Back", "view")],
             ],
       });
       return true;
     }
-    if (["query", "price", "interval", "radius"].includes(action)) {
+    if (
+      ["query", "price", "interval", "radius", "include", "exclude"].includes(
+        action,
+      )
+    ) {
       store.setSetting(
         "watchlistConversation",
         JSON.stringify({
@@ -199,7 +222,11 @@ export async function handleWatchlistInput(
             ? "Send the maximum price in GBP, or Any to remove the limit. /cancel to stop."
             : action === "radius"
               ? "Send the search radius in kilometres (1 to 40). /cancel to stop."
-              : "Send the check interval in minutes (1–1440). /cancel to stop.",
+              : action === "include"
+                ? "Send words separated by commas. Alerts need at least one of them in the title or description, e.g. chesterfield, captain. Send Any to remove. /cancel to stop."
+                : action === "exclude"
+                  ? "Send words separated by commas. Listings mentioning any of them are skipped, e.g. PU, faux, kids. Send None to remove. /cancel to stop."
+                  : "Send the check interval in minutes (1–1440). /cancel to stop.",
       );
       return true;
     }
@@ -391,6 +418,27 @@ export async function handleWatchlistInput(
         max_price: value,
         research_requested_at: new Date().toISOString(),
       };
+    } else if (
+      conversation.field === "include" ||
+      conversation.field === "exclude"
+    ) {
+      const words = ["any", "none"].includes(lower)
+        ? null
+        : text
+            .split(",")
+            .map((word) => word.trim())
+            .filter(Boolean)
+            .join(", ");
+      if (words !== null && (!words || words.length > 500)) {
+        await reply(
+          "Send up to 500 characters of comma-separated words, or Any. /cancel to stop.",
+        );
+        return true;
+      }
+      patch =
+        conversation.field === "include"
+          ? { include_words: words }
+          : { exclude_words: words };
     } else if (conversation.field === "radius") {
       const value = Number(text.replace(/\s*km$/i, ""));
       if (!Number.isFinite(value) || value < 1 || value > 40) {

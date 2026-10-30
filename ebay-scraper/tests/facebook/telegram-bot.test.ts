@@ -186,7 +186,7 @@ it("asks for a Facebook sign-in rather than an eBay one when Facebook logs out",
   }
 });
 
-it("sends Facebook listing photos with an Open listing button, but not other Facebook pages", async () => {
+it("sends Facebook listing photos with a Message seller button, but not other Facebook pages", async () => {
   const bodies: Record<string, unknown>[] = [];
   const send = telegramSender(
     "123456:abcdefghijklmnopqrstuvwxyz",
@@ -210,7 +210,7 @@ it("sends Facebook listing photos with an Open listing button, but not other Fac
       inline_keyboard: [
         [
           {
-            text: "Open listing",
+            text: "💬 Message seller",
             url: "https://www.facebook.com/marketplace/item/1083292931250072/",
           },
         ],
@@ -250,5 +250,36 @@ it("keeps Facebook research separate from ongoing monitoring of the same search"
     ]);
   } finally {
     store.close();
+  }
+});
+
+it("edits must-mention and block words from Telegram and shows them on the watch", async () => {
+  const f = facebookBot();
+  try {
+    await f.run({ text: "Round table" });
+    const row = [...f.rows.values()][0]!;
+    await f.run({ data: `w:${row.id}:1:edit` });
+    const labels = f.messages
+      .at(-1)
+      ?.options?.buttons?.flat()
+      .map((b) => b.text);
+    expect(labels).toEqual(
+      expect.arrayContaining(["Must mention", "Block words"]),
+    );
+    await f.run({ data: `w:${row.id}:1:include` });
+    await f.run({ text: "round, circular" });
+    expect(f.rows.get(row.id)?.include_words).toBe("round, circular");
+    expect(f.messages.at(-1)?.text).toContain(
+      "Must mention any of: round, circular",
+    );
+    await f.run({ data: `w:${row.id}:2:exclude` });
+    await f.run({ text: "glass" });
+    expect(f.messages.at(-1)?.text).toContain("Block words: glass");
+    await f.run({ data: `w:${row.id}:3:include` });
+    await f.run({ text: "Any" });
+    expect(f.rows.get(row.id)?.include_words).toBeNull();
+    expect(f.messages.at(-1)?.text).toContain("Must mention any of: anything");
+  } finally {
+    f.store.close();
   }
 });

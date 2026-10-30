@@ -40,5 +40,7 @@ export const watchSchema = z.strictObject({
   location: z.enum(["domestic", "worldwide"]).optional(),
   language: z.enum(["english", "japanese", "chinese", "korean"]).optional(),
   maxPrice: z.number().finite().min(0).max(1e10).optional(),
+  includeWords: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+  excludeWords: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
 });
 export type WatchInput = z.infer<typeof watchSchema>;

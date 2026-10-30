@@ -397,3 +397,29 @@ it("alerts on any new active result eBay's search returns, keeping market checks
   expect(pending[0]?.payload).not.toContain("BELOW-MARKET");
   store.close();
 });
+it("applies the search's must-mention and block words to title and description before alerting", () => {
+  const store = new WatchStore(":memory:");
+  const job = store.create({
+    ...watch,
+    includeWords: ["captain"],
+    excludeWords: ["pu"],
+  });
+  store.record(job.id, [], 1000);
+  store.record(
+    job.id,
+    [
+      { ...item("1"), title: "PU chesterfield captain chair" },
+      { ...item("2"), title: "Leather chair" },
+      {
+        ...item("3"),
+        title: "Leather chair",
+        description: "Lovely Captain’s style, green",
+      },
+    ],
+    2000,
+  );
+  const pending = store.pending(2000);
+  expect(pending).toHaveLength(1);
+  expect(pending[0]?.payload).toContain("https://www.ebay.co.uk/itm/3");
+  store.close();
+});

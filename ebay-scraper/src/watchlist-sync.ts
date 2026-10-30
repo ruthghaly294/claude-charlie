@@ -10,8 +10,18 @@ import {
 export function watchButton(entry: WatchlistEntry, action: string): string {
   return `w:${entry.id}:${entry.revision}:${action}`;
 }
+const wordList = (value: string | null): string[] =>
+  (value ?? "")
+    .split(",")
+    .map((word) => word.trim())
+    .filter((word) => word && word.length <= 100)
+    .slice(0, 20);
 function definitions(entry: WatchlistEntry): WatchInput[] {
+  const include = wordList(entry.include_words);
+  const exclude = wordList(entry.exclude_words);
   const common = {
+    ...(include.length ? { includeWords: include } : {}),
+    ...(exclude.length ? { excludeWords: exclude } : {}),
     name: entry.name,
     once: false,
     query: entry.query,

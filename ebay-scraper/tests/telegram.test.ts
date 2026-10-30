@@ -56,7 +56,7 @@ it("sends the listing photo with its caption and a direct listing button", async
     caption: "New listing: Charizard PSA 9",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "Open listing", url: "https://www.ebay.co.uk/itm/123" }],
+        [{ text: "🛒 Buy on eBay", url: "https://www.ebay.co.uk/itm/123" }],
       ],
     },
   });

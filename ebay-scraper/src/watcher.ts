@@ -255,6 +255,7 @@ export class WatchStore {
             .run(JSON.stringify(refreshed), id, r.item_id);
         }
         if (maxAge !== undefined && !freshListing(r, now, maxAge)) continue;
+        if (job.mode === "active" && !wordsAllow(job, r)) continue;
         // Facebook can surface old recommendations on any scan. Unseen does
         // not mean newly listed. Require a verified time within the recent
         // monitoring window, even after a long outage.
@@ -574,6 +575,18 @@ export class WatchStore {
   close(): void {
     this.db.close();
   }
+}
+const normal = (value: string): string =>
+  value.toLowerCase().replace(/[’']/g, "");
+// Second layer after the site's own search: any must-mention word passes;
+// any block word rejects. Title and description are both checked.
+function wordsAllow(job: Watch, listing: Listing): boolean {
+  const text = normal(`${listing.title} ${listing.description ?? ""}`);
+  const has = (word: string) => text.includes(normal(word));
+  return (
+    !(job.excludeWords ?? []).some(has) &&
+    (!job.includeWords?.length || job.includeWords.some(has))
+  );
 }
 export async function runWatchCycle(
   store: WatchStore,

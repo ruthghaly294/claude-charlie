@@ -32,6 +32,7 @@ export const listingSchema = z.strictObject({
   time_left: text,
   listed_at: z.iso.datetime({ offset: true }).nullable().optional(),
   detected_at: z.iso.datetime({ offset: true }).optional(),
+  description: z.string().max(10000).optional(),
   shipping: text,
   shipping_cost: money,
   free_shipping: flag,
