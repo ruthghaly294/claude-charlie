@@ -196,9 +196,10 @@ const load = async (url: string): Promise<FacebookPage> => {
     const path = new URL(page.url()).pathname;
     if (/^\/(login|checkpoint|two_step_verification)\b/.test(path))
       return { path, payloads: [] };
+    // ~9% of a CPU core: Facebook's page data can take over 30s to appear.
     await page.waitForSelector('script[type="application/json"]', {
       state: "attached",
-      timeout: 30000,
+      timeout: 60000,
     });
     await page.waitForTimeout(3000);
     // Search results may arrive through Relay after the initial HTML. Load
