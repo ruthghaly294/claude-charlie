@@ -10,7 +10,7 @@ import {
   parseListingTime,
   parseSearchPayloads,
 } from "./parser.js";
-import { localListings, relevantTitle } from "./results.js";
+import { localListings } from "./results.js";
 
 export type FacebookPage = {
   path: string;
@@ -87,9 +87,9 @@ export function createFacebookSearch(options: {
       );
     const candidates = parsed.filter(
       (row) =>
+        // Facebook's search already matches titles and descriptions loosely;
+        // a title check here dropped wanted items ("Captain's chair, green").
         row.availability === "available" &&
-        // Free listings rarely name their category ("Yellow iris").
-        (job.maxPrice === 0 || relevantTitle(job.query, row.title)) &&
         (job.minPrice === undefined ||
           (row.price !== null && row.price.value >= job.minPrice)) &&
         (job.maxPrice === undefined ||
@@ -111,7 +111,7 @@ export function createFacebookSearch(options: {
           )
         : [];
     const area = {
-      query: job.maxPrice === 0 ? "" : job.query,
+      query: "",
       latitude: job.latitude ?? eastBelfast.latitude,
       longitude: job.longitude ?? eastBelfast.longitude,
       radiusKm: job.radiusKm ?? 40,
@@ -161,8 +161,7 @@ export function createFacebookSearch(options: {
         listedAt: listingTimes.get(row.id) ?? row.listedAt,
       })),
       {
-        // Relevance was already decided above; an empty query matches all.
-        query: job.maxPrice === 0 ? "" : job.query,
+        query: "",
         latitude: job.latitude ?? eastBelfast.latitude,
         longitude: job.longitude ?? eastBelfast.longitude,
         radiusKm: job.radiusKm ?? 40,

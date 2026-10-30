@@ -52,7 +52,7 @@ function fakeFacebook() {
   return { loaded, load };
 }
 
-it("returns only relevant listings inside the radius, with their straight-line distance", async () => {
+it("returns listings inside the radius, with their straight-line distance", async () => {
   const facebook = fakeFacebook();
   const results = await createFacebookSearch({ load: facebook.load })(
     watch("chesterfield chair"),
@@ -66,20 +66,22 @@ it("returns only relevant listings inside the radius, with their straight-line d
     price: { value: 495, raw: "£495" },
     location: "Dunmurry · approx. 9.7 km (straight-line)",
   });
-  expect(facebook.loaded).toHaveLength(3);
+  expect(facebook.loaded).toHaveLength(5);
 });
 
-it("looks up each listing's location once and skips unrelated listings", async () => {
-  const facebook = fakeFacebook();
-  const search = createFacebookSearch({ load: facebook.load });
+it("looks up each listing's location once", async () => {
+  const loaded: string[] = [];
+  const search = createFacebookSearch({
+    load: async (url) => {
+      loaded.push(url);
+      return url.includes("/search/")
+        ? capture("facebook-search.json")
+        : detail(/item\/(\d+)/.exec(url)?.[1] ?? "", 53.3498, -6.2603);
+    },
+  });
   await search(watch("chesterfield chair"));
   await search(watch("chesterfield chair"));
-  expect(facebook.loaded.filter((url) => url.includes("/item/"))).toHaveLength(
-    2,
-  );
-  expect(facebook.loaded.some((url) => url.includes("1047461097992756"))).toBe(
-    false,
-  );
+  expect(loaded.filter((url) => url.includes("/item/"))).toHaveLength(4);
 });
 
 it("excludes listings whose location Facebook does not disclose", async () => {
@@ -117,6 +119,8 @@ it("baselines from Facebook's own radius without opening each listing page", asy
   expect(results.map((r) => [r.item_id, r.location])).toEqual([
     ["1083292931250072", "Dunmurry"],
     ["1839478290721633", "Newtownabbey"],
+    ["1047461097992756", "Ballyclare"],
+    ["955464317124643", "Carrickfergus"],
   ]);
 });
 
@@ -128,6 +132,8 @@ it("opens only listings this search has not already recorded", async () => {
   })(watch("chesterfield chair"));
   expect(facebook.loaded.filter((url) => url.includes("/item/"))).toEqual([
     "https://www.facebook.com/marketplace/item/1083292931250072/",
+    "https://www.facebook.com/marketplace/item/1047461097992756/",
+    "https://www.facebook.com/marketplace/item/955464317124643/",
   ]);
   expect(results.map((r) => r.item_id).sort()).toEqual([
     "1083292931250072",
@@ -255,7 +261,7 @@ it("does not open old listing detail pages in strict live mode", async () => {
     clock: () => Date.parse("2026-10-30T12:00:00Z"),
   })(watch("chesterfield chair"));
   expect(facebook.loaded).toHaveLength(1);
-  expect(results).toHaveLength(2);
+  expect(results).toHaveLength(4);
 });
 
 it("retains useful rows when the browser reports that pagination was incomplete", async () => {
@@ -294,4 +300,14 @@ it("streams a verified fresh match before later listing details finish", async (
   });
   await search(watch("chesterfield chair"));
   expect(sent).toEqual(["1083292931250072"]);
+});
+
+it("trusts Facebook's search matching, so a nearby listing without the search words in its title still alerts", async () => {
+  const results = await createFacebookSearch({
+    load: async (url) =>
+      url.includes("/search/")
+        ? capture("facebook-search.json")
+        : detail(/item\/(\d+)/.exec(url)?.[1] ?? "", 54.6, -5.9),
+  })(watch("round table"));
+  expect(results.map((r) => r.item_id)).toContain("1083292931250072");
 });
