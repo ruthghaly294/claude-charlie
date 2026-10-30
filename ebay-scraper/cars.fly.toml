@@ -1,0 +1,26 @@
+app = "aaron-car-tracker"
+primary_region = "lhr"
+kill_signal = "SIGTERM"
+kill_timeout = "90s"
+swap_size_mb = 1024
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  app = "node dist/cars/main.js"
+
+[env]
+  NODE_OPTIONS = "--max-old-space-size=192"
+  CARS_DATA_DIR = "/data"
+
+[[mounts]]
+  source = "cars_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+[[restart]]
+  policy = "always"

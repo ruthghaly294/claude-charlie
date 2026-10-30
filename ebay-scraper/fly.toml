@@ -2,12 +2,13 @@ app = "aaron-ebay-scraper"
 primary_region = "lhr"
 kill_signal = "SIGTERM"
 kill_timeout = "90s"
+swap_size_mb = 1024
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
-  NODE_OPTIONS = "--max-old-space-size=192"
+  NODE_OPTIONS = "--max-old-space-size=384"
   HOST = "0.0.0.0"
   PORT = "3001"
   EBAY_CHROME_PROFILE = "/data/chrome"
