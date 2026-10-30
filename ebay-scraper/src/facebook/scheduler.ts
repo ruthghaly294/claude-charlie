@@ -36,3 +36,13 @@ export function createWatchLanes(limit: number) {
     idle: (): Promise<unknown> => Promise.allSettled(running.values()),
   };
 }
+
+// With one browser slot, list order would let earlier searches starve later
+// ones; the most overdue search goes first.
+export function dueInOrder<
+  T extends { nextRun: number; once?: boolean | undefined },
+>(watches: readonly T[], now: number): T[] {
+  return watches
+    .filter((watch) => !watch.once && watch.nextRun <= now)
+    .sort((a, b) => a.nextRun - b.nextRun);
+}

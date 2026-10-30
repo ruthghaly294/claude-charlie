@@ -10,7 +10,7 @@ import { createWatchlistRepository } from "../supabase-watchlist.js";
 import { telegramCommands, telegramSender } from "../telegram.js";
 import { WatchStore, runWatchCycle, deliverWatchAlerts } from "../watcher.js";
 import { publishResearch, syncWatchlist } from "../watchlist-sync.js";
-import { createJobLane, createWatchLanes } from "./scheduler.js";
+import { createJobLane, createWatchLanes, dueInOrder } from "./scheduler.js";
 import { drainFacebookSearch, scrollFacebookResults } from "./pagination.js";
 import { createFacebookSearch, type FacebookPage } from "./search.js";
 import { installVncViewer } from "./vnc.js";
@@ -440,9 +440,8 @@ const marketplaceTick = async (id: string): Promise<void> => {
 };
 const tick = (): void => {
   if (stopping) return;
-  for (const watch of store.list())
-    if (!watch.once && watch.nextRun <= Date.now())
-      marketplaceLanes.run(watch.id, () => marketplaceTick(watch.id));
+  for (const watch of dueInOrder(store.list(), Date.now()))
+    marketplaceLanes.run(watch.id, () => marketplaceTick(watch.id));
   backgroundLane.run(() =>
     backgroundTick().catch(() => {
       app.log.error(

@@ -55,3 +55,18 @@ it("runs each search in its own lane, at most two at once, never overlapping its
   finish.get("plants")?.();
   await Promise.all([lanes.pending("chair"), lanes.pending("plants")]);
 });
+it("runs the most overdue search first so a newly added search is not starved", async () => {
+  const { dueInOrder } = await import("../../src/facebook/scheduler.js");
+  expect(
+    dueInOrder(
+      [
+        { id: "chair", nextRun: 900 },
+        { id: "table", nextRun: 950 },
+        { id: "later", nextRun: 2000 },
+        { id: "sofa", nextRun: 0 },
+        { id: "research", nextRun: 0, once: true },
+      ],
+      1000,
+    ).map((w) => w.id),
+  ).toEqual(["sofa", "chair", "table"]);
+});
