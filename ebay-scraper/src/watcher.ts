@@ -189,8 +189,9 @@ export class WatchStore {
         : undefined;
     const rows = results.filter(
       (r) =>
-        (job.mode !== "sold" || r.is_sold === true) &&
-        (!job.marketProfile || comparable(job.marketProfile, r)),
+        job.mode !== "sold" ||
+        (r.is_sold === true &&
+          (!job.marketProfile || comparable(job.marketProfile, r))),
     );
     this.db.exec("BEGIN IMMEDIATE");
     try {
@@ -267,7 +268,11 @@ export class WatchStore {
           continue;
         let dealQueued = false;
         if (stats) {
-          const deal = potentialDeal(r, stats);
+          // Only a true comparable may be called below market.
+          const deal =
+            job.marketProfile && comparable(job.marketProfile, r)
+              ? potentialDeal(r, stats)
+              : null;
           if (deal) {
             this.enqueue(
               id,

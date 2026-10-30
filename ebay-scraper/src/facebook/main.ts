@@ -47,9 +47,9 @@ const send = telegramSender(token, chatId);
 const dbPath = env["FACEBOOK_WATCH_DB"] ?? "/data/facebook-watches.sqlite";
 await mkdir(dirname(dbPath), { recursive: true, mode: 0o700 });
 const store = new WatchStore(dbPath);
-// Searches run every 10 minutes on a throttled CPU, so a listing can be
-// 15 minutes old when first seen; a 10-minute window would drop it.
-store.setSetting("newListingMaxAgeMinutes", "20");
+// Facebook search surfaced in-radius listings 20-60+ minutes after their
+// creation time on this throttled server; a 20-minute window dropped them all.
+store.setSetting("newListingMaxAgeMinutes", "60");
 store.maxNewListingAgeMinutes();
 const app = Fastify({ logger: true });
 if (env["FACEBOOK_VNC_VIEW_TOKEN"] && env["FACEBOOK_VNC_VIEW_EXPIRES"])

@@ -379,3 +379,21 @@ it("sends each alert once when several search lanes deliver at the same time", a
   expect(sends).toBe(1);
   store.close();
 });
+it("alerts on any new active result eBay's search returns, keeping market checks for price claims only", () => {
+  const store = new WatchStore(":memory:");
+  const job = store.create({ ...watch, marketProfile: "chairs" });
+  store.record(job.id, [item("1")], 1000);
+  store.record(
+    job.id,
+    [
+      item("1"),
+      { ...item("2"), title: "Pair of Chesterfield captain chairs green" },
+    ],
+    2000,
+  );
+  const pending = store.pending(2000);
+  expect(pending).toHaveLength(1);
+  expect(pending[0]?.payload).toContain("Pair of Chesterfield captain chairs");
+  expect(pending[0]?.payload).not.toContain("BELOW-MARKET");
+  store.close();
+});

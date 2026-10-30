@@ -149,7 +149,10 @@ export function createFacebookSearch(options: {
         maxAge !== undefined &&
         freshListing(verified, options.clock?.() ?? Date.now(), maxAge)
       )
-        await options.onVerified?.(job, verified);
+        await options.onVerified?.(job, {
+          ...verified,
+          detected_at: new Date(now).toISOString(),
+        });
     }
     const known = candidates
       .filter((row) => !fresh.includes(row))
@@ -171,7 +174,8 @@ export function createFacebookSearch(options: {
       ...row,
       position: known.length + index + 1,
     }));
-    const results = [...known, ...near];
+    const detected_at = new Date(now).toISOString();
+    const results = [...known, ...near].map((row) => ({ ...row, detected_at }));
     options.onScan?.({
       watch: job.name,
       parsed: parsed.length,

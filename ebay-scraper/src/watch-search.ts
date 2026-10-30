@@ -53,12 +53,7 @@ export function createWatchSearch(
         });
         for (const row of results) {
           if (shouldStop()) throw new Error("Stopping");
-          if (
-            row.listed_at ||
-            details.seen(job.id, row.item_id) ||
-            (job.marketProfile && !comparable(job.marketProfile, row))
-          )
-            continue;
+          if (row.listed_at || details.seen(job.id, row.item_id)) continue;
           try {
             row.listed_at = parseEbayListingTime(
               await details.fetchHtml(query, undefined, row.item_id),
@@ -148,7 +143,9 @@ export function createWatchSearch(
           (row) =>
             !row.is_sponsored &&
             row.exact_match !== false &&
-            (!job.marketProfile || comparable(job.marketProfile, row)),
+            (job.mode !== "sold" ||
+              !job.marketProfile ||
+              comparable(job.marketProfile, row)),
         );
         const known = eligible.filter((row) =>
           details.seen(job.id, row.item_id),

@@ -82,7 +82,7 @@ it("enriches unseen active alerts from the item detail page and preserves alerts
   }
 });
 
-it("does not open timestamp detail pages for listings excluded by the market profile", async () => {
+it("looks up the listing time for every new result eBay's search returns, not just market comparables", async () => {
   const { load } = await import("cheerio");
   const $ = load(html);
   $(".s-item__title,.s-card__title")
@@ -106,7 +106,7 @@ it("does not open timestamp detail pages for listings excluded by the market pro
         return "<h1>Detail</h1>";
       },
     })(store.get(saved.id)!);
-    expect(fetched).toHaveLength(1);
+    expect(fetched.length).toBeGreaterThan(1);
   } finally {
     store.close();
     await app.close();

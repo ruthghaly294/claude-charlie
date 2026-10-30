@@ -311,3 +311,15 @@ it("trusts Facebook's search matching, so a nearby listing without the search wo
   })(watch("round table"));
   expect(results.map((r) => r.item_id)).toContain("1083292931250072");
 });
+
+it("stamps each listing with when the monitor first saw it", async () => {
+  const facebook = fakeFacebook();
+  const results = await createFacebookSearch({
+    load: facebook.load,
+    clock: () => Date.parse("2026-10-30T12:00:00Z"),
+  })(watch("chesterfield chair"));
+  expect(results.length).toBeGreaterThan(0);
+  expect(
+    results.every((r) => r.detected_at === "2026-10-30T12:00:00.000Z"),
+  ).toBe(true);
+});

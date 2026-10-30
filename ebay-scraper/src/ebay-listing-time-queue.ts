@@ -65,7 +65,9 @@ export function createEbayListingTimeQueue(options: {
     const candidates = [...rows.values()].filter((row) => {
       if (
         options.seen(id, row.item_id) ||
-        (job.marketProfile && !comparable(job.marketProfile, row))
+        (job.mode === "sold" &&
+          job.marketProfile &&
+          !comparable(job.marketProfile, row))
       ) {
         output.push(row);
         return false;
