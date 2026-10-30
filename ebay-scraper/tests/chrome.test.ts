@@ -240,7 +240,7 @@ describe("Chrome browser transport with intercepted offline pages", () => {
     const real = join(homedir(), ".cache/ebay-search/google-chrome/chrome");
     writeFileSync(
       slowChrome,
-      `#!/bin/sh\n[ "$1" = "--version" ] || sleep 17\nexec "${real}" "$@"\n`,
+      `#!/bin/sh\n[ "$1" = "--version" ] && sleep 6 || sleep 17\nexec "${real}" "$@"\n`,
       { mode: 0o755 },
     );
     try {

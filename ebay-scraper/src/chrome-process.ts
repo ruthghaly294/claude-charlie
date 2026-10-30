@@ -65,7 +65,7 @@ export async function startChrome(
   const headlessArgs: string[] = [];
   if (headless) {
     const { stdout } = await promisify(execFile)(executable, ["--version"], {
-      timeout: 5000,
+      timeout: 30000,
       maxBuffer: 4096,
     });
     const major = stdout.match(/(?:Google Chrome|Chromium)\s+(\d+)\./)?.[1];
