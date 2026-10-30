@@ -70,7 +70,8 @@ export function createFacebookSearch(options: {
       sortBy: "creation_time_descend",
       exact: "false",
     });
-    if (job.baselined && !job.once) params.set("daysSinceListed", "1");
+    // Alerts need a listing under an hour old, so older results add nothing.
+    if (!job.once) params.set("daysSinceListed", "1");
     if (job.minPrice !== undefined)
       params.set("minPrice", String(job.minPrice));
     if (job.maxPrice !== undefined)

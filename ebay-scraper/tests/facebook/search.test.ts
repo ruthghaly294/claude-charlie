@@ -323,3 +323,12 @@ it("stamps each listing with when the monitor first saw it", async () => {
     results.every((r) => r.detected_at === "2026-10-30T12:00:00.000Z"),
   ).toBe(true);
 });
+
+it("limits a new search's first scan to the last day so busy searches can finish their baseline", async () => {
+  const facebook = fakeFacebook();
+  await createFacebookSearch({ load: facebook.load })({
+    ...watch("sofa"),
+    baselined: false,
+  });
+  expect(facebook.loaded[0]).toContain("daysSinceListed=1");
+});
