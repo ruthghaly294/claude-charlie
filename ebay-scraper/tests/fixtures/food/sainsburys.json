@@ -1,0 +1,556 @@
+{
+  "products": [
+    {
+      "name": "Pepsi Max No Sugar Cola Cans 24x330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-cans-24x330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7730215/image.jpg",
+      "retail_price": {
+        "price": 8.5,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.07,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 1 for 8.5",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Sugar Cola Bottle 2L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-bottle-2l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/2487243/image.jpg",
+      "retail_price": {
+        "price": 2.45,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.23,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy any 2 for £3.50 with Nectar, £0.88 / ltr",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max Cherry No Sugar Cola Cans 24x330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-cherry-no-sugar-cola-cans-24x330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8076827/image.jpg",
+      "retail_price": {
+        "price": 8.5,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.07,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 1 for 8.5",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Sugar Cola Cans 8x330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-cans-8x330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7516963/image.jpg",
+      "retail_price": {
+        "price": 5.2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.97,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max Cherry No Sugar Cola Bottle 2L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-cherry-no-sugar-cola-bottle-2l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7546824/image.jpg",
+      "retail_price": {
+        "price": 2.45,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.23,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy any 2 for £3.50 with Nectar, £0.88 / ltr",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Caffeine No Sugar Cola Bottle 2L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-caffeine-no-sugar-cola-bottle-2l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8070958/image.jpg",
+      "retail_price": {
+        "price": 2.45,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.23,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy any 2 for £3.50 with Nectar, £0.88 / ltr",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Sugar Cola Bottle 1.25L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-bottle-1-25l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7953406/image.jpg",
+      "retail_price": {
+        "price": 1.25,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 1 for 1.25",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max 15 x 330ml No Sugar Cans",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-15-x-330ml-no-sugar-cans",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8266135/image.jpg",
+      "retail_price": {
+        "price": 8.25,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.67,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max No Caffeine No Sugar Cola Cans 24 x 330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-caffeine-no-sugar-cola-cans-24-x-330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8161748/image.jpg",
+      "retail_price": {
+        "price": 8.5,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.07,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 1 for 8.5",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Caffeine 8x330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-caffeine-8x330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8070960/image.jpg",
+      "retail_price": {
+        "price": 5.2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.97,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max Cherry No Sugar Cola Cans 8x330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-cherry-no-sugar-cola-cans-8x330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7714531/image.jpg",
+      "retail_price": {
+        "price": 5.2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.97,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max Lime No Sugar Cola Bottle 2L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-lime-no-sugar-cola-bottle-2l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8096051/image.jpg",
+      "retail_price": {
+        "price": 2.45,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.23,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy any 2 for £3.50 with Nectar, £0.88 / ltr",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max No Sugar Cola Bottle 500ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-bottle-500ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7268599/image.jpg",
+      "retail_price": {
+        "price": 2.05,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 4.1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Meal Deal for £7.00",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £5.50",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £3.95",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max Cherry No Sugar Cola Bottle 1.25L",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-cherry-no-sugar-cola-bottle-1-25l",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7953401/image.jpg",
+      "retail_price": {
+        "price": 1.25,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 1 for 1.25",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max Cherry No Sugar Cola Bottle 500ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-cherry-no-sugar-cola-bottle-500ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/7728610/image.jpg",
+      "retail_price": {
+        "price": 2.05,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 4.1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Meal Deal for £7.00",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £3.95",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £5.50",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max Lime No Sugar Cola Cans 8 x 330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-lime-no-sugar-cola-cans-8-x-330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8096054/image.jpg",
+      "retail_price": {
+        "price": 5.2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.97,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi 2L Max Tropical Bottle",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-2l-max-tropical-bottle",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8253632/image.jpg",
+      "retail_price": {
+        "price": 2.45,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.23,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy any 2 for £3.50 with Nectar, £0.88 / ltr",
+          "start_date": "2026-10-13T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max 15 x 330ml No Sugar Cherry Cans",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-15-x-330ml-no-sugar-cherry-cans",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8266133/image.jpg",
+      "retail_price": {
+        "price": 8.25,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.67,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi 8 x 330ml Max Tropical Cans",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-8-x-330ml-max-tropical-cans",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8253658/image.jpg",
+      "retail_price": {
+        "price": 5.2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 1.97,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max Sodastream Sparkling Drink Mix 440 ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-sodastream-sparkling-drink-mix-440-ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8085590/image.jpg",
+      "retail_price": {
+        "price": 6.99,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 15.89,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max Lime No Sugar Cola Bottle 500ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-lime-no-sugar-cola-bottle-500ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8129178/image.jpg",
+      "retail_price": {
+        "price": 2.05,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 4.1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Meal Deal for £3.95",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £5.50",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £7.00",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi Max Sodastream Sparkling Drink Mix Cherry Flavour 440ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-sodastream-sparkling-drink-mix-cherry-flavour-440ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8132086/image.jpg",
+      "retail_price": {
+        "price": 6.99,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 15.89,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": []
+    },
+    {
+      "name": "Pepsi Max No Sugar Cola Can 330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-max-no-sugar-cola-can-330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8061421/image.jpg",
+      "retail_price": {
+        "price": 1.4,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 4.24,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Meal Deal for £3.95",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £5.50",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £7.00",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Pepsi 500ml Max Tropical Bottle",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/pepsi-500ml-max-tropical-bottle",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8251556/image.jpg",
+      "retail_price": {
+        "price": 2.05,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 4.1,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Meal Deal for £7.00",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £3.95",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        },
+        {
+          "strap_line": "Meal Deal for £5.50",
+          "start_date": "2026-09-16T23:00:00Z",
+          "end_date": "2027-08-29T23:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Captain Morgan Original Spiced Gold Rum & Pepsi Max Ready to Drink 5% Vol Can 330ml",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/captain-morgan-original-spiced-gold-rum-pepsi-max-ready-to-drink-5-vol-can-330ml",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8065270/image.jpg",
+      "retail_price": {
+        "price": 2,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 6.06,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 4 get cheapest 1 free with Nectar",
+          "start_date": "2026-10-15T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        },
+        {
+          "strap_line": "Buy 4 get cheapest 1 free with Nectar",
+          "start_date": "2026-10-23T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Captain Morgan 330ml Original Spiced Gold & Pepsi Max Cherry Premix Can",
+      "full_url": "://www.sainsburys.co.uk/gol-ui/product/captain-morgan-330ml-original-spiced-gold-pepsi-max-cherry-premix-can",
+      "image": "https://assets.sainsburys-groceries.co.uk/gol/8278039/image.jpg",
+      "retail_price": {
+        "price": 2.4,
+        "measure": ""
+      },
+      "unit_price": {
+        "price": 7.27,
+        "measure": "ltr",
+        "measure_amount": 1
+      },
+      "promotions": [
+        {
+          "strap_line": "Buy 4 get cheapest 1 free with Nectar",
+          "start_date": "2026-10-23T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        },
+        {
+          "strap_line": "Buy 4 get cheapest 1 free with Nectar",
+          "start_date": "2026-10-15T23:00:00Z",
+          "end_date": "2026-11-03T00:00:00Z"
+        }
+      ]
+    }
+  ]
+}

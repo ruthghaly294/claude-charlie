@@ -16,3 +16,13 @@ export function ebaySignInRequired(): ScrapeError {
     503,
   );
 }
+
+export class PartialScanError extends ScrapeError {
+  constructor(
+    code: string,
+    message: string,
+    readonly results: readonly import("./contract.js").Listing[],
+  ) {
+    super(code, message, 503);
+  }
+}

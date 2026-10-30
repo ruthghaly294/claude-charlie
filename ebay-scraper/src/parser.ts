@@ -228,16 +228,22 @@ export function parseSearchHtml(
     throw ebaySignInRequired();
   const heading = clean($("title, h1, .error-header__headline").text());
   if (
-    /access denied|pardon our interruption|error page \| ebay|security measure|robot check|captcha/i.test(
+    /access denied|pardon our interruption|security measure|robot check|captcha/i.test(
       heading,
     ) ||
-    $('form[action*="splashui"], #captcha_form, #error-info').length
+    $('form[action*="splashui"], #captcha_form').length
   ) {
     throw new ScrapeError(
       "UPSTREAM_BLOCKED",
       "eBay blocked this request; no listings were returned.",
     );
   }
+  if (/error page \| ebay/i.test($("title").text()) || $("#error-info").length)
+    throw new ScrapeError(
+      "UPSTREAM_TEMPORARY_ERROR",
+      "eBay returned a temporary error page; the search will retry.",
+      503,
+    );
   const countText = clean($(".srp-controls__count-heading").first().text());
   const count = countText.match(/[\d][\d.,\s]*/)?.[0];
   const total = count ? Number(count.replace(/[^\d]/g, "")) : null;

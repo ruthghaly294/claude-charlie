@@ -110,13 +110,12 @@ describe("HTML to captured response contract", () => {
     expect(data.pagination.has_more).toBe(false);
   });
 
-  it.each([
-    "<h1>Access Denied</h1>",
-    "<title>Pardon Our Interruption</title>",
-    "<title>Error Page | eBay</title>",
-  ])("rejects block pages rather than claiming zero results: %s", (body) => {
-    expect(() => parseSearchHtml(body, query, now)).toThrow(/blocked/i);
-  });
+  it.each(["<h1>Access Denied</h1>", "<title>Pardon Our Interruption</title>"])(
+    "rejects block pages rather than claiming zero results: %s",
+    (body) => {
+      expect(() => parseSearchHtml(body, query, now)).toThrow(/blocked/i);
+    },
+  );
 
   it("distinguishes a valid zero-result page from changed markup", () => {
     expect(
@@ -205,5 +204,25 @@ describe("money normalization", () => {
     "123 bananas",
   ])("does not invent a single price from %s", (raw) => {
     expect(parseMoney(raw, "co.uk")).toBeNull();
+  });
+});
+
+describe("eBay error-page classification", () => {
+  it("reports the observed generic eBay error as temporary, separately from a security challenge", () => {
+    const page =
+      '<title>Error Page | eBay</title><h1>SORRY</h1><div id="error-info">Something went wrong on our end. Please go back and try again.</div>';
+    expect(() => parseSearchHtml(page, query, now)).toThrowError(
+      expect.objectContaining({
+        code: "UPSTREAM_TEMPORARY_ERROR",
+        statusCode: 503,
+      }),
+    );
+    expect(() =>
+      parseSearchHtml(
+        '<title>Pardon our interruption</title><form id="captcha_form"></form>',
+        query,
+        now,
+      ),
+    ).toThrowError(expect.objectContaining({ code: "UPSTREAM_BLOCKED" }));
   });
 });

@@ -171,7 +171,8 @@ export async function startChrome(
     })());
   try {
     const endpoint = `http://127.0.0.1:${port}`;
-    const deadline = Date.now() + 15000;
+    // Cold boot on Fly's shared CPU can exceed 15s while Xvfb and VNC start too.
+    const deadline = Date.now() + 60000;
     while (Date.now() < deadline && child.exitCode === null && !processError) {
       try {
         const response = await fetch(`${endpoint}/json/version`, {

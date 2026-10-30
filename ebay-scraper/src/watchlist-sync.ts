@@ -1,6 +1,7 @@
 import type { WatchStore } from "./watcher.js";
 import { watchSchema, type WatchInput } from "./watch-config.js";
 import { marketSummary, saleObservation, researchText } from "./market.js";
+import type { Listing } from "./contract.js";
 import {
   watchlistRowSchema,
   type WatchlistEntry,
@@ -25,6 +26,19 @@ function definitions(entry: WatchlistEntry): WatchInput[] {
     ...(entry.location ? { location: entry.location } : {}),
     ...(entry.language ? { language: entry.language } : {}),
     freeShipping: entry.free_shipping,
+    ...(entry.provider === "facebook"
+      ? {
+          provider: entry.provider,
+          ...(entry.latitude !== undefined ? { latitude: entry.latitude } : {}),
+          ...(entry.longitude !== undefined
+            ? { longitude: entry.longitude }
+            : {}),
+          ...(entry.radius_km !== undefined
+            ? { radiusKm: entry.radius_km }
+            : {}),
+          ...(entry.location_name ? { locationName: entry.location_name } : {}),
+        }
+      : {}),
   };
   const result: WatchInput[] = [];
   if (entry.monitor_active)
@@ -36,6 +50,20 @@ function definitions(entry: WatchlistEntry): WatchInput[] {
         notifyNew: true,
       }),
     );
+  if (entry.provider === "facebook") {
+    if (entry.research_requested_at)
+      result.push(
+        watchSchema.parse({
+          ...common,
+          name: `${entry.name.slice(0, 90)} — prices`,
+          mode: "active",
+          notifyNew: false,
+          once: true,
+          researchRequest: entry.research_requested_at,
+        }),
+      );
+    return result;
+  }
   if (entry.monitor_sold || entry.research_requested_at)
     result.push(
       watchSchema.parse({
@@ -50,6 +78,21 @@ function definitions(entry: WatchlistEntry): WatchInput[] {
       }),
     );
   return result;
+}
+function askingPriceText(
+  entry: WatchlistEntry,
+  listings: readonly Listing[],
+): string {
+  const prices = listings
+    .flatMap((row) => (row.price ? [row.price.value] : []))
+    .sort((a, b) => a - b);
+  const money = (value: number) => `£${value.toFixed(2)}`;
+  const middle = Math.floor(prices.length / 2);
+  const median =
+    prices.length % 2
+      ? prices[middle]!
+      : (prices[middle - 1]! + prices[middle]!) / 2;
+  return `${entry.name}\n${listings.length} current listings within ${entry.radius_km ?? 40} km of ${entry.location_name ?? "the search centre"}\n${prices.length ? `Lowest ${money(prices[0]!)} · median ${money(median)} · highest ${money(prices.at(-1)!)}` : "No disclosed asking prices"}\nFacebook Marketplace asking prices, not completed sales. Keep watching for new listings?`;
 }
 function sameDefinition(job: WatchInput, definition: WatchInput): boolean {
   return (
@@ -136,11 +179,28 @@ export function publishResearch(
       .find(
         (w) =>
           w.watchlistId === entry.id &&
-          w.mode === "sold" &&
+          w.mode === (entry.provider === "facebook" ? "active" : "sold") &&
           w.researchRequest === entry.research_requested_at &&
           w.baselined,
       );
     if (!job) continue;
+    if (entry.provider === "facebook") {
+      store.enqueue(
+        job.id,
+        `research:${entry.research_requested_at}`,
+        askingPriceText(entry, store.listings(job.id)),
+        {
+          buttons: [
+            [
+              { text: "Yes, keep watching", data: watchButton(entry, "yes") },
+              { text: "No, research only", data: watchButton(entry, "no") },
+            ],
+          ],
+        },
+      );
+      store.setSetting(key, "queued");
+      continue;
+    }
     const observations = store.listings(job.id).flatMap((row) => {
       const observation = saleObservation(row, now);
       return observation ? [observation] : [];

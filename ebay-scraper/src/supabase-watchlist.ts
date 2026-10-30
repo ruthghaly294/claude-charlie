@@ -5,6 +5,11 @@ import { markets } from "./query.js";
 const nullableText = z.string().nullable().default(null);
 const price = z.number().finite().min(0).max(1e10).nullable().default(null);
 export const watchlistDraftSchema = z.object({
+  provider: z.literal("facebook").optional(),
+  latitude: z.number().finite().min(-90).max(90).optional(),
+  longitude: z.number().finite().min(-180).max(180).optional(),
+  radius_km: z.number().finite().min(1).max(500).optional(),
+  location_name: z.string().trim().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(100),
   query: z.string().trim().min(1).max(500),
   domain: z
@@ -71,6 +76,7 @@ export type WatchlistPatch = Partial<z.output<typeof watchlistDraftSchema>> & {
   research_requested_at?: string;
 };
 export interface WatchlistRepository {
+  readonly platform?: "ebay" | "facebook";
   list(chatId: string): Promise<WatchlistEntry[]>;
   create(
     id: string,
@@ -96,6 +102,7 @@ export function createWatchlistRepository(
   url: string,
   secretKey: string,
   fetcher: typeof fetch = fetch,
+  platform: "ebay" | "facebook" = "ebay",
 ): WatchlistRepository {
   const endpoint = new URL(url);
   if (
@@ -109,6 +116,8 @@ export function createWatchlistRepository(
     throw new Error("Invalid Supabase URL");
   if (!secretKey.startsWith("sb_secret_") && !secretKey.startsWith("eyJ"))
     throw new Error("A server Supabase key is required");
+  const table =
+    platform === "facebook" ? "facebook_watchlist" : "ebay_watchlist";
   const client = new PostgrestClient(endpoint.origin + "/rest/v1", {
     headers: {
       apikey: secretKey,
@@ -135,7 +144,7 @@ export function createWatchlistRepository(
     let result;
     try {
       result = await client
-        .from("ebay_watchlist")
+        .from(table)
         .update(patch)
         .eq("id", entryId(id))
         .eq("telegram_chat_id", owner(chatId))
@@ -153,10 +162,11 @@ export function createWatchlistRepository(
     return parsed.data;
   }
   return {
+    platform,
     async list(chatId) {
       try {
         const { data, error } = await client
-          .from("ebay_watchlist")
+          .from(table)
           .select("*")
           .eq("telegram_chat_id", owner(chatId))
           .is("deleted_at", null)
@@ -176,7 +186,7 @@ export function createWatchlistRepository(
         .parse(input);
       try {
         const { data, error } = await client
-          .from("ebay_watchlist")
+          .from(table)
           .insert({
             ...parsed,
             id: entryId(id),
@@ -187,7 +197,7 @@ export function createWatchlistRepository(
         if (error) {
           if (error.code === "23505") {
             const existing = await client
-              .from("ebay_watchlist")
+              .from(table)
               .select("*")
               .eq("id", id)
               .eq("telegram_chat_id", chatId)
@@ -214,7 +224,15 @@ export function createWatchlistRepository(
         .extend({ research_requested_at: z.iso.datetime().optional() })
         .strict()
         .parse(patch);
-      return write(id, chatId, revision, parsed);
+      // Zod defaults also run under partial(); they must not become updates
+      // to fields the caller did not supply.
+      const changes = Object.fromEntries(
+        Object.entries(parsed).filter(
+          ([key]) =>
+            Object.hasOwn(patch, key) && Reflect.get(patch, key) !== undefined,
+        ),
+      );
+      return write(id, chatId, revision, changes);
     },
     async remove(id, chatId, revision) {
       await write(id, chatId, revision, {

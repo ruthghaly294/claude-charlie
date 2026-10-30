@@ -119,11 +119,14 @@ export type SearchQuery = z.infer<typeof searchQuerySchema> & {
   readonly sold_only?: boolean;
 };
 
-export function buildSearchUrl(query: SearchQuery): URL {
+export function buildSearchUrl(
+  query: SearchQuery,
+  format: "canonical" | "form" = query.completed ? "form" : "canonical",
+): URL {
   const url = new URL(`https://www.ebay.${query.domain}/sch/i.html`);
   const params: Record<string, string | number | undefined> = {
     _nkw: query.query,
-    _pgn: query.page,
+    _pgn: format === "form" || query.page > 1 ? query.page : undefined,
     _ipg: query.per_page,
     _sacat: query.category_id,
     _sop: query.sort_by
@@ -155,5 +158,8 @@ export function buildSearchUrl(query: SearchQuery): URL {
     ] = "1";
   for (const [name, value] of Object.entries(params))
     if (value !== undefined) url.searchParams.set(name, String(value));
+  // eBay accepts page one implicitly. Canonical URI encoding also keeps
+  // literal plus signs distinct from spaces in complex search expressions.
+  if (format === "canonical") url.search = url.search.replace(/\+/g, "%20");
   return url;
 }

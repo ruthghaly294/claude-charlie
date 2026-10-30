@@ -15,6 +15,7 @@ export type PageFetcher = (
 export type HtmlFetcher = (
   query: SearchQuery,
   signal?: AbortSignal,
+  itemId?: string,
 ) => Promise<string>;
 
 type Options = {
@@ -89,7 +90,9 @@ export function createHtmlFetcher(options: Options = {}): HtmlFetcher {
           "sec-fetch-user": "?1",
         },
       }));
-  return async (query, callerSignal) => {
+  return async (query, callerSignal, itemId) => {
+    if (itemId && !/^\d{9,15}$/.test(itemId))
+      throw new Error("Invalid eBay item ID");
     const deadline = AbortSignal.timeout(timeoutMs);
     const signal = callerSignal
       ? AbortSignal.any([deadline, callerSignal])
@@ -97,7 +100,9 @@ export function createHtmlFetcher(options: Options = {}): HtmlFetcher {
     try {
       signal.throwIfAborted();
       const page = await fetchPage(
-        buildSearchUrl(query),
+        itemId
+          ? new URL(`https://www.ebay.${query.domain}/itm/${itemId}`)
+          : buildSearchUrl(query),
         signal,
         markets[query.domain].locale,
       );

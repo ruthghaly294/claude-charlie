@@ -1,0 +1,637 @@
+[
+ {
+  "data": {
+   "searchResults": {
+    "intercept": null,
+    "listings": [
+     {
+      "type": "GPT_LISTING",
+      "targetingSegments": [
+       {
+        "name": "sr",
+        "values": [
+         "SUV100"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "make",
+        "values": [
+         "toyota"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "min_age",
+        "values": [
+         "2018"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "model",
+        "values": [
+         "rav4"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "price_search_type",
+        "values": [
+         "total"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "location_area",
+        "values": [
+         "belfast"
+        ],
+        "__typename": "TargetingSegment"
+       },
+       {
+        "name": "loc_one",
+        "values": [
+         "bt15"
+        ],
+        "__typename": "TargetingSegment"
+       }
+      ],
+      "areaOfInterest": {
+       "manufacturerCodes": [
+        "PEU038",
+        "HYU036",
+        "FIA049",
+        "LEX001",
+        "MIN007",
+        "BMW011",
+        "SUB026",
+        "ISU054",
+        "FER002",
+        "CIT031",
+        "JAG008",
+        "VWA086"
+       ],
+       "__typename": "AreaOfInterest"
+      },
+      "posId": "desktop-search-15",
+      "__typename": "GPTListing"
+     },
+     {
+      "type": "FEATURED_LISTING",
+      "advertId": "202608275494300",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Dynamic CVT 4WD Euro 6 (s/s) 5dr",
+      "attentionGrabber": "ELECTRIC SAETS |REVERSE CAMERA",
+      "price": "\u00a321,950",
+      "vehicleLocation": "Rickmansworth (306 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/482cecaa17a54261829e5dae2d51bd43.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/6aead702d2f74187a3eb293baeebc9fb.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/75db8d0691264c5084829db47eb635ac.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/24d7aabcf5954483a4dc1fd1cc3d7dbc.jpg"
+      ],
+      "numberOfImages": 39,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/hertfordshire/rickmansworth/car-planet-watford-10033451?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 4.5,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202608275494300?journey=FEATURED_LISTING_JOURNEY&sort=datedesc&twcs=true&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": false,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_LOW",
+        "displayText": "Lower price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "41,963 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2020 (69 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 1,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "10033451",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202608275494300",
+        "advertiserId": "10033451",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2020,
+        "condition": "used",
+        "price": 21950,
+        "searchVersionId": "16",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "FEATURED_LISTING",
+        "pageNumber": 1,
+        "position": 1,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 39,
+        "hasFinance": true,
+        "priceIndicator": "LOW",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 306,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     },
+     {
+      "type": "NATURAL_LISTING",
+      "advertId": "202610287408346",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Dynamic CVT 4WD Euro 6 (s/s) 5dr",
+      "attentionGrabber": "REVERSE CAMERA | CARPLAY",
+      "price": "\u00a331,181",
+      "vehicleLocation": "Macclesfield (181 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/fed5776139844b32b4b46c175255a810.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/6c4d2cddd094448aa683b14d93e60ba5.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/875c822c30d64670ab41829f4d8acff8.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/5fc588f3e2e44ed684d3d36d70962a50.jpg"
+      ],
+      "numberOfImages": 10,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/cheshire/macclesfield/rrg-toyota-macclesfield-49025?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 5,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202610287408346?sort=datedesc&twcs=true&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": true,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_GOOD",
+        "displayText": "Good price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "33,162 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2023 (73 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 2,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "49025",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202610287408346",
+        "advertiserId": "49025",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2023,
+        "condition": "used",
+        "price": 31181,
+        "searchVersionId": "4",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "NATURAL_LISTING",
+        "pageNumber": 1,
+        "position": 2,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 10,
+        "hasFinance": true,
+        "priceIndicator": "GOOD",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 181,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     },
+     {
+      "type": "NATURAL_LISTING",
+      "advertId": "202610287407356",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Design CVT Euro 6 (s/s) 5dr",
+      "attentionGrabber": "Sensors - Camera - Heated Seat",
+      "price": "\u00a325,491",
+      "vehicleLocation": "Horsham (342 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/d9012bb4a1b8464ab0300478bac1968b.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/f5a06b66f479468db04a5e504955cf53.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/d4736319abf64ab6aa0ed9dabf63ba6d.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/23da3ea553d0496db00d5f50eb2895a1.jpg"
+      ],
+      "numberOfImages": 4,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/west-sussex/horsham/prestige-cars-by-peter-cooper-horsham-10013779?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 5,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202610287407356?sort=datedesc&twcs=true&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": true,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_GOOD",
+        "displayText": "Good price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "46,000 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2023 (73 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 3,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "10013779",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202610287407356",
+        "advertiserId": "10013779",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2023,
+        "condition": "used",
+        "price": 25491,
+        "searchVersionId": "6",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "NATURAL_LISTING",
+        "pageNumber": 1,
+        "position": 3,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 4,
+        "hasFinance": true,
+        "priceIndicator": "GOOD",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 342,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     },
+     {
+      "type": "NATURAL_LISTING",
+      "advertId": "202610287405467",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Dynamic CVT 4WD Euro 6 (s/s) 5dr",
+      "attentionGrabber": "18''Alloys/Camera/Multimedia",
+      "price": "\u00a320,990",
+      "vehicleLocation": "Bury (163 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/c7145313f89d4d6c870cf0ab3826d6ed.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/11c746c44bee4cbda886ec808a193ef2.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/f446d5709b6c461d96a6b3ea49a706f7.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/0b977e6f6efb4b1faf21b9c7ee30af89.jpg"
+      ],
+      "numberOfImages": 29,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/lancs/bury/cartime-587040?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 4.5,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202610287405467?sort=datedesc&twcs=true&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": true,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_GOOD",
+        "displayText": "Good price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "58,517 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2019 (69 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 4,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "587040",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202610287405467",
+        "advertiserId": "587040",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2019,
+        "condition": "used",
+        "price": 20990,
+        "searchVersionId": "2",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "NATURAL_LISTING",
+        "pageNumber": 1,
+        "position": 4,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 29,
+        "hasFinance": true,
+        "priceIndicator": "GOOD",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 163,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     },
+     {
+      "type": "NATURAL_LISTING",
+      "advertId": "202610287400352",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Icon CVT Euro 6 (s/s) 5dr",
+      "attentionGrabber": "HYBRID+UK MODEL+CAMERA",
+      "price": "\u00a311,495",
+      "vehicleLocation": "Birmingham (225 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/2d0061952f0d46af895fe38f2a07dc0e.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/3040b02cab724d0387cbff0f021c65f8.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/59ab8c527dc341d5b39075bf8df9bc87.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/9450373511f7487c9e9ec614c10270bf.jpg"
+      ],
+      "numberOfImages": 35,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/west-midlands/birmingham/yardley-motor-trade-ltd-10026979?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 4.5,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202610287400352?sort=datedesc&twcs=true&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": true,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_GOOD",
+        "displayText": "Good price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "115,000 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2018 (68 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 5,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "10026979",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202610287400352",
+        "advertiserId": "10026979",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2018,
+        "condition": "used",
+        "price": 11495,
+        "searchVersionId": "11",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "NATURAL_LISTING",
+        "pageNumber": 1,
+        "position": 5,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 35,
+        "hasFinance": true,
+        "priceIndicator": "GOOD",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 225,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     },
+     {
+      "type": "NATURAL_LISTING",
+      "advertId": "202610287399081",
+      "title": "Toyota RAV4",
+      "subTitle": "2.5 VVT-h Excel CVT Euro 6 (s/s) 5dr",
+      "attentionGrabber": "We make car buying easy",
+      "price": "\u00a320,498",
+      "vehicleLocation": "Stirling (131 miles)",
+      "locationType": "STANDARD",
+      "discount": null,
+      "images": [
+       "https://m.atcdn.co.uk/a/media/{resize}/d4cb7e81eea24ac79c32284ab31fd92a.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/4cba23d6a4914052b580012f96b63227.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/ba4c5c8f5a854d28950770613a551f40.jpg",
+       "https://m.atcdn.co.uk/a/media/{resize}/cace19c5fd4c49bb81615bb844870f7d.jpg"
+      ],
+      "numberOfImages": 20,
+      "rrp": null,
+      "sellerType": "TRADE",
+      "dealerLink": "/dealers/stirlingshire/stirling/stirling-mazda-mg-123445?channel=cars",
+      "dealerReview": {
+       "overallReviewRating": 4.8,
+       "__typename": "BasicListingDealerReview"
+      },
+      "fpaLink": "/car-details/202610287399081?sort=datedesc&searchId=8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+      "hasDigitalRetailing": false,
+      "preReg": false,
+      "badges": [
+       {
+        "type": "PI_FAIR",
+        "displayText": "Fair price",
+        "__typename": "Badge"
+       },
+       {
+        "type": "MILEAGE",
+        "displayText": "74,414 miles",
+        "__typename": "Badge"
+       },
+       {
+        "type": "REGISTERED_YEAR",
+        "displayText": "2019 (69 reg)",
+        "__typename": "Badge"
+       }
+      ],
+      "position": 6,
+      "canSaveAdvert": true,
+      "trackingContext": {
+       "retailerContext": {
+        "id": "123445",
+        "__typename": "TrackingRetailerContext"
+       },
+       "advertContext": {
+        "id": "202610287399081",
+        "advertiserId": "123445",
+        "advertiserType": "TRADE",
+        "make": "Toyota",
+        "model": "RAV4",
+        "vehicleCategory": "car",
+        "year": 2019,
+        "condition": "used",
+        "price": 20498,
+        "searchVersionId": "4",
+        "__typename": "TrackingAdvertContext"
+       },
+       "card": {
+        "category": "ADVERT",
+        "subCategory": "NATURAL_LISTING",
+        "pageNumber": 1,
+        "position": 6,
+        "__typename": "TrackingCard"
+       },
+       "advertCardFeatures": {
+        "condition": "USED",
+        "numImages": 20,
+        "hasFinance": true,
+        "priceIndicator": "FAIR",
+        "isManufacturedApproved": false,
+        "isFranchiseApproved": false,
+        "__typename": "TrackingAdvertCardFeatures"
+       },
+       "distance": {
+        "distance": 131,
+        "distance_unit": null,
+        "__typename": "TrackingDistance"
+       },
+       "__typename": "TrackingContext"
+      },
+      "__typename": "SearchListing"
+     }
+    ],
+    "page": {
+     "number": 1,
+     "count": 62,
+     "results": {
+      "count": 1240,
+      "__typename": "SearchResultsPageResults"
+     },
+     "__typename": "SearchResultsPage"
+    },
+    "searchInfo": {
+     "isForFinanceSearch": false,
+     "leasingSummary": null,
+     "__typename": "SearchInfo"
+    },
+    "trackingContext": {
+     "searchId": "8594deb7-d4b8-4e71-b551-9dc8bb8fddb8",
+     "__typename": "SearchResultsTrackingContext"
+    },
+    "__typename": "SearchResults"
+   }
+  }
+ }
+]

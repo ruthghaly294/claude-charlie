@@ -1,0 +1,37 @@
+app = "aaron-facebook-marketplace"
+primary_region = "lhr"
+kill_signal = "SIGTERM"
+kill_timeout = "90s"
+swap_size_mb = 1024
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  app = "node dist/facebook/main.js"
+
+[env]
+  NODE_OPTIONS = "--max-old-space-size=192"
+  HOST = "0.0.0.0"
+  PORT = "3001"
+  FACEBOOK_CHROME_PROFILE = "/data/facebook-chrome"
+  ENABLE_VNC = "true"
+
+[[mounts]]
+  source = "facebook_data"
+  destination = "/data"
+
+[http_service]
+  processes = ["app"]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+[[restart]]
+  policy = "always"

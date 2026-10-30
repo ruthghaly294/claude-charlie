@@ -1,0 +1,283 @@
+{
+  "items": [
+    {
+      "gridbox": {
+        "data": {
+          "fullTitle": "Pepsi Max",
+          "canonicalUrl": "/p/pepsi-max/p10056228",
+          "image": "https://imgproxy-retcat.assets.schwarz/IX_geJbBxY9FdULFt4_7p5Ed4XOeVzhKx1LuVeGe-2c/sm:0/exar:1:ce/w:427/h:320/cz/M6Ly9wcm9kLWNhd/GFsb2ctbWVkaWEvdWsvMS81M0UwOTc1Nzk3ODE5QkU4NTQwQkU2OUQ/xMENGRkMwMUJCOEMwRjFDNDY0RjdFOEU0MjcxQjc4MzE3MzJDMjA0LmpwZw.jpg",
+          "price": {
+            "currencyCode": "GBP",
+            "currencyCodeSecond": "",
+            "currencySymbol": "£",
+            "currencySymbolSecond": "",
+            "displayedCurrency": "£",
+            "hasStar": false,
+            "hasVat": false,
+            "specialTaxes": [],
+            "variantsHaveDifferentPrices": false
+          },
+          "lidlPlus": [
+            {
+              "price": {
+                "basePrice": {
+                  "prefix": false,
+                  "text": "£3.50/per pack"
+                },
+                "discount": {
+                  "discountHasStar": false,
+                  "discountText": "2 FOR",
+                  "fromNormalPriceForLidlPlus": false,
+                  "fromRecommendedPrice": false,
+                  "showDiscount": false,
+                  "showFrom": false,
+                  "showPercentage": false,
+                  "showUpTo": false
+                },
+                "displayedCurrency": "£",
+                "hasStar": false,
+                "hasVat": false,
+                "oldPrice": 0,
+                "packaging": {
+                  "text": "Regular price per 1 pack £4.15"
+                },
+                "price": 7,
+                "priceTheme": "white_yellow",
+                "specialTaxes": [],
+                "superscript": ""
+              },
+              "lidlPlusText": "With Lidl Plus",
+              "highlightText": "2 FOR"
+            }
+          ],
+          "keyfacts": {
+            "supplementalDescription": "8x330ml",
+            "description": "<p><strong>Get 2 for &pound;7 with the Lidl Plus app 15.10 &ndash; 28.10</strong></p>"
+          },
+          "stockAvailability": {
+            "badgeInfoV2": [
+              {
+                "badges": [
+                  {
+                    "text": "Available in store now",
+                    "type": "IN_STORE_PAST_DATE_RANGE"
+                  }
+                ],
+                "validFrom": 1792623600,
+                "validUntil": 1793231999
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridbox": {
+        "data": {
+          "fullTitle": "Twix Funsize",
+          "canonicalUrl": "/p/twix-funsize/p10055429",
+          "image": "https://imgproxy-retcat.assets.schwarz/QXxazgQiNyyanWErH10u0JwAjUtwAS3qutLltP4lSfo/sm:0/exar:1:ce/w:427/h:320/cz/M6Ly9wcm9kLWNhd/GFsb2ctbWVkaWEvdWsvMS85MjMyM0U2OTc2M0Q2MDg5RkFGRDBCODF/CRjU3MjA0MjE5MzYzRjA5NzU2RDhBMjI0MEI3QkU1N0QwNzkwQ0QxLmpwZw.jpg",
+          "price": {
+            "basePrice": {
+              "prefix": false,
+              "text": "£12.70/kg"
+            },
+            "currencyCode": "GBP",
+            "currencyCodeSecond": "",
+            "currencySymbol": "£",
+            "currencySymbolSecond": "",
+            "displayedCurrency": "£",
+            "hasStar": false,
+            "hasVat": false,
+            "oldPrice": 0,
+            "price": 3.49,
+            "priceTheme": "white_red",
+            "specialTaxes": [],
+            "variantsHaveDifferentPrices": false
+          },
+          "lidlPlus": [],
+          "keyfacts": {
+            "supplementalDescription": "275g"
+          },
+          "stockAvailability": {
+            "badgeInfoV2": [
+              {
+                "badges": [
+                  {
+                    "text": "Available in store now",
+                    "type": "IN_STORE_PAST_DATE_RANGE"
+                  }
+                ],
+                "validFrom": 1790809200,
+                "validUntil": 1793663999
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridbox": {
+        "data": {
+          "fullTitle": "ERIDANOUS Feta Cheese P.D.O",
+          "canonicalUrl": "/p/eridanous-feta-cheese-p-d-o/p11209415",
+          "image": "https://www.lidl.co.uk/assets/gcpce5b19d232384931b349e13815701f9d.png",
+          "price": {
+            "basePrice": {
+              "prefix": false,
+              "text": "£11.24/kg"
+            },
+            "currencyCode": "GBP",
+            "currencyCodeSecond": "",
+            "currencySymbol": "£",
+            "currencySymbolSecond": "",
+            "displayedCurrency": "£",
+            "hasStar": false,
+            "hasVat": false,
+            "packaging": {
+              "text": "800 g"
+            },
+            "price": 8.99,
+            "priceTheme": "white_red",
+            "specialTaxes": [],
+            "variantsHaveDifferentPrices": false
+          },
+          "lidlPlus": [],
+          "keyfacts": {
+            "description": "<ul><li>Feta Cheese P.D.O. for authentic taste</li><li>Made with sheep's and goat's milk</li><li>Perfect for salads or warm dishes</li><li>Creamy texture, rich flavour</li><li>Versatile for your culinary creations</li></ul>"
+          },
+          "stockAvailability": {
+            "badgeInfoV2": [
+              {
+                "badges": [
+                  {
+                    "text": "In store from 29.10",
+                    "type": "IN_STORE_FROM_DATE_FUTURE"
+                  }
+                ],
+                "validFrom": 1793232000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridbox": {
+        "data": {
+          "fullTitle": "Eridanous Graviera PDO",
+          "canonicalUrl": "/p/eridanous-graviera-pdo/p11150051",
+          "image": "https://www.lidl.co.uk/assets/gcp67ec3a65f035496bb5512b903b4c58e2.png",
+          "price": {
+            "basePrice": {
+              "prefix": false,
+              "text": "£1.60/100g"
+            },
+            "currencyCode": "GBP",
+            "currencyCodeSecond": "",
+            "currencySymbol": "£",
+            "currencySymbolSecond": "",
+            "displayedCurrency": "£",
+            "hasStar": false,
+            "hasVat": false,
+            "packaging": {
+              "text": "250 g"
+            },
+            "price": 3.99,
+            "priceTheme": "white_red",
+            "specialTaxes": [],
+            "variantsHaveDifferentPrices": false
+          },
+          "lidlPlus": [],
+          "keyfacts": {
+            "description": "<ul><li>Graviera Kritis P.D.O. – a taste of Crete</li><li>Authentic Greek cheese, 250g</li><li>Rich, slightly sweet and nutty flavour</li><li>Made with traditional methods</li></ul>"
+          },
+          "stockAvailability": {
+            "badgeInfoV2": [
+              {
+                "badges": [
+                  {
+                    "text": "In store from 29.10",
+                    "type": "IN_STORE_FROM_DATE_FUTURE"
+                  }
+                ],
+                "validFrom": 1793232000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridbox": {
+        "data": {
+          "fullTitle": "MCENNEDY Popcorn Mix",
+          "canonicalUrl": "/p/mcennedy-popcorn-mix/p10056436",
+          "image": "https://imgproxy-retcat.assets.schwarz/UDXwW57l1pavZTy3_ufJlBSjw8695Quzoylw3EWJQQo/sm:0/exar:1:ce/w:427/h:320/cz/M6Ly9wcm9kLWNhd/GFsb2ctbWVkaWEvdWsvMS82MjExNjU2ODRGRUIzNzQ5QTU3MjQ2NkZ/GMjY2RDJDRjhDRDk5RkUyRjBDRDA5OEZEN0YzMTIwMUYzMkQ1OEIwLmpwZw.jpg",
+          "price": {
+            "currencyCode": "GBP",
+            "currencyCodeSecond": "",
+            "currencySymbol": "£",
+            "currencySymbolSecond": "",
+            "displayedCurrency": "£",
+            "hasStar": false,
+            "hasVat": false,
+            "specialTaxes": [],
+            "variantsHaveDifferentPrices": false
+          },
+          "lidlPlus": [
+            {
+              "price": {
+                "basePrice": {
+                  "prefix": false,
+                  "text": "£16.61/kg"
+                },
+                "discount": {
+                  "discountHasStar": false,
+                  "discountText": "SAVE £1",
+                  "fromNormalPriceForLidlPlus": false,
+                  "fromRecommendedPrice": false,
+                  "showDiscount": false,
+                  "showFrom": false,
+                  "showPercentage": false,
+                  "showUpTo": false
+                },
+                "displayedCurrency": "£",
+                "hasStar": false,
+                "hasVat": false,
+                "oldPrice": 0,
+                "packaging": {
+                  "text": "Regular price £3.99"
+                },
+                "price": 2.99,
+                "priceTheme": "white_yellow",
+                "specialTaxes": [],
+                "superscript": ""
+              },
+              "lidlPlusText": "With Lidl Plus",
+              "highlightText": "SAVE £1"
+            }
+          ],
+          "keyfacts": {
+            "supplementalDescription": "180g",
+            "description": "<p><strong>Get &pound;1 off the regular price with the Lidl Plus app 22.10 &ndash; 28.10</strong></p>"
+          },
+          "stockAvailability": {
+            "badgeInfoV2": [
+              {
+                "badges": [
+                  {
+                    "text": "Available in store now",
+                    "type": "IN_STORE_PAST_DATE_RANGE"
+                  }
+                ],
+                "validFrom": 1792623600,
+                "validUntil": 1793231999
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

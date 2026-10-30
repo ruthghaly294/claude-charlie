@@ -1,3 +1,4 @@
+import { freshListing } from "./alert-freshness.js";
 import {
   comparable,
   saleObservation,
@@ -14,7 +15,7 @@ import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { listingSchema, type Listing } from "./contract.js";
-import { ScrapeError } from "./errors.js";
+import { PartialScanError, ScrapeError } from "./errors.js";
 
 import { watchSchema, type WatchInput } from "./watch-config.js";
 export { watchSchema } from "./watch-config.js";
@@ -60,6 +61,26 @@ const pendingSchema = z.object({
         : telegramOptionsSchema.parse(JSON.parse(value)),
     ),
 });
+export function listingTimeText(listing: Listing, now: number): string {
+  if (!listing.listed_at || Date.parse(listing.listed_at) > now)
+    return "Listing time unavailable — seller upload time could not be verified.";
+  const minutes = Math.floor((now - Date.parse(listing.listed_at)) / 60000);
+  const age =
+    minutes < 1
+      ? "less than a minute ago"
+      : `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const exact = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(listing.listed_at));
+  return `Listed ${exact} · ${age} (at alert)`;
+}
 export function alertText(
   watch: Watch,
   listing: Listing,
@@ -72,7 +93,10 @@ export function alertText(
   const gap =
     watch.lastSuccess !== null &&
     now - watch.lastSuccess > watch.intervalMinutes * 120000;
-  return `${watch.mode === "sold" ? "Newly detected sale" : "Newly detected listing"}: ${listing.title}\n${price}${listing.ended_date ? ` · ended ${listing.ended_date}` : ""}\nDetected ${new Date(now).toISOString()}${gap ? " after a monitoring gap; it may have been listed earlier." : "; seller listing time is not confirmed."}\n${listing.url}`;
+  const detected = `${listingTimeText(listing, now)}\nDetected ${listing.detected_at ?? new Date(now).toISOString()}${gap ? " after a monitoring gap; it may have been listed earlier." : ""}`;
+  if (watch.provider === "facebook")
+    return `New Facebook Marketplace listing: ${listing.title}\n${listing.price ? `Asking price ${listing.price.raw}` : "Asking price undisclosed"}\n${listing.location ?? "Location undisclosed"}\n${detected}\n${listing.url}`;
+  return `${watch.mode === "sold" ? "Newly detected sale" : "Newly detected listing"}: ${listing.title}\n${price}${listing.ended_date ? ` · ended ${listing.ended_date}` : ""}\n${detected}\n${listing.url}`;
 }
 const researchCompleteNextRun = Date.UTC(9999, 11, 31);
 export class WatchStore {
@@ -136,8 +160,33 @@ export class WatchStore {
     now: number,
     startedAt = now,
   ): void {
+    this.recordResults(id, results, now, startedAt, true);
+  }
+  recordResolvedListings(
+    id: string,
+    results: readonly Listing[],
+    now: number,
+  ): void {
+    if (
+      !this.get(id)?.baselined &&
+      this.maxNewListingAgeMinutes() === undefined
+    )
+      return;
+    this.recordResults(id, results, now, now, false);
+  }
+  private recordResults(
+    id: string,
+    results: readonly Listing[],
+    now: number,
+    startedAt: number,
+    completeScan: boolean,
+  ): void {
     const job = this.get(id);
     if (!job) return;
+    const maxAge =
+      job.mode === "active" && !job.once
+        ? this.maxNewListingAgeMinutes()
+        : undefined;
     const rows = results.filter(
       (r) =>
         (job.mode !== "sold" || r.is_sold === true) &&
@@ -145,6 +194,17 @@ export class WatchStore {
     );
     this.db.exec("BEGIN IMMEDIATE");
     try {
+      // Keep a fixed start boundary: successful empty scans must not move it
+      // forward and discard listings that Facebook surfaces late.
+      const facebookStart = Number(
+        this.setting(`facebookBaselineAt:${id}`) ??
+          (job.baselined ? now - 86400000 : now),
+      );
+      if (
+        job.provider === "facebook" &&
+        !this.setting(`facebookBaselineAt:${id}`)
+      )
+        this.setSetting(`facebookBaselineAt:${id}`, String(facebookStart));
       // Active rows cannot add sold observations: use one consistent snapshot.
       const stats =
         job.mode === "active" && job.marketProfile
@@ -160,13 +220,51 @@ export class WatchStore {
               )
               .run(job.marketProfile, sale.itemId, sale.price, sale.soldAt);
         }
+        // Undated listings get a bounded verification window, never a guessed age.
+        if (
+          maxAge !== undefined &&
+          (!r.listed_at || Date.parse(r.listed_at) > now)
+        ) {
+          const key = `unverifiedSince:${id}:${r.item_id}`;
+          const first = Number(
+            this.setting(key) ??
+              (r.detected_at ? Date.parse(r.detected_at) : now),
+          );
+          this.setSetting(key, String(first));
+          if (now - first <= maxAge * 60000) continue;
+        } else if (job.provider === "facebook" && job.baselined && !r.listed_at)
+          continue;
         const inserted = this.db
           .prepare("INSERT OR IGNORE INTO seen(job,item,payload) VALUES(?,?,?)")
           .run(id, r.item_id, JSON.stringify(r));
-        if (!inserted.changes)
+        if (!inserted.changes) {
+          const previous = this.db
+            .prepare("SELECT payload FROM seen WHERE job=? AND item=?")
+            .get(id, r.item_id);
+          const old = listingSchema.parse(
+            JSON.parse(String(previous!["payload"])),
+          );
+          const refreshed = {
+            ...r,
+            listed_at: r.listed_at ?? old.listed_at,
+            detected_at: old.detected_at ?? r.detected_at,
+          };
           this.db
             .prepare("UPDATE seen SET payload=? WHERE job=? AND item=?")
-            .run(JSON.stringify(r), id, r.item_id);
+            .run(JSON.stringify(refreshed), id, r.item_id);
+        }
+        if (maxAge !== undefined && !freshListing(r, now, maxAge)) continue;
+        // Facebook can surface old recommendations on any scan. Unseen does
+        // not mean newly listed. Require a verified time within the recent
+        // monitoring window, even after a long outage.
+        if (
+          maxAge === undefined &&
+          job.provider === "facebook" &&
+          (!r.listed_at ||
+            Date.parse(r.listed_at) > now ||
+            Date.parse(r.listed_at) < Math.max(now - 86400000, facebookStart))
+        )
+          continue;
         let dealQueued = false;
         if (stats) {
           const deal = potentialDeal(r, stats);
@@ -174,14 +272,14 @@ export class WatchStore {
             this.enqueue(
               id,
               `deal:${r.item_id}`,
-              `POTENTIAL BELOW-MARKET LISTING (${deal.discountPercent}% below median)\n${r.title}\nPrice + advertised delivery: £${deal.totalPrice.toFixed(2)}\nSold median £${stats.median?.toFixed(2)} from ${stats.count} comparable disclosed sales (90-day sample).\n${r.url}\n${job.baselined ? "Observed in current scan." : "Observed in initial scan, not newly listed since monitoring started."} Verify condition and authenticity.`,
+              `POTENTIAL BELOW-MARKET LISTING (${deal.discountPercent}% below median)\n${r.title}\nPrice + advertised delivery: £${deal.totalPrice.toFixed(2)}\nSold median £${stats.median?.toFixed(2)} from ${stats.count} comparable disclosed sales (90-day sample).\n${listingTimeText(r, now)}\n${r.url}\n${job.baselined ? "Observed in current scan." : "Observed in initial scan, not newly listed since monitoring started."} Verify condition and authenticity.`,
               { image: r.image, url: r.url },
             );
             dealQueued = true;
           }
         }
         if (
-          job.baselined &&
+          (job.baselined || maxAge !== undefined) &&
           inserted.changes &&
           !dealQueued &&
           job.notifyNew !== false
@@ -191,26 +289,28 @@ export class WatchStore {
             url: r.url,
           });
       }
-      this.db
-        .prepare(
-          "UPDATE watches SET baseline=1,last_success=?,last_error=NULL,result_count=?,next_run=? WHERE id=?",
-        )
-        .run(
-          now,
-          rows.length,
-          job.once
-            ? researchCompleteNextRun
-            : startedAt + job.intervalMinutes * 60000,
-          id,
-        );
-      this.db
-        .prepare("DELETE FROM settings WHERE key IN (?,?)")
-        .run(`failureSince:${id}`, `failureCount:${id}`);
-      this.db
-        .prepare(
-          "DELETE FROM outbox WHERE job=? AND delivered=0 AND item LIKE 'health:%'",
-        )
-        .run(id);
+      if (completeScan) {
+        this.db
+          .prepare(
+            "UPDATE watches SET baseline=1,last_success=?,last_error=NULL,result_count=?,next_run=? WHERE id=?",
+          )
+          .run(
+            now,
+            rows.length,
+            job.once
+              ? researchCompleteNextRun
+              : startedAt + job.intervalMinutes * 60000,
+            id,
+          );
+        this.db
+          .prepare("DELETE FROM settings WHERE key IN (?,?)")
+          .run(`failureSince:${id}`, `failureCount:${id}`);
+        this.db
+          .prepare(
+            "DELETE FROM outbox WHERE job=? AND delivered=0 AND item LIKE 'health:%'",
+          )
+          .run(id);
+      }
       this.db.exec("COMMIT");
     } catch (e) {
       this.db.exec("ROLLBACK");
@@ -242,17 +342,25 @@ export class WatchStore {
           .get() &&
         (lastAlert === undefined || now - Number(lastAlert) >= 86400000)
       ) {
+        const site =
+          job.provider === "facebook" ? "Facebook Marketplace" : "eBay";
+        const platform = job.provider === "facebook" ? "Facebook" : "eBay";
         this.enqueue(
           id,
           `health:${now}`,
-          `eBay monitoring needs attention: ${job.name}\n${code === "UPSTREAM_AUTH_REQUIRED" ? "eBay requires sign-in; sign into the server eBay browser again." : "This search has been failing for at least 30 minutes. Automatic retries are continuing."} Use /status for all searches. Health notifications are limited to one per day.`,
+          `${site} monitoring needs attention: ${job.name}\n${code === "UPSTREAM_AUTH_REQUIRED" ? `${platform} requires sign-in; sign into the server ${platform} browser again.` : code === "UPSTREAM_TEMPORARY_ERROR" ? "eBay is returning temporary error pages for this search. Automatic retries are continuing." : "This search has been failing for at least 30 minutes. Automatic retries are continuing."} Use /status for all searches. Health notifications are limited to one per day.`,
         );
         this.setSetting("healthAlertAt", String(now));
       }
       const interval = job.intervalMinutes * 60000;
+      const retryCap = /PARTIAL|INCOMPLETE|PAGINATION/.test(code)
+        ? interval
+        : code === "UPSTREAM_TEMPORARY_ERROR"
+          ? 5 * 60000
+          : 30 * 60000;
       const delay = Math.max(
         interval,
-        Math.min(30 * 60000, interval * 2 ** (count - 1)),
+        Math.min(retryCap, interval * 2 ** (count - 1)),
       );
       this.db
         .prepare("UPDATE watches SET last_error=?,next_run=? WHERE id=?")
@@ -262,6 +370,42 @@ export class WatchStore {
       this.db.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  maxNewListingAgeMinutes(): number | undefined {
+    const raw = this.setting("newListingMaxAgeMinutes");
+    if (raw === undefined) return undefined;
+    return z.coerce.number().int().min(1).max(1440).parse(raw);
+  }
+  payloadForDelivery(id: number, payload: string, now: number): string | null {
+    const queued = this.db
+      .prepare("SELECT job,item FROM outbox WHERE id=? AND delivered=0")
+      .get(id);
+    if (
+      !queued ||
+      typeof queued["job"] !== "string" ||
+      typeof queued["item"] !== "string"
+    )
+      return null;
+    const item = /^(?:deal:)?(\d+)$/.exec(queued["item"])?.[1];
+    const job = this.get(queued["job"]);
+    if (!item || job?.mode !== "active") return payload;
+    const maxAge = this.maxNewListingAgeMinutes();
+    if (maxAge === undefined) return payload;
+    const stored = this.db
+      .prepare("SELECT payload FROM seen WHERE job=? AND item=?")
+      .get(job.id, item);
+    const listing = stored
+      ? listingSchema.parse(JSON.parse(String(stored["payload"])))
+      : undefined;
+    if (!listing || !freshListing(listing, now, maxAge)) {
+      this.db.prepare("DELETE FROM outbox WHERE id=? AND delivered=0").run(id);
+      return null;
+    }
+    return payload.replace(
+      /^(?:Listed |Listing time unavailable)[^\n]*$/m,
+      listingTimeText(listing, now),
+    );
   }
 
   pending(now: number): z.infer<typeof pendingSchema>[] {
@@ -356,6 +500,13 @@ export class WatchStore {
   research(profile: MarketProfile, days = 90): string {
     return researchText(profile, this.market(profile, days));
   }
+  hasSeen(id: string, item: string): boolean {
+    return Boolean(
+      this.db
+        .prepare("SELECT 1 FROM seen WHERE job=? AND item=?")
+        .get(id, item),
+    );
+  }
   listings(id: string): Listing[] {
     return this.db
       .prepare("SELECT payload FROM seen WHERE job=?")
@@ -425,8 +576,18 @@ export async function runWatchCycle(
   send: (text: string, media?: TelegramOptions) => Promise<void>,
   clock: () => number = Date.now,
   shouldStop: () => boolean = () => false,
+  options: { include?: (job: Watch) => boolean; deliver?: boolean } = {},
 ): Promise<void> {
-  for (const saved of store.list()) {
+  if (options.deliver !== false)
+    await deliverWatchAlerts(store, send, clock, shouldStop);
+  for (const saved of store
+    .list()
+    .filter(options.include ?? (() => true))
+    .sort(
+      (a, b) =>
+        (a.mode === "active" ? (a.once ? 1 : 0) : 2) -
+        (b.mode === "active" ? (b.once ? 1 : 0) : 2),
+    )) {
     if (shouldStop()) break;
     const job = store.get(saved.id);
     if (!job || job.nextRun > clock()) continue;
@@ -434,18 +595,55 @@ export async function runWatchCycle(
       const startedAt = clock();
       store.record(job.id, await search(job), clock(), startedAt);
     } catch (error) {
+      if (error instanceof PartialScanError)
+        store.recordResolvedListings(job.id, error.results, clock());
       store.failure(
         job.id,
         error instanceof ScrapeError ? error.code : "SEARCH_FAILED",
         clock(),
       );
     }
+    if (options.deliver !== false)
+      await deliverWatchAlerts(store, send, clock, shouldStop);
   }
+  if (options.deliver !== false)
+    await deliverWatchAlerts(store, send, clock, shouldStop);
+}
+// Concurrent search lanes share one outbox; serializing delivery stops two
+// lanes sending the same pending alert before either marks it delivered.
+const deliveries = new WeakMap<WatchStore, Promise<void>>();
+export function deliverWatchAlerts(
+  store: WatchStore,
+  send: (text: string, media?: TelegramOptions) => Promise<void>,
+  clock: () => number,
+  shouldStop: () => boolean,
+): Promise<void> {
+  const next = (deliveries.get(store) ?? Promise.resolve()).then(() =>
+    deliverPending(store, send, clock, shouldStop),
+  );
+  deliveries.set(
+    store,
+    next.catch(() => {}),
+  );
+  return next;
+}
+async function deliverPending(
+  store: WatchStore,
+  send: (text: string, media?: TelegramOptions) => Promise<void>,
+  clock: () => number,
+  shouldStop: () => boolean,
+): Promise<void> {
   for (const pending of store.pending(clock())) {
     if (shouldStop()) break;
     if (!store.isPending(pending.id)) continue;
     try {
-      await send(pending.payload, pending.media);
+      const payload = store.payloadForDelivery(
+        pending.id,
+        pending.payload,
+        clock(),
+      );
+      if (payload === null) continue;
+      await send(payload, pending.media);
       store.delivered(pending.id, clock());
     } catch {
       store.retry(pending.id, pending.attempts, clock());

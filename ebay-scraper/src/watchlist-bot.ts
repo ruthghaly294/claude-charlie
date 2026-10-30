@@ -16,7 +16,7 @@ const menu = [
   ["Market research", "Status"],
 ];
 const conversationSchema = z.object({
-  field: z.enum(["new", "query", "price", "interval"]),
+  field: z.enum(["new", "query", "price", "interval", "radius"]),
   id: z.uuid().optional(),
   revision: z.number().int().positive().optional(),
   expires: z.number(),
@@ -45,6 +45,8 @@ function actions(entry: WatchlistEntry): TelegramOptions {
   };
 }
 function details(entry: WatchlistEntry): string {
+  if (entry.provider === "facebook")
+    return `${entry.name}\nSearch: ${entry.query}\n${entry.monitor_active ? "New-listing alerts on" : "Research only; new-listing alerts off"}\nWithin ${entry.radius_km ?? 40} km of ${entry.location_name ?? "the search centre"} · max price: ${entry.max_price === null ? "any" : `£${entry.max_price}`}\nChecks every ${entry.interval_minutes} minutes when monitoring is on.`;
   return `${entry.name}\nSearch: ${entry.query}\n${entry.monitor_active ? "New-listing alerts on" : "Research only; new-listing alerts off"}\nCondition: ${entry.condition ?? "any"} · max price: ${entry.max_price === null ? "any" : `£${entry.max_price}`}\nDelivery: ${entry.free_shipping ? "free only" : "any price"} · ${entry.location ?? "any location"}\nChecks every ${entry.interval_minutes} minutes when monitoring is on.`;
 }
 export async function handleWatchlistInput(
@@ -77,6 +79,7 @@ export async function handleWatchlistInput(
     syncWatchlist(store, entries);
     return entries;
   };
+  const facebook = repository.platform === "facebook";
   const text = input.text?.trim() ?? "";
   const lower = text.toLowerCase();
   if (["/cancel", "cancel"].includes(lower)) {
@@ -86,7 +89,9 @@ export async function handleWatchlistInput(
   }
   if (["/start", "/help"].includes(lower)) {
     await reply(
-      "Send an item title to research its sold prices. Then choose whether to keep watching it. Use Watch list to review, edit or remove items.",
+      facebook
+        ? "Send an item title to check current asking prices on Facebook Marketplace nearby. Then choose whether to keep watching for new listings. Use Watch list to review, edit or remove items."
+        : "Send an item title to research its sold prices. Then choose whether to keep watching it. Use Watch list to review, edit or remove items.",
     );
     return true;
   }
@@ -116,7 +121,9 @@ export async function handleWatchlistInput(
       JSON.stringify({ field: "new", expires: Date.now() + 1800000 }),
     );
     await reply(
-      "Send the exact item title, model/edition and any important details. I’ll save it and queue completed-listing research. Ongoing alerts stay off until you choose Yes. /cancel to stop.",
+      facebook
+        ? "Send the item title and any important details. I’ll save it and check current asking prices nearby. Ongoing alerts stay off until you choose Yes. /cancel to stop."
+        : "Send the exact item title, model/edition and any important details. I’ll save it and queue completed-listing research. Ongoing alerts stay off until you choose Yes. /cancel to stop.",
     );
     return true;
   }
@@ -145,22 +152,37 @@ export async function handleWatchlistInput(
         data: watchButton(entry, value),
       });
       await reply(`Edit ${entry.name}:`, {
-        buttons: [
-          [
-            button("Search terms / edition", "query"),
-            button("Maximum price", "price"),
-          ],
-          [button("Condition", "condition"), button("Delivery", "delivery")],
-          [
-            button("Buying format", "format"),
-            button("Check interval", "interval"),
-          ],
-          [button("Back", "view")],
-        ],
+        buttons: facebook
+          ? [
+              [
+                button("Search terms", "query"),
+                button("Maximum price", "price"),
+              ],
+              [
+                button("Radius", "radius"),
+                button("Check interval", "interval"),
+              ],
+              [button("Back", "view")],
+            ]
+          : [
+              [
+                button("Search terms / edition", "query"),
+                button("Maximum price", "price"),
+              ],
+              [
+                button("Condition", "condition"),
+                button("Delivery", "delivery"),
+              ],
+              [
+                button("Buying format", "format"),
+                button("Check interval", "interval"),
+              ],
+              [button("Back", "view")],
+            ],
       });
       return true;
     }
-    if (["query", "price", "interval"].includes(action)) {
+    if (["query", "price", "interval", "radius"].includes(action)) {
       store.setSetting(
         "watchlistConversation",
         JSON.stringify({
@@ -175,7 +197,9 @@ export async function handleWatchlistInput(
           ? "Send the updated search terms, including model or edition. /cancel to stop."
           : action === "price"
             ? "Send the maximum price in GBP, or Any to remove the limit. /cancel to stop."
-            : "Send the check interval in minutes (1–1440). /cancel to stop.",
+            : action === "radius"
+              ? "Send the search radius in kilometres (1 to 40). /cancel to stop."
+              : "Send the check interval in minutes (1–1440). /cancel to stop.",
       );
       return true;
     }
@@ -241,7 +265,10 @@ export async function handleWatchlistInput(
       return true;
     }
     let patch: WatchlistPatch;
-    if (action === "yes") patch = { monitor_active: true, monitor_sold: true };
+    if (action === "yes")
+      patch = facebook
+        ? { monitor_active: true }
+        : { monitor_active: true, monitor_sold: true };
     else if (action === "no")
       patch = { monitor_active: false, monitor_sold: false };
     else if (action === "research")
@@ -303,7 +330,7 @@ export async function handleWatchlistInput(
     await refresh();
     await reply(
       action === "research"
-        ? `Fresh research queued for ${entry.name}. I’ll send the sold-price sample when the scan finishes.`
+        ? `Fresh research queued for ${entry.name}. I’ll send the ${facebook ? "current asking prices" : "sold-price sample"} when the scan finishes.`
         : details(updated),
       actions(updated),
     );
@@ -364,6 +391,15 @@ export async function handleWatchlistInput(
         max_price: value,
         research_requested_at: new Date().toISOString(),
       };
+    } else if (conversation.field === "radius") {
+      const value = Number(text.replace(/\s*km$/i, ""));
+      if (!Number.isFinite(value) || value < 1 || value > 40) {
+        await reply(
+          "Facebook searches up to 40 km from the account location. Send 1 to 40. /cancel to stop.",
+        );
+        return true;
+      }
+      patch = { radius_km: value };
     } else {
       const value = Number(text);
       if (!Number.isInteger(value) || value < 1 || value > 1440) {
@@ -405,11 +441,14 @@ export async function handleWatchlistInput(
   const created = await repository.create(id, chatId, {
     name: query.slice(0, 100),
     query,
+    ...(facebook ? { interval_minutes: 5 } : {}),
   });
   await refresh();
   store.setSetting("watchlistConversation", "");
   await reply(
-    `Saved ${created.name} for completed-listing research. I’ll send the observed floor, ceiling and sample size after the scan. New-listing alerts are off until you choose Yes.`,
+    facebook
+      ? `Saved ${created.name}. I’ll check current asking prices within ${created.radius_km ?? 40} km of ${created.location_name ?? "the search centre"} and send the lowest, median and highest. New-listing alerts are off until you choose Yes.`
+      : `Saved ${created.name} for completed-listing research. I’ll send the observed floor, ceiling and sample size after the scan. New-listing alerts are off until you choose Yes.`,
     actions(created),
   );
   return true;

@@ -1,0 +1,6 @@
+{
+  "path": "/marketplace/item/1083292931250072/",
+  "payloads": [
+    "{\"require\":[[\"ScheduledServerJS\",\"handle\",null,[{\"__bbox\":{\"require\":[[\"CometRouteStore\",\"init\",[],[{\"expectedPreloaders\":[{\"variables\":{\"buyLocation\":{\"latitude\":54.5971,\"longitude\":-5.9301}}}]}]],[\"RelayPrefetchedStreamCache\",\"next\",[],[\"adp_MarketplacePDPContainerQueryRelayPreloader\",{\"__bbox\":{\"complete\":true,\"result\":{\"data\":{\"viewer\":{\"marketplace_product_details_page\":{\"marketplace_listing_renderable_target\":{\"id\":\"1083292931250072\",\"location\":{\"latitude\":54.577331542969,\"longitude\":-6.0369873046875}}}}}}}}]]]}}]]]}"
+  ]
+}

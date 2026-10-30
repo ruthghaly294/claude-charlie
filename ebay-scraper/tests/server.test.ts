@@ -128,8 +128,8 @@ describe("HTTP search service", () => {
     });
     try {
       const reply = await app.inject(url);
-      expect(reply.statusCode).toBe(502);
-      expect(reply.json()).toMatchObject({ code: "UPSTREAM_BLOCKED" });
+      expect(reply.statusCode).toBe(503);
+      expect(reply.json()).toMatchObject({ code: "UPSTREAM_TEMPORARY_ERROR" });
     } finally {
       await app.close();
     }

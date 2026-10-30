@@ -105,3 +105,43 @@ describe("Supabase watch list boundary", () => {
     );
   });
 });
+
+it("isolates the Facebook repository from eBay watches", async () => {
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("[]"));
+  const repo = createWatchlistRepository(
+    "https://example.supabase.co",
+    "sb_secret_test_server_only",
+    fetcher,
+    "facebook",
+  );
+  await repo.list("123");
+  expect(repo.platform).toBe("facebook");
+  expect(new URL(String(fetcher.mock.calls[0]?.[0])).pathname).toBe(
+    "/rest/v1/facebook_watchlist",
+  );
+});
+
+it("changes only supplied settings, preserving active flags and free-only filters on cadence edits", async () => {
+  const original = {
+    ...row,
+    monitor_active: true,
+    max_price: 0,
+    interval_minutes: 10,
+  };
+  let changes: Record<string, unknown> = {};
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async (_input, init) => {
+      changes = JSON.parse(String(init?.body));
+      return new Response(
+        JSON.stringify([{ ...original, ...changes, revision: 2 }]),
+      );
+    });
+  const updated = await repository(fetcher).update(id, "123", 1, {
+    interval_minutes: 1,
+  });
+  expect(changes).toEqual({ interval_minutes: 1 });
+  expect(updated.monitor_active).toBe(true);
+  expect(updated.max_price).toBe(0);
+  expect(updated.free_shipping).toBe(true);
+});

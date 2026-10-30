@@ -1,3 +1,8 @@
+import { createPendingListingTimeWorker } from "./pending-listing-times.js";
+import { ScrapeError } from "./errors.js";
+import { createEbayListingTimeQueue } from "./ebay-listing-time-queue.js";
+import { paceHtmlFetcher } from "./paced-fetch.js";
+import { paceSearch } from "./paced-search.js";
 import { createWatchSearch } from "./watch-search.js";
 import { createWatchlistRepository } from "./supabase-watchlist.js";
 import {
@@ -42,6 +47,9 @@ try {
     cycle = runWatchCycle;
     await mkdir(dirname(config.watchDb), { recursive: true, mode: 0o700 });
     store = new WatchStore(config.watchDb);
+    if (store.setting("newListingMaxAgeMinutes") === undefined)
+      store.setSetting("newListingMaxAgeMinutes", "10");
+    store.maxNewListingAgeMinutes();
     if (store.list().length === 0 && !store.setting("watchlistMigrated")) {
       for (const profile of ["chairs", "charizard_psa9_base"] as const) {
         for (const mode of ["sold", "active"] as const)
@@ -59,15 +67,18 @@ try {
       }
     }
   }
-  const app = buildApp({
-    ...(store ? { watchStore: store } : {}),
-    fetchHtml:
-      chrome?.fetchHtml ??
+  const fetchHtml = paceHtmlFetcher(
+    chrome?.fetchHtml ??
       createHtmlFetcher({
         timeoutMs: config.timeoutMs,
         maxBytes: config.maxBytes,
         ...(config.proxyUrl ? { proxyUrl: config.proxyUrl } : {}),
       }),
+    { gapMs: 20000 },
+  );
+  const app = buildApp({
+    ...(store ? { watchStore: store } : {}),
+    fetchHtml,
     maxConcurrent: config.maxConcurrent,
     ...(config.apiKey ? { apiKey: config.apiKey } : {}),
     logger: true,
@@ -147,15 +158,53 @@ try {
     controlTimer = setInterval(controlTick, 5000);
     controlTimer.unref();
     controlTick();
+    const resolveTimes = createEbayListingTimeQueue({
+      store: db,
+      fetchHtml,
+      seen: (job, item) => db.hasSeen(job, item),
+      shouldStop: () => stopping,
+      failed: (item, error) =>
+        app.log.warn(
+          {
+            event: "ebay_listing_time_retry",
+            item,
+            reason:
+              error instanceof ScrapeError
+                ? error.code
+                : error instanceof Error
+                  ? error.name
+                  : "missing",
+          },
+          "Listing timestamp lookup will retry before alerting",
+        ),
+    });
+    const processPendingTimes = createPendingListingTimeWorker({
+      store: db,
+      resolve: resolveTimes,
+      shouldStop: () => stopping,
+      failed: () =>
+        app.log.warn(
+          { event: "pending_timestamp_failed" },
+          "Pending timestamp work will retry",
+        ),
+    });
+    const search = paceSearch(
+      createWatchSearch(app, config.apiKey, () => stopping, {
+        fetchHtml,
+        seen: (job, item) => db.hasSeen(job, item),
+        resolveTimes,
+        paginateActive: true,
+        freshnessMinutes: () => db.maxNewListingAgeMinutes(),
+      }),
+      { gapMs: 20000, shouldStop: () => stopping },
+    );
     const tick = (): void => {
       if (running || stopping) return;
-      running = runWatchCycle(
-        db,
-        createWatchSearch(app, config.apiKey, () => stopping),
-        send,
-        Date.now,
-        () => stopping,
-      )
+      running = (async () => {
+        await processPendingTimes();
+        if (!stopping)
+          await runWatchCycle(db, search, send, Date.now, () => stopping);
+      })()
         .then(async () => {
           if (stopping) return;
           if (

@@ -3,7 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { WatchStore, runWatchCycle, watchSchema } from "../src/watcher.js";
+import {
+  WatchStore,
+  deliverWatchAlerts,
+  runWatchCycle,
+  watchSchema,
+} from "../src/watcher.js";
 import { listingSchema, type Listing } from "../src/contract.js";
 const item = (id: string, sold = false): Listing =>
   listingSchema.parse({
@@ -329,4 +334,48 @@ it("honors a pause made while an earlier search in the same cycle is running", a
   } finally {
     store.close();
   }
+});
+
+it("keeps temporary eBay error retries within five minutes while respecting the polling interval", () => {
+  const store = new WatchStore(":memory:");
+  try {
+    const fast = store.create({ ...watch, intervalMinutes: 2 });
+    for (let attempt = 0; attempt < 8; attempt++)
+      store.failure(fast.id, "UPSTREAM_TEMPORARY_ERROR", 1000000);
+    expect(store.get(fast.id)?.nextRun).toBe(1000000 + 5 * 60000);
+    const slow = store.create({ ...watch, intervalMinutes: 10 });
+    for (let attempt = 0; attempt < 8; attempt++)
+      store.failure(slow.id, "UPSTREAM_TEMPORARY_ERROR", 1000000);
+    expect(store.get(slow.id)?.nextRun).toBe(1000000 + 10 * 60000);
+  } finally {
+    store.close();
+  }
+});
+it("sends each alert once when several search lanes deliver at the same time", async () => {
+  const store = new WatchStore(":memory:");
+  const job = store.create(watch);
+  store.record(job.id, [item("123")], 1000);
+  store.record(job.id, [item("123"), item("456")], 2000);
+  expect(store.pending(2000)).toHaveLength(1);
+  let sends = 0;
+  const send = async () => {
+    sends++;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  };
+  await Promise.all([
+    deliverWatchAlerts(
+      store,
+      send,
+      () => 2000,
+      () => false,
+    ),
+    deliverWatchAlerts(
+      store,
+      send,
+      () => 2000,
+      () => false,
+    ),
+  ]);
+  expect(sends).toBe(1);
+  store.close();
 });

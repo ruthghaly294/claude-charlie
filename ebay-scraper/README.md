@@ -129,3 +129,66 @@ References: [HWORK72 Chrome implementation](https://github.com/HWORK72/eBay-Mark
 
 For operation while your laptop is off, use [SERVER.md](SERVER.md). Docker runs
 Chrome on the server and retains its dedicated eBay profile across restarts.
+
+Maintenance: listing age and retailer coverage (28 October 2026)
+
+- Alerts retain a verified seller listing timestamp as `listed_at` and show the
+  exact UK time (GMT/BST), elapsed minutes at detection, and a separate detection
+  timestamp. eBay checks the detail pages of unseen active results; an unavailable
+  seller timestamp is explicitly labelled, never replaced with detection time.
+  Below-market alerts include the same listing-time information. The parser only
+  accepts start timestamps tied to the requested item, excluding revisions and
+  recommended items. eBay documents the meaning of listing StartTime in its
+  [ListingDetails reference](https://developer.ebay.com/DevZone/XML/Docs/Reference/eBay/types/ListingDetailsType.html).
+- Facebook alerts require a verified creation time within the monitoring window
+  (previous successful scan minus two polling intervals, capped at 24 hours old).
+  Unseen older results are recorded without alerts. Undated new results are retried.
+  Ongoing searches explicitly request Facebook’s Last 24 hours filter.
+  Browser captures include GraphQL responses and two additional scrolls; an
+  unrecognised search page raises a scan error instead of recording zero results.
+- Pepsi Max comparisons include B&M's
+  [18-can](https://www.bmstores.co.uk/products/pepsi-max-18-x-330ml-402775) and
+  [8-can](https://www.bmstores.co.uk/products/pepsi-max-8-x-330ml-307565) packs,
+  including advertised multibuys at their per-pack price. B&M prices are in-store
+  and subject to availability. Failed B&M checks appear in the report.
+
+Deployed to both Fly.io services on 28 October 2026 after refreshing the workspace
+login. Live checks verified the Facebook date/sort filters, extraction of an exact
+eBay listing timestamp, and B&M’s current product price. See
+[maintenance verification](verification/maintenance-2026-10-28.md).
+
+
+## eBay search recovery — 28 October 2026
+
+Scheduled searches are separated by at least 20 seconds, including after failures.
+Active first-page search URLs omit the redundant `_pgn=1` parameter and use explicit
+URI encoding for spaces. Completed searches retain the form-compatible URL format
+verified on the live site. All saved filters and literal plus signs are preserved.
+Generic error pages and HTTP 5xx failures receive one bounded retry within the
+existing request deadline; recurring temporary failures retry within five minutes
+(or the configured interval if longer). Explicit HTTP 403 refusals, HTTP 429 rate
+limits, sign-in requirements and security challenges remain distinct and do not
+receive immediate retries. A generic HTTP 403 error template can try the alternate
+form-compatible search representation once after a 20-second spacing delay, under
+the same request deadline. Explicit security challenges do not use this fallback.
+Failed scans never become successful empty results.
+
+Timestamp lookups only open unseen listings that pass the watch's market profile.
+Excluded recommendations are not repeatedly opened on every scan. Existing watch
+baselines, seen history and notification deduplication are retained.
+
+The browser deadline covers tab creation, navigation and recovery; a stalled tab
+allocation restarts the owned browser while retaining its profile. Cleanup is
+bounded so an unresponsive browser cannot freeze all subsequent watch scans.
+
+## Page-based eBay listing times — 30 October 2026
+
+Listing start times come from the item-associated metadata in eBay's normal page
+HTML; the official eBay API is not used. Search and detail requests share a paced
+lane. Failed timestamp lookups persist across restarts and retry independently of search success or backoff, even if an item
+leaves the first search page. Verified timestamps are cached and preserved when later search results omit them. New alerts can be
+held during a five-minute retry window; a later scan releases an explicit
+unavailable-time fallback if the page still cannot be verified. The alert keeps
+the first detection time separate and calculates listing age at alert time.
+
+See [timestamp verification](verification/ebay-timestamps-2026-10-30.md).

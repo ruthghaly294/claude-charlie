@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const telegramOptionsSchema = z.object({
+  html: z.boolean().optional(),
   image: z.string().nullable().optional(),
   url: z.string().optional(),
   buttons: z

@@ -30,6 +30,8 @@ export const listingSchema = z.strictObject({
   bids: number,
   current_bid: money,
   time_left: text,
+  listed_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  detected_at: z.iso.datetime({ offset: true }).optional(),
   shipping: text,
   shipping_cost: money,
   free_shipping: flag,

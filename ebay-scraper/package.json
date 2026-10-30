@@ -20,6 +20,9 @@
     "login": "node --env-file-if-exists=.env dist/login.js"
   },
   "dependencies": {
+    "@fastify/static": "10.1.8",
+    "@fastify/websocket": "11.3.4",
+    "@novnc/novnc": "1.7.0",
     "@supabase/postgrest-js": "2.118.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
@@ -31,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "@types/ws": "8.18.2",
     "@vitest/coverage-v8": "5.0.5",
     "prettier": "3.9.10",
     "tsx": "4.23.15",

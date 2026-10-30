@@ -1,0 +1,598 @@
+{
+  "hits": [
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "2879110",
+      "START_DATE": 1635249600,
+      "END_DATE": 1924948800,
+      "NAME": "Original Taste 8 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000058386",
+      "BRAND": "Coca-Cola",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 5.73,
+          "PRICEPERUOM": 2.17045,
+          "PRICEPERUOMFORMATTED": "£2.17/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.7692,
+      "RATING_COUNT": 52,
+      "PACK_SIZE": "8X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 3,
+      "objectID": "2879110"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "5934876",
+      "START_DATE": 1619697600,
+      "END_DATE": 1893499200,
+      "NAME": "No Sugar Cans 24x330ml",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "4060800130754",
+      "BRAND": "Pepsi Max",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 12.5,
+          "PRICEPERUOM": 1.57828,
+          "PRICEPERUOMFORMATTED": "£1.58/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.6844,
+      "RATING_COUNT": 244,
+      "PACK_SIZE": "24X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 3,
+      "objectID": "5934876"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "2400668",
+      "START_DATE": 1721044800,
+      "END_DATE": 1794409200,
+      "NAME": "Cola 30 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5000112572933",
+      "BRAND": "Diet Coke",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "Rollback",
+          "PRICE": 10,
+          "WASPRICE": 14.24,
+          "PRICEPERUOM": 1.0101,
+          "PRICEPERUOMFORMATTED": "£1.01/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.6641,
+      "RATING_COUNT": 265,
+      "PACK_SIZE": "30X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "2400668"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "3533707",
+      "START_DATE": 1417694400,
+      "END_DATE": 1924948800,
+      "NAME": "Max Cherry No Sugar Cola Bottle 2L",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "4060800166531",
+      "BRAND": "Pepsi",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 2,
+          "PRICEPERUOM": 1,
+          "PRICEPERUOMFORMATTED": "£1.00/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.6557,
+      "RATING_COUNT": 61,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001262877",
+            "NAME": "Any 3 for £5",
+            "END_DATE": 1794355199,
+            "START_DATE": 1791936000,
+            "TYPE": 15
+          },
+          {
+            "ID": "10001262878",
+            "NAME": "Any 3 for £5",
+            "END_DATE": 1794355199,
+            "START_DATE": 1791936000,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "3533707"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "4860889",
+      "START_DATE": 1716292800,
+      "END_DATE": 1924948800,
+      "NAME": "Zero Sugar 18 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000180704",
+      "BRAND": "Coca-Cola",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 9.24,
+          "PRICEPERUOM": 1.55556,
+          "PRICEPERUOMFORMATTED": "£1.56/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.65,
+      "RATING_COUNT": 40,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001118024",
+            "NAME": "Any 2 for £15",
+            "END_DATE": 1801612799,
+            "START_DATE": 1784764800,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "18X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 3,
+      "objectID": "4860889"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "195214",
+      "START_DATE": 1421236800,
+      "END_DATE": 1901016000,
+      "NAME": "2L Bottle",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5015672006903",
+      "BRAND": "Dr Pepper",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 2.17,
+          "PRICEPERUOM": 1.085,
+          "PRICEPERUOMFORMATTED": "£1.09/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.6441,
+      "RATING_COUNT": 59,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001249780",
+            "NAME": "Any 2 for £3",
+            "END_DATE": 1811807999,
+            "START_DATE": 1791417600,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "195214"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "6052006",
+      "START_DATE": 1521547200,
+      "END_DATE": 1924948800,
+      "NAME": "Cola 2L Bottle",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000673039",
+      "BRAND": "Diet Coke",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 2.08,
+          "PRICEPERUOM": 1.04,
+          "PRICEPERUOMFORMATTED": "£1.04/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.641,
+      "RATING_COUNT": 78,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001249780",
+            "NAME": "Any 2 for £3",
+            "END_DATE": 1811807999,
+            "START_DATE": 1791417600,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "6052006"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "6620",
+      "START_DATE": 1718020800,
+      "END_DATE": 1924948800,
+      "NAME": "Max No Sugar 2L PET",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "4060800103307",
+      "BRAND": "Pepsi",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 2,
+          "PRICEPERUOM": 1,
+          "PRICEPERUOMFORMATTED": "£1.00/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.6159,
+      "RATING_COUNT": 151,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001262877",
+            "NAME": "Any 3 for £5",
+            "END_DATE": 1794355199,
+            "START_DATE": 1791936000,
+            "TYPE": 15
+          },
+          {
+            "ID": "10001262878",
+            "NAME": "Any 3 for £5",
+            "END_DATE": 1794355199,
+            "START_DATE": 1791936000,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 24,
+      "objectID": "6620"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "7728374",
+      "START_DATE": 1697025600,
+      "END_DATE": 1924948800,
+      "NAME": "Cherryade 2 Litres",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5063089121030",
+      "BRAND": "ASDA",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 0.82,
+          "PRICEPERUOM": 0.41,
+          "PRICEPERUOMFORMATTED": "41.0p/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.5904,
+      "RATING_COUNT": 83,
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "7728374"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "6035632",
+      "START_DATE": 1521547200,
+      "END_DATE": 1924948800,
+      "NAME": "Original Taste 24 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000086877",
+      "BRAND": "Coca-Cola",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 14.97,
+          "PRICEPERUOM": 1.89015,
+          "PRICEPERUOMFORMATTED": "£1.89/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.5826,
+      "RATING_COUNT": 218,
+      "PACK_SIZE": "24X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 3,
+      "objectID": "6035632"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "6320373",
+      "START_DATE": 1716292800,
+      "END_DATE": 1924948800,
+      "NAME": "Cola 18 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000018915",
+      "BRAND": "Diet Coke",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 9.24,
+          "PRICEPERUOM": 1.55556,
+          "PRICEPERUOMFORMATTED": "£1.56/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.5789,
+      "RATING_COUNT": 38,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001118024",
+            "NAME": "Any 2 for £15",
+            "END_DATE": 1801612799,
+            "START_DATE": 1784764800,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "18X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 8,
+      "objectID": "6320373"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "7601587",
+      "START_DATE": 1682596800,
+      "END_DATE": 1924948800,
+      "NAME": "Zero 24 x 330ml Cans",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000107244",
+      "BRAND": "Dr Pepper",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 10.97,
+          "PRICEPERUOM": 1.3851,
+          "PRICEPERUOMFORMATTED": "£1.39/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.5306,
+      "RATING_COUNT": 49,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001118024",
+            "NAME": "Any 2 for £15",
+            "END_DATE": 1801612799,
+            "START_DATE": 1784764800,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "24X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "7601587"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "3111503",
+      "START_DATE": 1395057600,
+      "END_DATE": 1924948800,
+      "NAME": "Max No Sugar Cans 8x330ml",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "4060800134592",
+      "BRAND": "Pepsi",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "Rollback",
+          "PRICE": 3.75,
+          "WASPRICE": 4.5,
+          "PRICEPERUOM": 1.42045,
+          "PRICEPERUOMFORMATTED": "£1.42/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.52,
+      "RATING_COUNT": 75,
+      "PACK_SIZE": "8X330",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 3,
+      "objectID": "3111503"
+    },
+    {
+      "STATUS": "A",
+      "PHARMACY_RESTRICTED": false,
+      "CIN": "6052004",
+      "START_DATE": 1584792000,
+      "END_DATE": 1924948800,
+      "NAME": "Zero Sugar 2L Bottle",
+      "CS_YES": false,
+      "SHOW_PRICE_CS": true,
+      "SALES_TYPE": "Each",
+      "IMAGE_ID": "5449000669902",
+      "BRAND": "Coca-Cola",
+      "IS_BWS": false,
+      "IS_FROZEN": false,
+      "IS_SPONSORED": false,
+      "LABEL": "",
+      "PRICES": {
+        "EN": {
+          "OFFER": "List",
+          "PRICE": 2.08,
+          "PRICEPERUOM": 1.04,
+          "PRICEPERUOMFORMATTED": "£1.04/LT"
+        }
+      },
+      "IS_FTO": false,
+      "PRODUCT_TYPE": "STANDARD",
+      "AVG_RATING": 4.493,
+      "RATING_COUNT": 71,
+      "PROMOS": {
+        "EN": [
+          {
+            "ID": "10001249780",
+            "NAME": "Any 2 for £3",
+            "END_DATE": 1811807999,
+            "START_DATE": 1791417600,
+            "TYPE": 15
+          }
+        ]
+      },
+      "PACK_SIZE": "2L",
+      "STOCK": {
+        "4565": 999
+      },
+      "MAX_QTY": 10,
+      "objectID": "6052004"
+    }
+  ]
+}

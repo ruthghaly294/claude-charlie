@@ -15,10 +15,17 @@ function safeUrl(
     const host = url.hostname;
     if (url.protocol !== "https:" || url.username || url.password)
       return undefined;
+    const facebook = image
+      ? /^scontent[a-z0-9.-]*\.fbcdn\.net$/.test(host)
+      : host === "www.facebook.com" &&
+        /^\/marketplace\/item\/\d+\/$/.test(url.pathname) &&
+        !url.search &&
+        !url.hash;
     if (
-      image
+      !facebook &&
+      (image
         ? host !== "i.ebayimg.com"
-        : !Object.keys(markets).some((market) => host === `www.ebay.${market}`)
+        : !Object.keys(markets).some((market) => host === `www.ebay.${market}`))
     )
       return undefined;
     return url.href;
@@ -45,6 +52,7 @@ export function telegramSender(
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
+            ...(media?.html ? { parse_mode: "HTML" } : {}),
             ...(photo
               ? { photo, caption: text.slice(0, 1024) }
               : {
@@ -188,7 +196,8 @@ export async function telegramCommands(
           message.text?.toLowerCase() === "status")
       ) {
         const text = message.text.toLowerCase();
-        if (text.startsWith("/market")) {
+        const facebook = repository?.platform === "facebook";
+        if (text.startsWith("/market") && !facebook) {
           const profile =
             text.includes("pokemon") || text.includes("charizard")
               ? "charizard_psa9_base"
@@ -201,16 +210,24 @@ export async function telegramCommands(
           await send(store.research(profile, days));
         } else if (text.startsWith("/status") || text === "status") {
           await send(
-            "eBay monitor status\n" +
+            `${facebook ? "Facebook Marketplace" : "eBay"} monitor status\n` +
+              (store.maxNewListingAgeMinutes() !== undefined
+                ? `Opportunity alerts: verified listings no older than ${store.maxNewListingAgeMinutes()} minutes at send time.\n`
+                : "") +
               store
                 .list()
                 .map(
                   (w) =>
-                    `${w.name}: ${w.lastError ?? (w.baselined ? "OK" : "baseline pending")} · ${w.resultCount} results · ${w.once ? (w.baselined ? "research complete; not polling" : "one-off research queued") : `every ${w.intervalMinutes} min`} · last success ${w.lastSuccess ? new Date(w.lastSuccess).toISOString() : "pending"}`,
+                    `${w.name}: ${w.lastError && /PARTIAL|INCOMPLETE|PAGINATION/.test(w.lastError) ? "partial scan; retrying missing results" : (w.lastError ?? (w.baselined ? "OK" : "baseline pending"))} · ${w.resultCount} results · ${w.once ? (w.baselined ? "research complete; not polling" : "one-off research queued") : `every ${w.intervalMinutes} min`} · last success ${w.lastSuccess ? new Date(w.lastSuccess).toISOString() : "pending"}`,
                 )
                 .join("\n"),
           );
-        } else
+        } else if (facebook)
+          await send(
+            "Facebook Marketplace alerts connected. Use Add item to research asking prices nearby, Watch list to edit or remove searches, and /status for health.",
+            { keyboard: [["Add item", "Watch list"], ["Status"]] },
+          );
+        else
           await send(
             "eBay alerts connected. Commands:\n/status\n/market chairs 3\n/market pokemon 3\nUse 6 or 12 for longer requested windows. Research reports actual observed coverage.",
           );
