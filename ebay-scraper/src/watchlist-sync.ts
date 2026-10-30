@@ -93,16 +93,24 @@ function askingPriceText(
   entry: WatchlistEntry,
   listings: readonly Listing[],
 ): string {
-  const prices = listings
+  const medianOf = (values: readonly number[]): number => {
+    const middle = Math.floor(values.length / 2);
+    return values.length % 2
+      ? values[middle]!
+      : (values[middle - 1]! + values[middle]!) / 2;
+  };
+  const disclosed = listings
     .flatMap((row) => (row.price ? [row.price.value] : []))
+    .filter((value) => entry.max_price === 0 || value > 0)
     .sort((a, b) => a - b);
+  // "£1, message me" and "£1234567" placeholders would distort the range.
+  const centre = disclosed.length ? medianOf(disclosed) : 0;
+  const prices = disclosed.filter(
+    (value) => !centre || (value >= centre / 20 && value <= centre * 20),
+  );
+  const ignored = listings.filter((row) => row.price).length - prices.length;
   const money = (value: number) => `£${value.toFixed(2)}`;
-  const middle = Math.floor(prices.length / 2);
-  const median =
-    prices.length % 2
-      ? prices[middle]!
-      : (prices[middle - 1]! + prices[middle]!) / 2;
-  return `${entry.name}\n${listings.length} current listings within ${entry.radius_km ?? 40} km of ${entry.location_name ?? "the search centre"}\n${prices.length ? `Lowest ${money(prices[0]!)} · median ${money(median)} · highest ${money(prices.at(-1)!)}` : "No disclosed asking prices"}\nFacebook Marketplace asking prices, not completed sales. Keep watching for new listings?`;
+  return `${entry.name}\n${listings.length} current listings within ${entry.radius_km ?? 40} km of ${entry.location_name ?? "the search centre"}\n${prices.length ? `Lowest ${money(prices[0]!)} · median ${money(medianOf(prices))} · highest ${money(prices.at(-1)!)}` : "No disclosed asking prices"}${ignored ? `\n${ignored} free or placeholder prices ignored.` : ""}\nFacebook Marketplace asking prices, not completed sales. Keep watching for new listings?`;
 }
 function sameDefinition(job: WatchInput, definition: WatchInput): boolean {
   return (

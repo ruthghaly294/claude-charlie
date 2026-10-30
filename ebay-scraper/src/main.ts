@@ -1,3 +1,4 @@
+import { quietHours } from "./quiet-hours.js";
 import { createPendingListingTimeWorker } from "./pending-listing-times.js";
 import { ScrapeError } from "./errors.js";
 import { createEbayListingTimeQueue } from "./ebay-listing-time-queue.js";
@@ -201,9 +202,17 @@ try {
     const tick = (): void => {
       if (running || stopping) return;
       running = (async () => {
-        await processPendingTimes();
+        const quiet = quietHours(new Date());
+        if (!quiet) await processPendingTimes();
         if (!stopping)
-          await runWatchCycle(db, search, send, Date.now, () => stopping);
+          await runWatchCycle(
+            db,
+            search,
+            send,
+            Date.now,
+            () => stopping,
+            quiet ? { include: (job) => Boolean(job.once) } : {},
+          );
       })()
         .then(async () => {
           if (stopping) return;

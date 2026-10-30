@@ -299,3 +299,32 @@ it("records alert feedback and tells the user how to block similar listings", as
     f.store.close();
   }
 });
+
+it("ignores free and joke asking prices in the price report", async () => {
+  const f = facebookBot();
+  try {
+    await f.run({ text: "Chest of drawers" });
+    await runWatchCycle(
+      f.store,
+      async () =>
+        [0, 1, 60, 80, 100, 1234567].map((price, i) =>
+          listing(String(i + 1), price),
+        ),
+      async () => {},
+    );
+    publishResearch(f.store, [...f.rows.values()], Date.now());
+    const sent: string[] = [];
+    await runWatchCycle(
+      f.store,
+      async () => [],
+      async (text) => {
+        sent.push(text);
+      },
+    );
+    expect(sent.join("\n")).toMatch(
+      /Lowest £60\.00 · median £80\.00 · highest £100\.00[\s\S]*3 free or placeholder prices ignored/,
+    );
+  } finally {
+    f.store.close();
+  }
+});

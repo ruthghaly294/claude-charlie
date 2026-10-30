@@ -1,4 +1,5 @@
 import { allocateBrowserPage } from "../browser-page.js";
+import { quietHours } from "../quiet-hours.js";
 import { ScrapeError } from "../errors.js";
 import { searchHasMore } from "./parser.js";
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -440,8 +441,9 @@ const marketplaceTick = async (id: string): Promise<void> => {
 };
 const tick = (): void => {
   if (stopping) return;
-  for (const watch of dueInOrder(store.list(), Date.now()))
-    marketplaceLanes.run(watch.id, () => marketplaceTick(watch.id));
+  if (!quietHours(new Date()))
+    for (const watch of dueInOrder(store.list(), Date.now()))
+      marketplaceLanes.run(watch.id, () => marketplaceTick(watch.id));
   backgroundLane.run(() =>
     backgroundTick().catch(() => {
       app.log.error(
